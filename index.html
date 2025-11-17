@@ -1,0 +1,2228 @@
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>SpeakUP – Self Love Languages</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        :root {
+            --bg: #020617;
+            --card: #020617;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.15);
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --error: #f97373;
+            --success: #4ade80;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #020617);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .app {
+            position: relative;
+            max-width: 780px;
+            width: 100%;
+            margin: auto;
+            background: radial-gradient(circle at top left, #111827, #020617);
+            border-radius: 20px;
+            padding: 16px 16px 20px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 20% 20%, #facc15, #f97316);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #111827;
+            font-size: 1.3rem;
+            box-shadow: 0 0 0 2px rgba(15,23,42,0.9), 0 0 20px rgba(250,204,21,0.6);
+        }
+
+        .header-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-main h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: 0.06em;
+        }
+
+        .header-main p {
+            margin: 2px 0 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .personal-message {
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .header-right-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .small-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        select {
+            padding: 5px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            background: #020617;
+            color: var(--text);
+            font-size: 0.78rem;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(56,189,248,0.4);
+        }
+
+        .energy-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .energy-btn {
+            border: 1px solid rgba(148,163,184,0.6);
+            background: rgba(15,23,42,0.95);
+            border-radius: 999px;
+            font-size: 0.8rem;
+            padding: 3px 6px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--muted);
+        }
+
+        .energy-btn.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .buddy-btn {
+            border-radius: 999px;
+            border: 1px solid rgba(248,250,252,0.6);
+            background: rgba(30,64,175,0.9);
+            color: #e5e7eb;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .buddy-btn span {
+            margin-right: 4px;
+        }
+
+        .coins-badge {
+            border-radius: 999px;
+            padding: 3px 8px;
+            background: rgba(21,128,61,0.18);
+            border: 1px solid rgba(34,197,94,0.7);
+            font-size: 0.78rem;
+            color: #bbf7d0;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+            margin-top: 6px;
+        }
+
+        .chip {
+            flex: 1 1 calc(33% - 6px);
+            min-width: 118px;
+            padding: 8px 10px;
+            background: #020617;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-size: 0.78rem;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s, border-color 0.15s, transform 0.08s;
+            color: var(--muted);
+        }
+
+        .chip.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .card {
+            background: radial-gradient(circle at top left, #020617, #020617);
+            border-radius: 14px;
+            padding: 12px 12px 10px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            margin-bottom: 10px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .mode-label {
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+
+        .streak-badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--accent);
+        }
+
+        .question-text {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            line-height: 1.35;
+            white-space: pre-line;
+        }
+
+        .question-helper {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 8px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: #020617;
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s, transform 0.08s, box-shadow 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-main {
+            background: linear-gradient(135deg, #0ea5e9, #22c55e);
+            color: #0b1120;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--muted);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        .dropdown-row {
+            margin-bottom: 8px;
+        }
+
+        .dropdown-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .select-wide {
+            width: 100%;
+        }
+
+        .feedback {
+            min-height: 32px;
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .feedback.correct { color: var(--success); }
+        .feedback.incorrect { color: var(--error); }
+
+        .correct-answer {
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+
+        .mindset-helper {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .stat-pill {
+            padding: 4px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .progress-bar {
+            margin-top: 6px;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            overflow: hidden;
+            border: 1px solid rgba(148,163,184,0.4);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f97316, #22c55e);
+            transition: width 0.25s ease-out;
+        }
+
+        .hint {
+            font-size: 0.74rem;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        #exerciseArea { display: block; }
+        #goodcoinsArea { display: none; }
+        #selfcheckArea { display: none; font-size: 0.86rem; color: var(--text); }
+
+        #selfcheckArea h2 {
+            margin: 4px 0 4px;
+            font-size: 1rem;
+        }
+
+        #selfcheckArea p {
+            margin: 4px 0;
+            color: var(--muted);
+        }
+
+        .selfcheck-question {
+            margin-top: 6px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            background: rgba(15,23,42,0.95);
+            border: 1px solid rgba(148,163,184,0.35);
+        }
+
+        .selfcheck-question label {
+            display: block;
+            font-size: 0.84rem;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+
+        .selfcheck-select {
+            width: 100%;
+            font-size: 0.78rem;
+            padding: 4px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            background: #020617;
+            color: var(--text);
+        }
+
+        #selfcheckResult {
+            margin-top: 8px;
+            padding: 8px 9px;
+            border-radius: 10px;
+            background: rgba(15,23,42,0.95);
+            border: 1px solid rgba(148,163,184,0.4);
+            font-size: 0.86rem;
+        }
+
+        #selfcheckDisclaimer {
+            margin-top: 6px;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .little-guy {
+            position: absolute;
+            right: 8px;
+            bottom: 12px;
+            width: 190px;
+            pointer-events: auto;
+            transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+            transform: translateY(40px);
+            opacity: 0;
+            z-index: 20;
+        }
+
+        .little-guy.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .little-guy-inner {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .little-guy-face {
+            width: 60px;
+            height: 60px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 20%, #fde68a, #f97316);
+            border: 2px solid rgba(15,23,42,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 18px rgba(248, 250, 252, 0.26);
+            position: relative;
+            animation: guy-bob 2.4s ease-in-out infinite;
+        }
+
+        .little-guy-eyes {
+            display: flex;
+            gap: 8px;
+        }
+
+        .eye {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: #0f172a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .eye::after {
+            content: "";
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(248,250,252,0.9);
+            top: 1px;
+            left: 3px;
+        }
+
+        .little-guy-hand {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: #fecaca;
+            border: 1px solid rgba(15,23,42,0.9);
+            bottom: -3px;
+            right: -4px;
+            animation: guy-knock 1.4s ease-in-out infinite;
+        }
+
+        .little-guy-message {
+            flex: 1;
+            font-size: 0.74rem;
+            background: rgba(15, 23, 42, 0.96);
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.6);
+            padding: 6px 8px;
+            color: var(--text);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+        }
+
+        .little-guy-message span {
+            display: block;
+        }
+
+        .little-guy-message small {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.7rem;
+        }
+
+        .story-answer {
+            margin-top: 4px;
+            margin-right: 4px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            background: rgba(15,23,42,0.95);
+            color: var(--text);
+            font-size: 0.7rem;
+            padding: 4px 6px;
+            cursor: pointer;
+        }
+
+        .story-answer:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .buddy-chat-input {
+            width: 100%;
+            margin-top: 4px;
+            padding: 4px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(148,163,184,0.6);
+            background: #020617;
+            color: var(--text);
+            font-size: 0.74rem;
+        }
+
+        @keyframes guy-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        @keyframes guy-knock {
+            0%, 100% { transform: translate(0, 0); }
+            30% { transform: translate(-2px, -1px); }
+            60% { transform: translate(1px, -3px); }
+        }
+
+        @media (max-width: 600px) {
+            .chip {
+                flex: 1 1 48%;
+            }
+            .little-guy {
+                right: 4px;
+                width: 170px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-right {
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <div class="header-left">
+            <div class="avatar" id="avatarCircle">?</div>
+            <div class="header-main">
+                <h1 id="titleText">SpeakUP – Self Love Languages</h1>
+                <p id="subtitleText">Sprachen lernen, während du lernst, freundlich mit dir zu sein.</p>
+                <div class="personal-message" id="personalMessage"></div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-right-row">
+                <span class="small-label" id="uiLangLabel">Interface</span>
+                <select id="uiLangSelect">
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                    <option value="pt">Português</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+            <div class="header-right-row">
+                <span class="small-label" id="baseLangLabel">Basis</span>
+                <select id="baseLangSelect">
+                    <option value="de">Deutsch</option>
+                    <option value="en">English</option>
+                    <option value="pt">Português</option>
+                    <option value="es">Español</option>
+                </select>
+                <span class="small-label">→</span>
+                <select id="targetLangSelect">
+                    <option value="pt">Português</option>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="de">Deutsch</option>
+                </select>
+            </div>
+            <div class="header-right-row">
+                <span class="small-label" id="energyLabel">Energie</span>
+                <div class="energy-buttons">
+                    <button class="energy-btn active" data-level="low">🫧</button>
+                    <button class="energy-btn" data-level="mid">🙂</button>
+                    <button class="energy-btn" data-level="high">⚡</button>
+                </div>
+            </div>
+            <div class="header-right-row">
+                <span class="coins-badge" id="coinsBadge">GoodCoins: 0 ✨</span>
+            </div>
+            <button class="buddy-btn" id="buddyButton">
+                <span>🤍</span><span id="buddyLabel">Buddy</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="chip-row" id="modeButtons">
+        <button class="chip active" data-mode="feelings" id="chipFeelings">Wörter – Gefühle</button>
+        <button class="chip" data-mode="actions" id="chipActions">Wörter – Handlungen</button>
+        <button class="chip" data-mode="affirm" id="chipAffirm">Ich-Sätze</button>
+        <button class="chip" data-mode="listen" id="chipListen">Nur hören</button>
+        <button class="chip" data-mode="goodcoins" id="chipGoodcoins">GoodCoins</button>
+        <button class="chip" data-mode="selfcheck" id="chipSelfcheck">Selbst-Check</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="mode-label" id="modeLabel">Wörter – Gefühle</span>
+            <span class="streak-badge" id="streakBadge">Streak: 0 🔥</span>
+        </div>
+
+        <div id="exerciseArea">
+            <div class="question-text" id="questionText"></div>
+            <div class="question-helper" id="questionHelper"></div>
+
+            <div class="input-row" id="textAnswerRow">
+                <input type="text" id="answerInput" autocomplete="off" placeholder="">
+                <button class="btn btn-main" id="checkButton">Prüfen</button>
+            </div>
+
+            <div class="dropdown-row" id="dropdownRow">
+                <span class="dropdown-label" id="dropdownLabel">Oder eine Antwort auswählen:</span>
+                <select id="answerSelect" class="select-wide">
+                    <option value="">–</option>
+                </select>
+            </div>
+
+            <button class="btn btn-secondary" id="skipButton" style="margin-top:4px;">Weiter / Skip</button>
+
+            <div class="feedback" id="feedback"></div>
+            <div class="correct-answer" id="correctAnswer"></div>
+            <div class="mindset-helper" id="mindsetHelper"></div>
+
+            <div class="stats" id="statsRow">
+                <div class="stat-pill" id="statQuestions">Fragen: 0</div>
+                <div class="stat-pill" id="statCorrect">Richtig: 0</div>
+                <div class="stat-pill" id="statAccuracy">Trefferquote: 0%</div>
+                <div class="stat-pill" id="statBestStreak">Beste Serie: 0</div>
+                <div class="stat-pill" id="statGoodcoins">GoodCoins: 0</div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="hint" id="hintText">
+                Dass du hier bist, ist schon eine Form von Selbstfürsorge.
+            </div>
+        </div>
+
+        <div id="goodcoinsArea">
+            <h2 id="gcTitle">GoodCoins</h2>
+            <p id="gcIntro">
+                GoodCoins sind kleine Punkte dafür, dass du auftauchst, übst und freundlich mit dir bist.
+            </p>
+            <p id="gcHowTitle">
+                Wie du GoodCoins sammelst:
+            </p>
+            <ul id="gcList">
+                <li id="gcItem1">1 GoodCoin für jede richtige Antwort.</li>
+                <li id="gcItem2">Bonus-GoodCoins bei längeren Serien von richtigen Antworten.</li>
+                <li id="gcItem3">Im Nur-hören-Modus kannst du trotzdem üben – dein Dasein zählt mehr als Punkte.</li>
+            </ul>
+            <p id="gcFuture">
+                Future Option: später könnten GoodCoins einmal gegen kleine Selfcare-Artikel, digitale Inhalte oder
+                Partner-Angebote eingelöst werden. Im Moment sind sie dein persönlicher Ich-gebe-mich-nicht-auf-Zähler.
+            </p>
+            <p id="gcMental">
+                GoodCoins sind kein Maßstab dafür, ob du gut genug bist, sondern eine Erinnerung:
+                jede einzelne Münze steht für einen Moment, in dem du dich nicht komplett aufgegeben hast.
+            </p>
+        </div>
+
+        <div id="selfcheckArea">
+            <h2 id="scTitle">Selbst-Check: Wie geht es mir gerade</h2>
+            <p id="scIntro">
+                Diese Fragen helfen dir, ein Gefühl dafür zu bekommen, wie es dir gerade mit Energie, Stimmung,
+                Verbindung und Selbstfreundlichkeit geht. Es ist keine Diagnose.
+            </p>
+
+            <div id="selfcheckQuestions"></div>
+
+            <button class="btn btn-main" id="selfcheckRunButton" style="margin-top:8px;">
+                Auswertung anzeigen
+            </button>
+
+            <div id="selfcheckResult" style="display:none;"></div>
+            <div id="selfcheckDisclaimer">
+                Diese Auswertung ersetzt keine ärztliche oder therapeutische Unterstützung.
+                Wenn du sehr leidest, dich überfordert fühlst oder an Selbstverletzung denkst,
+                wende dich bitte an eine Ärztin, einen Arzt, Therapeutinnen oder lokale Not- und Hilfsangebote.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note" id="footerNote">
+        Fortschritt und GoodCoins werden nur auf diesem Gerät gespeichert. Diese App ersetzt keine professionelle Hilfe.
+    </div>
+
+    <div class="little-guy" id="littleGuy">
+        <div class="little-guy-inner">
+            <div class="little-guy-face">
+                <div class="little-guy-eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+                <div class="little-guy-hand"></div>
+            </div>
+            <div class="little-guy-message" id="littleGuyMessage">
+                <span></span>
+                <small></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const storageKey = "speakupSelfLoveProgressV5";
+    const nameKey = "speakupSelfLoveName";
+    const uiLangKey = "speakupSelfLoveUiLang";
+    const baseLangKey = "speakupSelfLoveBaseLang";
+    const targetLangKey = "speakupSelfLoveTargetLang";
+    const energyKey = "speakupSelfLoveEnergy";
+    const milestoneKey = "speakupSelfLoveMilestones";
+
+    const langs = ["de", "en", "pt", "es"];
+
+    function langName(code) {
+        switch (code) {
+            case "de": return "German";
+            case "en": return "English";
+            case "pt": return "Portuguese";
+            case "es": return "Spanish";
+            default: return code;
+        }
+    }
+
+    const uiText = {
+        de: {
+            title: "SpeakUP – Self Love Languages",
+            subtitle: "Sprachen lernen, während du lernst, freundlich mit dir zu sein.",
+            uiLabel: "Interface",
+            baseLabel: "Basis",
+            energy: "Energie",
+            buddy: "Buddy",
+            coins: (n) => "GoodCoins: " + n + " ✨",
+            chipFeelings: "Wörter – Gefühle",
+            chipActions: "Wörter – Handlungen",
+            chipAffirm: "Ich-Sätze",
+            chipListen: "Nur hören",
+            chipGoodcoins: "GoodCoins",
+            chipSelfcheck: "Selbst-Check",
+            modeFeelings: "Wörter – Gefühle",
+            modeActions: "Wörter – Handlungen",
+            modeAffirm: "Ich-Sätze",
+            modeListen: "Nur hören",
+            modeGoodcoins: "GoodCoins",
+            modeSelfcheck: "Selbst-Check",
+            qFeelings: (b, t, wordBase) => `Wie heißt dieses Wort in ${langName(t)}? (${wordBase})`,
+            qActions: (b, t, wordBase) => `Wie heißt diese Handlung in ${langName(t)}? (${wordBase})`,
+            qAffirm: () => "Lies den Satz wie eine Nachricht an dich selbst. Übersetze ihn, wenn du magst.",
+            qListen: () => "Nur hören/lesen: lass diese Botschaft in beiden Sprachen ruhig auf dich wirken.",
+            helperFeelings: "Gefühle, die nach Ruhe, Wärme, Hoffnung oder Mut klingen.",
+            helperActions: "Handlungen in Richtung Heilung, Grenzen, Selbstfürsorge.",
+            helperAffirm: "Du kannst den Satz einfach lesen, laut sagen oder in eine andere Sprache bringen.",
+            helperListen: "Keine Eingabe nötig. Nur lesen, atmen, innerlich nachsprechen.",
+            inputPlaceholder: "Antwort eintippen (optional)",
+            dropdownLabel: "Oder eine Antwort auswählen:",
+            check: "Prüfen",
+            skipNormal: "Weiter / Skip",
+            skipListen: "Nächste Botschaft",
+            feedbackEmpty: "Du kannst etwas eintippen oder einfach eine Option wählen – beides ist okay.",
+            feedbackRightVocab: "Richtig. Du hast dir gerade ein freundliches Wort geschenkt.",
+            feedbackWrongVocab: "Nicht schlimm. Dein Wert hängt nicht an dieser Antwort.",
+            feedbackRightAffirm: "Sehr gut. Lass den Satz kurz in dir wirken.",
+            feedbackWrongAffirm: "Der Satz ist trotzdem für dich – wir schauen nur kurz auf die Form.",
+            solutionLabel: "Lösung:",
+            statsQuestions: (q) => `Fragen: ${q}`,
+            statsCorrect: (c) => `Richtig: ${c}`,
+            statsAccuracy: (a) => `Trefferquote: ${a}%`,
+            statsBest: (b) => `Beste Serie: ${b}`,
+            statsGoodcoins: (g) => `GoodCoins: ${g}`,
+            hintLow: "Heute darf alles langsam sein. Ein Wort reicht.",
+            hintMid: "Du musst nicht alles können. Dein Tempo reicht.",
+            hintHigh: "Auch mit viel Energie musst du nichts beweisen.",
+            footer: "Fortschritt und GoodCoins werden nur auf diesem Gerät gespeichert. Diese App ersetzt keine professionelle Hilfe.",
+            gcTitle: "GoodCoins",
+            gcIntro: "GoodCoins sind kleine Punkte dafür, dass du auftauchst, übst und freundlich mit dir bist.",
+            gcHowTitle: "Wie du GoodCoins sammelst:",
+            gcItem1: "1 GoodCoin für jede richtige Antwort.",
+            gcItem2: "Bonus-GoodCoins bei längeren Serien von richtigen Antworten.",
+            gcItem3: "Im Nur-hören-Modus kannst du trotzdem üben – dein Dasein zählt mehr als Punkte.",
+            gcFuture: "Future Option: später könnten GoodCoins einmal gegen kleine Selfcare-Artikel, digitale Inhalte oder Partner-Angebote eingelöst werden. Im Moment sind sie dein persönlicher Ich-gebe-mich-nicht-auf-Zähler.",
+            gcMental: "GoodCoins sind kein Maßstab dafür, ob du gut genug bist, sondern eine Erinnerung: jede einzelne Münze steht für einen Moment, in dem du dich nicht komplett aufgegeben hast.",
+            scTitle: "Selbst-Check: Wie geht es mir gerade",
+            scIntro: "Diese Fragen helfen dir, ein Gefühl dafür zu bekommen, wie es dir gerade mit Energie, Stimmung, Verbindung und Selbstfreundlichkeit geht. Es ist keine Diagnose.",
+            scScaleLabel: "Antwortskala",
+            scRunButton: "Auswertung anzeigen",
+            scResultLow: "Deine Antworten deuten darauf hin, dass gerade vieles schwer ist. Es klingt nach wenig Energie und eher gedrückter Stimmung.",
+            scResultMid: "Deine Antworten liegen eher im mittleren Bereich. Es gibt Belastung, aber auch kleine Inseln, die dich tragen.",
+            scResultHigh: "Du scheinst trotz allem Zugang zu etwas Energie, Verbindung und Hoffnung zu haben.",
+            scNeedsEnergy: "Dir könnte helfen, bewusst kleine Erholungsinseln einzuplanen: Wasser, Essen, Schlaf, ein paar Minuten ohne Reiz.",
+            scNeedsConnection: "Es klingt, als wäre Verbindung wichtig. Eine Nachricht an eine vertraute Person, ein kurzer Kontakt kann ein Anfang sein.",
+            scNeedsSelfkind: "Sei sanft mit dir, vor allem bei Fehlern. Du musst nicht hart zu dir sein, um dich zu entwickeln.",
+            scNeedsOverwhelm: "Überforderung ist ernst. Es kann helfen, Aufgaben sehr klein zu schneiden und dir Hilfe zu holen.",
+            scDisclaimer: "Diese Auswertung ersetzt keine ärztliche oder therapeutische Unterstützung. Wenn du sehr leidest, dich überfordert fühlst oder an Selbstverletzung denkst, wende dich bitte an eine Ärztin, einen Arzt, Therapeutinnen oder lokale Not- und Hilfsangebote.",
+            scScaleOptions: [
+                "trifft gar nicht zu",
+                "trifft eher selten zu",
+                "teils, teils",
+                "trifft oft zu",
+                "trifft stark zu"
+            ]
+        },
+        en: {
+            title: "SpeakUP – Self Love Languages",
+            subtitle: "Learn languages while you learn to be gentle with yourself.",
+            uiLabel: "Interface",
+            baseLabel: "Base",
+            energy: "Energy",
+            buddy: "Buddy",
+            coins: (n) => "GoodCoins: " + n + " ✨",
+            chipFeelings: "Words – Feelings",
+            chipActions: "Words – Actions",
+            chipAffirm: "I-messages",
+            chipListen: "Listen only",
+            chipGoodcoins: "GoodCoins",
+            chipSelfcheck: "Self check",
+            modeFeelings: "Words – Feelings",
+            modeActions: "Words – Actions",
+            modeAffirm: "I-messages",
+            modeListen: "Listen only",
+            modeGoodcoins: "GoodCoins",
+            modeSelfcheck: "Self check",
+            qFeelings: (b, t, wordBase) => `What is this word in ${langName(t)}? (${wordBase})`,
+            qActions: (b, t, wordBase) => `What is this action in ${langName(t)}? (${wordBase})`,
+            qAffirm: () => "Read the sentence like a message to yourself. Translate if you want.",
+            qListen: () => "Listen/read only: let this message in both languages sink in gently.",
+            helperFeelings: "Feelings of calm, warmth, hope and courage.",
+            helperActions: "Gentle actions towards healing, boundaries and self-care.",
+            helperAffirm: "You can just read it, say it out loud or put it in another language.",
+            helperListen: "No input needed. Just read, breathe, maybe repeat inside.",
+            inputPlaceholder: "Type your answer (optional)",
+            dropdownLabel: "Or choose an answer:",
+            check: "Check",
+            skipNormal: "Next / Skip",
+            skipListen: "Next message",
+            feedbackEmpty: "You can type or just choose from the list – both are okay.",
+            feedbackRightVocab: "Nice. You just added a gentle word for yourself.",
+            feedbackWrongVocab: "It is okay. Your worth is not in this answer.",
+            feedbackRightAffirm: "Good. Let the sentence sink in for a moment.",
+            feedbackWrongAffirm: "The sentence is still for you – we just look at the form.",
+            solutionLabel: "Solution:",
+            statsQuestions: (q) => `Questions: ${q}`,
+            statsCorrect: (c) => `Correct: ${c}`,
+            statsAccuracy: (a) => `Accuracy: ${a}%`,
+            statsBest: (b) => `Best streak: ${b}`,
+            statsGoodcoins: (g) => `GoodCoins: ${g}`,
+            hintLow: "Today can be very slow. One word is enough.",
+            hintMid: "You do not need full power. Your pace is valid.",
+            hintHigh: "Even with energy you do not have to prove anything.",
+            footer: "Progress and GoodCoins are stored only on this device. This app does not replace professional help.",
+            gcTitle: "GoodCoins",
+            gcIntro: "GoodCoins are small points for showing up, practicing and being gentle with yourself.",
+            gcHowTitle: "How you earn GoodCoins:",
+            gcItem1: "1 GoodCoin for each correct answer.",
+            gcItem2: "Bonus GoodCoins when you keep a streak of correct answers.",
+            gcItem3: "In listen-only mode you still practice; being here matters more than points.",
+            gcFuture: "Future option: later, GoodCoins could be exchanged for small self-care items, digital content or partner perks. For now, they are your I-did-not-give-up counter.",
+            gcMental: "GoodCoins are not a measure of whether you are good enough, but a reminder: each coin is a moment where you did not fully give up on yourself.",
+            scTitle: "Self check: how am I doing right now",
+            scIntro: "These questions help you sense how you are doing with energy, mood, connection and self-kindness. This is not a diagnosis.",
+            scScaleLabel: "Answer scale",
+            scRunButton: "Show reflection",
+            scResultLow: "Your answers suggest that many things feel heavy right now. It sounds like low energy and a rather low mood.",
+            scResultMid: "Your answers are in the middle range. There is strain, but also some small islands that support you.",
+            scResultHigh: "You seem to have some access to energy, connection and hope, even if not every day.",
+            scNeedsEnergy: "Small moments of rest may help: water, food, sleep, a few minutes with less input.",
+            scNeedsConnection: "Connection sounds important. A short message to a trusted person can already be a step.",
+            scNeedsSelfkind: "Try to be gentle with yourself, especially when you make mistakes.",
+            scNeedsOverwhelm: "Feeling overwhelmed is serious. It can help to make tasks very small and to ask for support.",
+            scDisclaimer: "This reflection does not replace medical or therapeutic help. If you suffer a lot, feel overwhelmed or think about self-harm, please reach out to doctors, therapists or local emergency and support services.",
+            scScaleOptions: [
+                "does not fit at all",
+                "rarely true",
+                "somewhat true",
+                "often true",
+                "very true"
+            ]
+        },
+        pt: {
+            title: "SpeakUP – Self Love Languages",
+            subtitle: "Aprende línguas enquanto aprendes a ser gentil contigo.",
+            uiLabel: "Interface",
+            baseLabel: "Base",
+            energy: "Energia",
+            buddy: "Buddy",
+            coins: (n) => "GoodCoins: " + n + " ✨",
+            chipFeelings: "Palavras – Sentimentos",
+            chipActions: "Palavras – Ações",
+            chipAffirm: "Frases de eu",
+            chipListen: "Só ouvir/ler",
+            chipGoodcoins: "GoodCoins",
+            chipSelfcheck: "Auto-check",
+            modeFeelings: "Palavras – Sentimentos",
+            modeActions: "Palavras – Ações",
+            modeAffirm: "Frases de eu",
+            modeListen: "Só ouvir/ler",
+            modeGoodcoins: "GoodCoins",
+            modeSelfcheck: "Auto-check",
+            qFeelings: (b, t, wordBase) => `Como se diz esta palavra em ${langName(t)}? (${wordBase})`,
+            qActions: (b, t, wordBase) => `Como se diz esta ação em ${langName(t)}? (${wordBase})`,
+            qAffirm: () => "Lê a frase como uma mensagem para ti. Traduz se quiseres.",
+            qListen: () => "Só ouvir/ler: deixa esta mensagem em ambas as línguas pousar em ti.",
+            helperFeelings: "Sentimentos de calma, calor, esperança e coragem.",
+            helperActions: "Ações suaves em direção à cura, limites e autocuidado.",
+            helperAffirm: "Podes só ler, dizer em voz alta ou pôr noutra língua.",
+            helperListen: "Não é preciso escrever nada. Só ler, respirar e talvez repetir por dentro.",
+            inputPlaceholder: "Escreve a resposta (opcional)",
+            dropdownLabel: "Ou escolhe uma resposta:",
+            check: "Verificar",
+            skipNormal: "Seguinte / Saltar",
+            skipListen: "Próxima mensagem",
+            feedbackEmpty: "Podes escrever ou só escolher da lista – as duas formas são válidas.",
+            feedbackRightVocab: "Certo. Acabaste de ganhar uma palavra gentil para ti.",
+            feedbackWrongVocab: "Não faz mal. O teu valor não está nesta resposta.",
+            feedbackRightAffirm: "Muito bem. Deixa a frase entrar devagar.",
+            feedbackWrongAffirm: "A frase continua a ser para ti – só olhamos para a forma.",
+            solutionLabel: "Solução:",
+            statsQuestions: (q) => `Perguntas: ${q}`,
+            statsCorrect: (c) => `Certas: ${c}`,
+            statsAccuracy: (a) => `Precisão: ${a}%`,
+            statsBest: (b) => `Melhor série: ${b}`,
+            statsGoodcoins: (g) => `GoodCoins: ${g}`,
+            hintLow: "Hoje pode ser tudo muito devagar. Uma palavra chega.",
+            hintMid: "Não precisas de estar a 100%. O teu ritmo vale.",
+            hintHigh: "Mesmo com energia, não tens de provar nada.",
+            footer: "O progresso e os GoodCoins ficam apenas neste dispositivo. Esta app não substitui ajuda profissional.",
+            gcTitle: "GoodCoins",
+            gcIntro: "GoodCoins são pequenos pontos por apareceres, praticares e seres gentil contigo.",
+            gcHowTitle: "Como ganhas GoodCoins:",
+            gcItem1: "1 GoodCoin por cada resposta certa.",
+            gcItem2: "GoodCoins extra quando fazes várias respostas certas seguidas.",
+            gcItem3: "No modo só ouvir/ler continuas a praticar; estar aqui conta mais do que os pontos.",
+            gcFuture: "Future option: mais tarde poderás trocar GoodCoins por pequenos itens de autocuidado, conteúdos digitais ou ofertas de parceiros. Por agora são o teu contador de eu-ainda-não-desisti.",
+            gcMental: "GoodCoins não medem se és boa(o) o suficiente, são um lembrete: cada moeda é um momento em que não te abandonaste totalmente.",
+            scTitle: "Auto-check: como estou agora",
+            scIntro: "Estas perguntas ajudam-te a sentir como estás com energia, humor, ligação e gentileza contigo. Não é um diagnóstico.",
+            scScaleLabel: "Escala de resposta",
+            scRunButton: "Ver reflexão",
+            scResultLow: "As respostas mostram que muita coisa está pesada neste momento. Parece haver pouca energia e um humor mais em baixo.",
+            scResultMid: "As respostas estão mais no meio. Há carga, mas também algumas ilhas que te seguram.",
+            scResultHigh: "Parece que ainda tens algum acesso a energia, ligação e esperança, mesmo que não seja sempre.",
+            scNeedsEnergy: "Pode ajudar criar pequenos momentos de descanso: água, comida, sono, alguns minutos com menos estímulos.",
+            scNeedsConnection: "Ligação parece importante. Uma mensagem curta para alguém de confiança já é um passo.",
+            scNeedsSelfkind: "Tenta ser gentil contigo, sobretudo quando cometes erros.",
+            scNeedsOverwhelm: "A sobrecarga é séria. Pode ajudar dividir tarefas em partes muito pequenas e pedir apoio.",
+            scDisclaimer: "Esta reflexão não substitui apoio médico ou terapêutico. Se sofres muito, te sentes sobrecarregada(o) ou pensas em fazer mal a ti mesma(o), procura médicos, terapeutas ou serviços de emergência e apoio locais.",
+            scScaleOptions: [
+                "não se aplica",
+                "quase nunca é verdade",
+                "mais ou menos verdade",
+                "muitas vezes é verdade",
+                "aplica-se bastante"
+            ]
+        },
+        es: {
+            title: "SpeakUP – Self Love Languages",
+            subtitle: "Aprende idiomas mientras aprendes a tratarte con cariño.",
+            uiLabel: "Interface",
+            baseLabel: "Base",
+            energy: "Energía",
+            buddy: "Buddy",
+            coins: (n) => "GoodCoins: " + n + " ✨",
+            chipFeelings: "Palabras – Sentimientos",
+            chipActions: "Palabras – Acciones",
+            chipAffirm: "Frases de yo",
+            chipListen: "Solo escuchar/leer",
+            chipGoodcoins: "GoodCoins",
+            chipSelfcheck: "Auto-check",
+            modeFeelings: "Palabras – Sentimientos",
+            modeActions: "Palabras – Acciones",
+            modeAffirm: "Frases de yo",
+            modeListen: "Solo escuchar/leer",
+            modeGoodcoins: "GoodCoins",
+            modeSelfcheck: "Auto-check",
+            qFeelings: (b, t, wordBase) => `¿Cómo se dice esta palabra en ${langName(t)}? (${wordBase})`,
+            qActions: (b, t, wordBase) => `¿Cómo se dice esta acción en ${langName(t)}? (${wordBase})`,
+            qAffirm: () => "Lee la frase como un mensaje para ti. Tradúcela si quieres.",
+            qListen: () => "Solo escuchar/leer: deja que este mensaje en ambos idiomas repose un momento en ti.",
+            helperFeelings: "Sentimientos de calma, calor, esperanza y valentía.",
+            helperActions: "Acciones suaves hacia la sanación, los límites y el autocuidado.",
+            helperAffirm: "Puedes solo leerla, decirla en voz alta o ponerla en otro idioma.",
+            helperListen: "No hace falta escribir nada. Solo leer, respirar y quizá repetir por dentro.",
+            inputPlaceholder: "Escribe la respuesta (opcional)",
+            dropdownLabel: "O elige una respuesta:",
+            check: "Comprobar",
+            skipNormal: "Siguiente / Saltar",
+            skipListen: "Siguiente mensaje",
+            feedbackEmpty: "Puedes escribir o solo elegir de la lista; las dos cosas están bien.",
+            feedbackRightVocab: "Bien. Acabas de ganar una palabra amable para ti.",
+            feedbackWrongVocab: "No pasa nada. Tu valor no está en esta respuesta.",
+            feedbackRightAffirm: "Muy bien. Deja que la frase se quede un momento.",
+            feedbackWrongAffirm: "La frase sigue siendo para ti; solo miramos la forma.",
+            solutionLabel: "Solución:",
+            statsQuestions: (q) => `Preguntas: ${q}`,
+            statsCorrect: (c) => `Correctas: ${c}`,
+            statsAccuracy: (a) => `Precisión: ${a}%`,
+            statsBest: (b) => `Mejor racha: ${b}`,
+            statsGoodcoins: (g) => `GoodCoins: ${g}`,
+            hintLow: "Hoy todo puede ir muy despacio. Una palabra basta.",
+            hintMid: "No tienes que estar al 100%. Tu ritmo vale.",
+            hintHigh: "Aunque tengas energía, no tienes que demostrar nada.",
+            footer: "El progreso y los GoodCoins se guardan solo en este dispositivo. Esta app no sustituye ayuda profesional.",
+            gcTitle: "GoodCoins",
+            gcIntro: "GoodCoins son pequeños puntos por aparecer, practicar y tratarte con cariño.",
+            gcHowTitle: "Cómo ganas GoodCoins:",
+            gcItem1: "1 GoodCoin por cada respuesta correcta.",
+            gcItem2: "GoodCoins extra cuando mantienes varias respuestas correctas seguidas.",
+            gcItem3: "En el modo solo escuchar/leer sigues practicando; estar aquí cuenta más que los puntos.",
+            gcFuture: "Future option: más adelante quizá puedas cambiar GoodCoins por pequeños artículos de autocuidado, contenido digital o ventajas con socios. Por ahora son tu contador de no-me-he-rendido-del-todo.",
+            gcMental: "Los GoodCoins no miden si eres suficiente, son un recordatorio: cada moneda es un momento en el que no te abandonaste por completo.",
+            scTitle: "Auto-check: cómo estoy ahora",
+            scIntro: "Estas preguntas te ayudan a sentir cómo estás de energía, estado de ánimo, conexión y ternura contigo. No es un diagnóstico.",
+            scScaleLabel: "Escala de respuesta",
+            scRunButton: "Ver reflexión",
+            scResultLow: "Tus respuestas indican que ahora muchas cosas se sienten pesadas. Parece poca energía y un ánimo más bajo.",
+            scResultMid: "Tus respuestas están en un punto intermedio. Hay carga, pero también pequeñas islas que te sostienen.",
+            scResultHigh: "Parece que aún tienes algo de acceso a la energía, la conexión y la esperanza, aunque no sea siempre.",
+            scNeedsEnergy: "Pueden ayudarte pequeños momentos de descanso: agua, comida, sueño, unos minutos con menos estímulos.",
+            scNeedsConnection: "La conexión parece importante. Un mensaje corto a alguien de confianza ya es un paso.",
+            scNeedsSelfkind: "Intenta tratarte con ternura, sobre todo cuando te equivocas.",
+            scNeedsOverwhelm: "La sobrecarga es seria. Puede ayudar trocear las tareas en partes muy pequeñas y pedir apoyo.",
+            scDisclaimer: "Esta reflexión no sustituye ayuda médica o terapéutica. Si sufres mucho, te sientes sobrepasada(o) o piensas en hacerte daño, acude a médicos, terapeutas o servicios de emergencia y apoyo locales.",
+            scScaleOptions: [
+                "no se aplica",
+                "casi nunca es cierto",
+                "a medias",
+                "a menudo es cierto",
+                "muy cierto"
+            ]
+        }
+    };
+
+    const feelings = [
+        { key: "calm", de: "die Ruhe", en: "calm", pt: "a calma", es: "la calma" },
+        { key: "hope", de: "die Hoffnung", en: "hope", pt: "a esperança", es: "la esperanza" },
+        { key: "trust", de: "das Vertrauen", en: "trust", pt: "a confiança", es: "la confianza" },
+        { key: "courage", de: "der Mut", en: "courage", pt: "a coragem", es: "el valor" },
+        { key: "gratitude", de: "die Dankbarkeit", en: "gratitude", pt: "a gratidão", es: "la gratitud" },
+        { key: "softness", de: "die Sanftheit", en: "softness", pt: "a suavidade", es: "la suavidad" },
+        { key: "selfLove", de: "die Selbstliebe", en: "self-love", pt: "o amor-próprio", es: "el amor propio" },
+        { key: "peace", de: "der innere Frieden", en: "inner peace", pt: "a paz interior", es: "la paz interior" },
+        { key: "safety", de: "die Geborgenheit", en: "feeling safe", pt: "o sentimento de segurança", es: "la sensación de seguridad" },
+        { key: "acceptance", de: "die Selbstakzeptanz", en: "self-acceptance", pt: "a autoaceitação", es: "la autoaceptación" },
+        { key: "curiosity", de: "die Neugier", en: "curiosity", pt: "a curiosidade", es: "la curiosidad" },
+        { key: "tenderness", de: "die Zärtlichkeit", en: "tenderness", pt: "a ternura", es: "la ternura" }
+    ];
+
+    const actions = [
+        { key: "continue", de: "weitergehen", en: "to keep going", pt: "continuar em frente", es: "seguir adelante" },
+        { key: "rest", de: "mich ausruhen", en: "to rest", pt: "descansar", es: "descansar" },
+        { key: "breathe", de: "tief atmen", en: "to breathe deeply", pt: "respirar profundamente", es: "respirar profundamente" },
+        { key: "beKind", de: "freundlich zu mir sein", en: "to be kind to myself", pt: "ser gentil comigo", es: "ser amable conmigo" },
+        { key: "setBoundaries", de: "Grenzen setzen", en: "to set boundaries", pt: "definir limites", es: "poner límites" },
+        { key: "forgiveSelf", de: "mir vergeben", en: "to forgive myself", pt: "perdoar-me", es: "perdonarme" },
+        { key: "askHelp", de: "um Hilfe bitten", en: "to ask for help", pt: "pedir ajuda", es: "pedir ayuda" },
+        { key: "drinkWater", de: "ein Glas Wasser trinken", en: "to drink a glass of water", pt: "beber um copo de água", es: "beber un vaso de agua" },
+        { key: "goOutside", de: "kurz nach draußen gehen", en: "to go outside for a moment", pt: "sair um pouco lá fora", es: "salir un momento al aire libre" },
+        { key: "writeFeelings", de: "meine Gefühle aufschreiben", en: "to write down my feelings", pt: "escrever o que sinto", es: "escribir lo que siento" },
+        { key: "sayNo", de: "Nein sagen", en: "to say no", pt: "dizer não", es: "decir que no" },
+        { key: "hugSelf", de: "mich selbst umarmen", en: "to hug myself", pt: "abraçar-me a mim mesma(o)", es: "abrazarme a mí misma(o)" }
+    ];
+
+    const affirmations = [
+        {
+            key: "enough",
+            de: "Ich bin genug, auch an schwierigen Tagen.",
+            en: "I am enough, even on difficult days.",
+            pt: "Eu sou suficiente, mesmo nos dias difíceis.",
+            es: "Soy suficiente, incluso en los días difíciles.",
+            notes: {
+                low: {
+                    de: "Du musst heute nichts beweisen. Dass du da bist, reicht.",
+                    en: "You do not have to prove anything today. Being here is enough.",
+                    pt: "Hoje não precisas de provar nada. Estar aqui já chega.",
+                    es: "Hoy no tienes que demostrar nada. Estar aquí ya basta."
+                },
+                mid: {
+                    de: "Deine Leistung entscheidet nicht darüber, ob du genug bist.",
+                    en: "Your performance does not decide if you are enough.",
+                    pt: "O teu desempenho não decide se és suficiente.",
+                    es: "Tu rendimiento no decide si eres suficiente."
+                },
+                high: {
+                    de: "Auch mit viel Energie bist du nicht nur das, was du schaffst.",
+                    en: "Even with a lot of energy, you are not only what you achieve.",
+                    pt: "Mesmo com muita energia, não és só o que fazes.",
+                    es: "Aunque tengas mucha energía, no eres solo lo que haces."
+                }
+            }
+        },
+        {
+            key: "smallSteps",
+            de: "Auch kleine Schritte bringen mich weiter.",
+            en: "Even small steps move me forward.",
+            pt: "Mesmo passos pequenos fazem-me avançar.",
+            es: "Incluso los pasos pequeños me hacen avanzar.",
+            notes: {
+                low: {
+                    de: "Wenn es heute nur ein Wort ist, reicht das.",
+                    en: "If today is only one word, that is still enough.",
+                    pt: "Se hoje for só uma palavra, já é suficiente.",
+                    es: "Si hoy solo es una palabra, ya es suficiente."
+                },
+                mid: {
+                    de: "Mehrere kleine Schritte sind genauso wertvoll wie ein großer.",
+                    en: "Many small steps are as valuable as one big step.",
+                    pt: "Vários passos pequenos valem tanto como um grande.",
+                    es: "Varios pasos pequeños valen tanto como uno grande."
+                },
+                high: {
+                    de: "Du kannst deine Energie in viele kleine, freundliche Schritte legen.",
+                    en: "You can put your energy into many small, kind steps.",
+                    pt: "Podes pôr a tua energia em muitos passos pequenos e gentis.",
+                    es: "Puedes poner tu energía en muchos pasos pequeños y amables."
+                }
+            }
+        },
+        {
+            key: "rest",
+            de: "Ich verdiene Ruhe, auch wenn ich viel zu tun habe.",
+            en: "I deserve rest, even when there is a lot to do.",
+            pt: "Eu mereço descanso, mesmo quando há muito para fazer.",
+            es: "Merezco descansar, incluso cuando hay mucho que hacer.",
+            notes: {
+                low: {
+                    de: "Gerade wenn alles schwer ist, ist Ruhe kein Luxus.",
+                    en: "Especially when everything is heavy, rest is not a luxury.",
+                    pt: "Principalmente quando tudo é pesado, descanso não é luxo.",
+                    es: "Sobre todo cuando todo pesa, descansar no es un lujo."
+                },
+                mid: {
+                    de: "Du darfst Aufgaben leiser drehen, damit du atmen kannst.",
+                    en: "You may turn tasks down so you can breathe.",
+                    pt: "Podes baixar o volume das tarefas para conseguires respirar.",
+                    es: "Puedes bajar el volumen de las tareas para poder respirar."
+                },
+                high: {
+                    de: "Ruhe hilft dir, deine Energie länger zu halten.",
+                    en: "Rest helps you keep your energy longer.",
+                    pt: "Descansar ajuda-te a manter a energia por mais tempo.",
+                    es: "Descansar te ayuda a mantener la energía más tiempo."
+                }
+            }
+        },
+        {
+            key: "worthy",
+            de: "Ich habe Wert, auch wenn ich gerade kämpfe.",
+            en: "I am worthy, even when I am struggling.",
+            pt: "Eu tenho valor, mesmo quando estou a lutar.",
+            es: "Tengo valor, incluso cuando estoy luchando.",
+            notes: {
+                low: {
+                    de: "Dein Wert sinkt nicht, nur weil es dir schwer fällt.",
+                    en: "Your worth does not go down just because things are hard.",
+                    pt: "O teu valor não desce só porque as coisas estão difíceis.",
+                    es: "Tu valor no baja solo porque las cosas son difíciles."
+                },
+                mid: {
+                    de: "Du darfst Hilfe annehmen und trotzdem stark sein.",
+                    en: "You can accept help and still be strong.",
+                    pt: "Podes aceitar ajuda e continuar forte.",
+                    es: "Puedes aceptar ayuda y seguir siendo fuerte."
+                },
+                high: {
+                    de: "Deine Kraft ist nicht nur in dem, was du schaffst, sondern darin, dass du weitermachst.",
+                    en: "Your strength is not only in what you do, but in the fact that you continue.",
+                    pt: "A tua força não está só no que fazes, mas em continuares.",
+                    es: "Tu fuerza no está solo en lo que haces, sino en seguir adelante."
+                }
+            }
+        }
+    ];
+
+    const selfcheckQuestionsData = {
+        de: [
+            { id: "mood", text: "In den letzten Tagen: Wie oft fühlst du dich innerlich schwer, leer oder sehr traurig?", dim: "mood" },
+            { id: "energy", text: "Wie schwer fällt es dir, alltägliche Dinge wie Aufstehen, Essen machen oder Duschen zu schaffen?", dim: "energy" },
+            { id: "connection", text: "Wie oft fühlst du dich eher allein oder nicht wirklich verbunden mit anderen?", dim: "connection" },
+            { id: "selfkind", text: "Wie streng oder hart bist du zu dir, wenn du einen Fehler machst?", dim: "selfkind" },
+            { id: "overwhelm", text: "Wie oft fühlst du dich überfordert, gereizt oder nah am Weinen?", dim: "overwhelm" },
+            { id: "hope", text: "Wie stark ist deine Hoffnung, dass die nächste Zeit etwas leichter werden kann?", dim: "mood" }
+        ],
+        en: [
+            { id: "mood", text: "These days: how often do you feel heavy inside, empty or very sad?", dim: "mood" },
+            { id: "energy", text: "How hard is it to do everyday things like getting up, making food or taking a shower?", dim: "energy" },
+            { id: "connection", text: "How often do you feel rather alone or not really connected to others?", dim: "connection" },
+            { id: "selfkind", text: "How strict or harsh are you with yourself when you make a mistake?", dim: "selfkind" },
+            { id: "overwhelm", text: "How often do you feel overwhelmed, on edge or close to tears?", dim: "overwhelm" },
+            { id: "hope", text: "How strong is your sense of hope that the near future can get a bit lighter?", dim: "mood" }
+        ],
+        pt: [
+            { id: "mood", text: "Nestes dias: com que frequência te sentes pesada(o) por dentro, vazia(o) ou muito triste?", dim: "mood" },
+            { id: "energy", text: "Quão difícil é fazer coisas do dia a dia como levantar, cozinhar ou tomar banho?", dim: "energy" },
+            { id: "connection", text: "Com que frequência te sentes mais sozinha(o) ou pouco ligada(o) aos outros?", dim: "connection" },
+            { id: "selfkind", text: "Quão dura(o) és contigo quando cometes um erro?", dim: "selfkind" },
+            { id: "overwhelm", text: "Com que frequência te sentes sobrecarregada(o), irritada(o) ou quase a chorar?", dim: "overwhelm" },
+            { id: "hope", text: "Quão forte é a tua sensação de esperança de que o futuro próximo possa ficar um pouco mais leve?", dim: "mood" }
+        ],
+        es: [
+            { id: "mood", text: "En estos días: ¿con qué frecuencia te sientes pesada(o) por dentro, vacía(o) o muy triste?", dim: "mood" },
+            { id: "energy", text: "¿Qué tan difícil es hacer cosas diarias como levantarte, cocinar o ducharte?", dim: "energy" },
+            { id: "connection", text: "¿Con qué frecuencia te sientes más bien sola(o) o poco conectada(o) con otros?", dim: "connection" },
+            { id: "selfkind", text: "¿Qué tan dura(o) eres contigo cuando cometes un error?", dim: "selfkind" },
+            { id: "overwhelm", text: "¿Con qué frecuencia te sientes sobrepasada(o), irritable o al borde del llanto?", dim: "overwhelm" },
+            { id: "hope", text: "¿Qué tan fuerte es tu sensación de esperanza de que el futuro cercano pueda ser un poco más ligero?", dim: "mood" }
+        ]
+    };
+
+    const avatarCircle = document.getElementById("avatarCircle");
+    const personalMessage = document.getElementById("personalMessage");
+    const titleTextEl = document.getElementById("titleText");
+    const subtitleTextEl = document.getElementById("subtitleText");
+    const uiLangLabelEl = document.getElementById("uiLangLabel");
+    const baseLangLabelEl = document.getElementById("baseLangLabel");
+    const energyLabelEl = document.getElementById("energyLabel");
+    const buddyButton = document.getElementById("buddyButton");
+    const buddyLabel = document.getElementById("buddyLabel");
+    const coinsBadge = document.getElementById("coinsBadge");
+
+    const uiLangSelect = document.getElementById("uiLangSelect");
+    const baseLangSelect = document.getElementById("baseLangSelect");
+    const targetLangSelect = document.getElementById("targetLangSelect");
+
+    const energyButtons = document.querySelectorAll(".energy-btn");
+    const modeButtons = document.getElementById("modeButtons");
+    const chipFeelings = document.getElementById("chipFeelings");
+    const chipActions = document.getElementById("chipActions");
+    const chipAffirm = document.getElementById("chipAffirm");
+    const chipListen = document.getElementById("chipListen");
+    const chipGoodcoins = document.getElementById("chipGoodcoins");
+    const chipSelfcheck = document.getElementById("chipSelfcheck");
+
+    const modeLabel = document.getElementById("modeLabel");
+    const streakBadge = document.getElementById("streakBadge");
+    const questionText = document.getElementById("questionText");
+    const questionHelper = document.getElementById("questionHelper");
+
+    const exerciseArea = document.getElementById("exerciseArea");
+    const goodcoinsArea = document.getElementById("goodcoinsArea");
+    const selfcheckArea = document.getElementById("selfcheckArea");
+    const selfcheckQuestionsDiv = document.getElementById("selfcheckQuestions");
+    const selfcheckRunButton = document.getElementById("selfcheckRunButton");
+    const selfcheckResult = document.getElementById("selfcheckResult");
+    const scTitle = document.getElementById("scTitle");
+    const scIntro = document.getElementById("scIntro");
+
+    const answerInput = document.getElementById("answerInput");
+    const answerSelect = document.getElementById("answerSelect");
+    const dropdownLabelEl = document.getElementById("dropdownLabel");
+    const checkButton = document.getElementById("checkButton");
+    const skipButton = document.getElementById("skipButton");
+    const feedback = document.getElementById("feedback");
+    const correctAnswer = document.getElementById("correctAnswer");
+    const mindsetHelper = document.getElementById("mindsetHelper");
+
+    const statQuestions = document.getElementById("statQuestions");
+    const statCorrect = document.getElementById("statCorrect");
+    const statAccuracy = document.getElementById("statAccuracy");
+    const statBestStreak = document.getElementById("statBestStreak");
+    const statGoodcoins = document.getElementById("statGoodcoins");
+    const progressFill = document.getElementById("progressFill");
+    const hintText = document.getElementById("hintText");
+    const footerNote = document.getElementById("footerNote");
+
+    const gcTitle = document.getElementById("gcTitle");
+    const gcIntro = document.getElementById("gcIntro");
+    const gcHowTitle = document.getElementById("gcHowTitle");
+    const gcItem1 = document.getElementById("gcItem1");
+    const gcItem2 = document.getElementById("gcItem2");
+    const gcItem3 = document.getElementById("gcItem3");
+    const gcFuture = document.getElementById("gcFuture");
+    const gcMental = document.getElementById("gcMental");
+
+    const littleGuy = document.getElementById("littleGuy");
+    const littleGuyMessage = document.getElementById("littleGuyMessage");
+
+    let uiLang = loadUiLang();
+    let baseLang = loadBaseLang();
+    let targetLang = loadTargetLang();
+    let energyLevel = loadEnergy();
+    let userName = loadUserName();
+    let progress = loadProgress();
+    let milestones = loadMilestones();
+    let currentMode = "feelings";
+    let currentQuestion = null;
+    let littleGuyTimeout = null;
+    let audioCtx = null;
+    let buddyChatActive = false;
+
+    function loadUiLang() {
+        const saved = localStorage.getItem(uiLangKey);
+        if (saved && uiText[saved]) return saved;
+        return "de";
+    }
+
+    function loadBaseLang() {
+        const saved = localStorage.getItem(baseLangKey);
+        if (saved && langs.includes(saved)) return saved;
+        return "de";
+    }
+
+    function loadTargetLang() {
+        const saved = localStorage.getItem(targetLangKey);
+        if (saved && langs.includes(saved)) return saved;
+        if (baseLang === "de") return "en";
+        return "de";
+    }
+
+    function loadEnergy() {
+        const saved = localStorage.getItem(energyKey);
+        if (saved === "low" || saved === "mid" || saved === "high") return saved;
+        return "low";
+    }
+
+    function loadProgress() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return { total: 0, correct: 0, streak: 0, bestStreak: 0, goodcoins: 0 };
+            const data = JSON.parse(raw);
+            return {
+                total: data.total || 0,
+                correct: data.correct || 0,
+                streak: data.streak || 0,
+                bestStreak: data.bestStreak || 0,
+                goodcoins: data.goodcoins || 0
+            };
+        } catch {
+            return { total: 0, correct: 0, streak: 0, bestStreak: 0, goodcoins: 0 };
+        }
+    }
+
+    function saveProgress() {
+        localStorage.setItem(storageKey, JSON.stringify(progress));
+    }
+
+    function loadMilestones() {
+        try {
+            const raw = localStorage.getItem(milestoneKey);
+            if (!raw) return {};
+            return JSON.parse(raw);
+        } catch {
+            return {};
+        }
+    }
+
+    function saveMilestones() {
+        localStorage.setItem(milestoneKey, JSON.stringify(milestones));
+    }
+
+    function loadUserName() {
+        const saved = localStorage.getItem(nameKey);
+        if (saved && saved.trim()) return saved.trim();
+        const name = prompt("Wie heißt du hier in SpeakUP?") || "Du";
+        localStorage.setItem(nameKey, name);
+        return name;
+    }
+
+    function normalize(str) {
+        return str.toLowerCase().trim().replace(/\s+/g, " ");
+    }
+
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    function pickRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function getAudioCtx() {
+        if (!("AudioContext" in window || "webkitAudioContext" in window)) return null;
+        if (!audioCtx) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new Ctx();
+        }
+        return audioCtx;
+    }
+
+    function playPing() {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0, now);
+        gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.25);
+    }
+
+    function playGong() {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc1.type = "sine";
+        osc2.type = "sine";
+        osc1.frequency.value = 240;
+        osc2.frequency.value = 480;
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 1.8);
+        osc2.stop(now + 1.8);
+    }
+
+    function speakNameLine(kind) {
+        if (!("speechSynthesis" in window)) return;
+        let text;
+        if (uiLang === "de") {
+            if (kind === "buddy") text = userName + ", ich bin hier bei dir.";
+            else if (kind === "milestone") text = userName + ", schau mal, wie weit du schon gekommen bist.";
+            else text = userName + ", gut gemacht.";
+        } else if (uiLang === "en") {
+            if (kind === "buddy") text = userName + ", I am right here with you.";
+            else if (kind === "milestone") text = userName + ", look how far you have already come.";
+            else text = userName + ", well done.";
+        } else if (uiLang === "pt") {
+            if (kind === "buddy") text = userName + ", eu estou aqui contigo.";
+            else if (kind === "milestone") text = userName + ", olha até onde já chegaste.";
+            else text = userName + ", muito bem.";
+        } else {
+            if (kind === "buddy") text = userName + ", estoy aquí contigo.";
+            else if (kind === "milestone") text = userName + ", mira todo lo que ya has logrado.";
+            else text = userName + ", muy bien.";
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (uiLang === "de") utterance.lang = "de-DE";
+        if (uiLang === "en") utterance.lang = "en-US";
+        if (uiLang === "pt") utterance.lang = "pt-PT";
+        if (uiLang === "es") utterance.lang = "es-ES";
+        utterance.rate = 0.95;
+        utterance.pitch = 1.05;
+        utterance.volume = 0.7;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function speakStory(text) {
+        if (!("speechSynthesis" in window)) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (uiLang === "de") utterance.lang = "de-DE";
+        else if (uiLang === "en") utterance.lang = "en-US";
+        else if (uiLang === "pt") utterance.lang = "pt-PT";
+        else utterance.lang = "es-ES";
+        utterance.rate = 0.96;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function analyseMoodText(input) {
+        const text = input.toLowerCase();
+
+        const lowPattern = /(schlecht|traurig|sehr traurig|down|depri|depressiv|müde|total müde|kaputt|fertig|erschöpft|leer|hoffnungslos|einsam|alleine|überfordert|panik|angst|krank|nichts fühlt sich gut an|😔|😢|😭|😞|☹|:\/|:\(|:'\()/;
+        const highPattern = /(gut|sehr gut|voll gut|super|mega|happy|glücklich|okay und zufrieden|besser|stabil gut|motiviert|voll energie|😊|😄|😁|🙂|😌|:D|:\))/;
+
+        if (lowPattern.test(text)) return "low";
+        if (highPattern.test(text)) return "high";
+        return "mid";
+    }
+
+    function buddyReplyForMood(mood) {
+        if (uiLang === "de") {
+            if (mood === "low") {
+                return {
+                    main: userName + ", ich höre: es ist gerade ziemlich schwer.",
+                    sub: "Du musst hier nichts leisten. Ich bin einfach kurz bei dir und erinnere dich daran, dass du auch an schweren Tagen genug bist."
+                };
+            } else if (mood === "high") {
+                return {
+                    main: "Das klingt nach einem kleinen Licht, " + userName + ".",
+                    sub: "Du darfst dieses Gute fühlen, ohne dich dafür zu schämen – und ohne gleich wieder perfekt funktionieren zu müssen."
+                };
+            } else {
+                return {
+                    main: "Es klingt nach so einem ‚es geht irgendwie‘ Tag.",
+                    sub: "Auch dieses ‚es geht‘ kostet Kraft. Du darfst langsamer machen, als dein Kopf es dir erlaubt."
+                };
+            }
+        } else if (uiLang === "en") {
+            if (mood === "low") {
+                return {
+                    main: userName + ", I hear that things feel heavy right now.",
+                    sub: "You do not have to perform here. I am just sitting with you for a moment, reminding you that you are still enough."
+                };
+            } else if (mood === "high") {
+                return {
+                    main: "That sounds like a small light, " + userName + ".",
+                    sub: "You are allowed to feel the good without having to be perfect or productive all the time."
+                };
+            } else {
+                return {
+                    main: "It sounds like one of those ‚I am kind of okay, I guess‘ days.",
+                    sub: "Even that takes energy. You are allowed to go slower than your mind tells you."
+                };
+            }
+        } else if (uiLang === "pt") {
+            if (mood === "low") {
+                return {
+                    main: userName + ", estou a ouvir que as coisas estão pesadas agora.",
+                    sub: "Aqui não precisas de provar nada. Eu fico só um bocadinho contigo e lembro que continuas a ser suficiente, mesmo assim."
+                };
+            } else if (mood === "high") {
+                return {
+                    main: "Isso soa a uma pequena luz, " + userName + ".",
+                    sub: "Podes sentir o que é bom sem ter de ser perfeita(o) ou super produtiva(o) o tempo todo."
+                };
+            } else {
+                return {
+                    main: "Parece um daqueles dias de ‚vai-se andando‘.",
+                    sub: "Mesmo esse ‚vai-se andando‘ gasta energia. Podes ir mais devagar do que a tua cabeça permite."
+                };
+            }
+        } else {
+            if (mood === "low") {
+                return {
+                    main: userName + ", oigo que ahora las cosas están bastante pesadas.",
+                    sub: "Aquí no tienes que demostrar nada. Me quedo un momento contigo y te recuerdo que sigues siendo suficiente."
+                };
+            } else if (mood === "high") {
+                return {
+                    main: "Eso suena a una pequeña luz, " + userName + ".",
+                    sub: "Puedes sentir lo bueno sin tener que ser perfecta(o) o súper productiva(o)."
+                };
+            } else {
+                return {
+                    main: "Suena a uno de esos días de ‚voy tirando‘.",
+                    sub: "Incluso ese ‚voy tirando‘ gasta energía. Puedes ir más despacio de lo que tu mente permite."
+                };
+            }
+        }
+    }
+
+    function updateUiText() {
+        const t = uiText[uiLang];
+        titleTextEl.textContent = t.title;
+        subtitleTextEl.textContent = t.subtitle;
+        uiLangLabelEl.textContent = t.uiLabel;
+        baseLangLabelEl.textContent = t.baseLabel;
+        energyLabelEl.textContent = t.energy;
+        buddyLabel.textContent = t.buddy;
+        coinsBadge.textContent = t.coins(progress.goodcoins);
+        chipFeelings.textContent = t.chipFeelings;
+        chipActions.textContent = t.chipActions;
+        chipAffirm.textContent = t.chipAffirm;
+        chipListen.textContent = t.chipListen;
+        chipGoodcoins.textContent = t.chipGoodcoins;
+        chipSelfcheck.textContent = t.chipSelfcheck;
+        dropdownLabelEl.textContent = t.dropdownLabel;
+        checkButton.textContent = t.check;
+        footerNote.textContent = t.footer;
+        gcTitle.textContent = t.gcTitle;
+        gcIntro.textContent = t.gcIntro;
+        gcHowTitle.textContent = t.gcHowTitle;
+        gcItem1.textContent = t.gcItem1;
+        gcItem2.textContent = t.gcItem2;
+        gcItem3.textContent = t.gcItem3;
+        gcFuture.textContent = t.gcFuture;
+        gcMental.textContent = t.gcMental;
+        scTitle.textContent = t.scTitle;
+        scIntro.textContent = t.scIntro;
+        selfcheckRunButton.textContent = t.scRunButton;
+        updateHint();
+        updateModeLabel();
+        updateStatsUI();
+        updatePlaceholders();
+        updateQuestionTexts();
+        updateSkipLabel();
+        buildSelfcheckQuestions();
+    }
+
+    function updateNameUI() {
+        const trimmed = userName.trim();
+        const initial = trimmed.charAt(0).toUpperCase();
+        avatarCircle.textContent = initial || "?";
+        const first = userName.split(" ")[0] || userName;
+        const t = uiText[uiLang];
+        if (uiLang === "de") {
+            personalMessage.textContent = first + ", dass du hier bist, ist schon ein Schritt für dich.";
+        } else if (uiLang === "en") {
+            personalMessage.textContent = first + ", being here is already something kind you do for yourself.";
+        } else if (uiLang === "pt") {
+            personalMessage.textContent = first + ", o simples facto de estares aqui já é um gesto de carinho contigo.";
+        } else {
+            personalMessage.textContent = first + ", el simple hecho de que estés aquí ya es un gesto de cariño hacia ti.";
+        }
+    }
+
+    function updateEnergyUI() {
+        energyButtons.forEach(btn => {
+            btn.classList.toggle("active", btn.dataset.level === energyLevel);
+        });
+        updateHint();
+    }
+
+    function updateHint() {
+        const t = uiText[uiLang];
+        if (energyLevel === "low") hintText.textContent = t.hintLow;
+        else if (energyLevel === "mid") hintText.textContent = t.hintMid;
+        else hintText.textContent = t.hintHigh;
+    }
+
+    function updateStatsUI() {
+        const t = uiText[uiLang];
+        const acc = progress.total === 0 ? 0 : Math.round((progress.correct / progress.total) * 100);
+        statQuestions.textContent = t.statsQuestions(progress.total);
+        statCorrect.textContent = t.statsCorrect(progress.correct);
+        statAccuracy.textContent = t.statsAccuracy(acc);
+        statBestStreak.textContent = t.statsBest ? t.statsBest(progress.bestStreak) : ("Beste Serie: " + progress.bestStreak);
+        statGoodcoins.textContent = t.statsGoodcoins(progress.goodcoins);
+        streakBadge.textContent = "Streak: " + progress.streak + " 🔥";
+        progressFill.style.width = Math.min(100, acc) + "%";
+        coinsBadge.textContent = t.coins(progress.goodcoins);
+    }
+
+    function updateModeLabel() {
+        const t = uiText[uiLang];
+        if (currentMode === "feelings") modeLabel.textContent = t.modeFeelings;
+        else if (currentMode === "actions") modeLabel.textContent = t.modeActions;
+        else if (currentMode === "affirm") modeLabel.textContent = t.modeAffirm;
+        else if (currentMode === "listen") modeLabel.textContent = t.modeListen;
+        else if (currentMode === "goodcoins") modeLabel.textContent = t.modeGoodcoins;
+        else modeLabel.textContent = t.modeSelfcheck;
+    }
+
+    function updatePlaceholders() {
+        const t = uiText[uiLang];
+        answerInput.placeholder = t.inputPlaceholder;
+    }
+
+    function updateSkipLabel() {
+        const t = uiText[uiLang];
+        if (currentMode === "listen") skipButton.textContent = t.skipListen;
+        else skipButton.textContent = t.skipNormal;
+    }
+
+    function ensureDifferentBaseAndTarget() {
+        if (baseLang === targetLang) {
+            for (const l of langs) {
+                if (l !== baseLang) {
+                    targetLang = l;
+                    break;
+                }
+            }
+            targetLangSelect.value = targetLang;
+            localStorage.setItem(targetLangKey, targetLang);
+        }
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll(".chip").forEach(chip => {
+            chip.classList.toggle("active", chip.dataset.mode === mode);
+        });
+        resetFeedback();
+        if (mode === "goodcoins") {
+            exerciseArea.style.display = "none";
+            goodcoinsArea.style.display = "block";
+            selfcheckArea.style.display = "none";
+        } else if (mode === "selfcheck") {
+            exerciseArea.style.display = "none";
+            goodcoinsArea.style.display = "none";
+            selfcheckArea.style.display = "block";
+        } else {
+            exerciseArea.style.display = "block";
+            goodcoinsArea.style.display = "none";
+            selfcheckArea.style.display = "none";
+            if (mode === "listen") {
+                answerInput.style.display = "none";
+                checkButton.style.display = "none";
+                dropdownLabelEl.style.display = "none";
+                answerSelect.style.display = "none";
+            } else {
+                answerInput.style.display = "block";
+                checkButton.style.display = "inline-block";
+                dropdownLabelEl.style.display = "block";
+                answerSelect.style.display = "inline-block";
+            }
+        }
+        updateModeLabel();
+        updateQuestionTexts();
+        updateSkipLabel();
+        if (mode !== "goodcoins" && mode !== "selfcheck") nextQuestion();
+        if (mode === "selfcheck") {
+            selfcheckResult.style.display = "none";
+        }
+    }
+
+    function resetFeedback() {
+        feedback.textContent = "";
+        feedback.className = "feedback";
+        correctAnswer.textContent = "";
+        mindsetHelper.textContent = "";
+    }
+
+    function updateQuestionTexts() {
+        const t = uiText[uiLang];
+        if (currentMode === "feelings") questionHelper.textContent = t.helperFeelings;
+        else if (currentMode === "actions") questionHelper.textContent = t.helperActions;
+        else if (currentMode === "affirm") questionHelper.textContent = t.helperAffirm;
+        else if (currentMode === "listen") questionHelper.textContent = t.helperListen;
+    }
+
+    function nextQuestion() {
+        if (currentMode === "goodcoins" || currentMode === "selfcheck") return;
+        resetFeedback();
+        answerInput.value = "";
+        answerSelect.innerHTML = '<option value="">–</option>';
+        const t = uiText[uiLang];
+        if (currentMode === "feelings") {
+            const item = pickRandom(feelings);
+            currentQuestion = { type: "feelings", item: item };
+            const wordBase = item[baseLang];
+            questionText.textContent = t.qFeelings(baseLang, targetLang, wordBase);
+            buildOptionsForWord(feelings, item);
+        } else if (currentMode === "actions") {
+            const item = pickRandom(actions);
+            currentQuestion = { type: "actions", item: item };
+            const wordBase = item[baseLang];
+            questionText.textContent = t.qActions(baseLang, targetLang, wordBase);
+            buildOptionsForWord(actions, item);
+        } else if (currentMode === "affirm") {
+            const item = pickRandom(affirmations);
+            currentQuestion = { type: "affirm", item: item };
+            const baseSentence = item[baseLang];
+            const targetSentence = item[targetLang];
+            questionText.textContent = baseSentence;
+            questionHelper.textContent = t.qAffirm() + " (" + langName(targetLang) + ": " + targetSentence + ")";
+            buildOptionsForAffirm(item);
+            const note = item.notes[energyLevel][uiLang];
+            mindsetHelper.textContent = note;
+        } else if (currentMode === "listen") {
+            const item = pickRandom(affirmations);
+            currentQuestion = { type: "listen", item: item };
+            const baseSentence = item[baseLang];
+            const targetSentence = item[targetLang];
+            questionText.textContent = baseSentence + "\n\n" + targetSentence;
+            const note = item.notes[energyLevel][uiLang];
+            mindsetHelper.textContent = note;
+        }
+    }
+
+    function buildOptionsForWord(list, current) {
+        const correct = current[targetLang];
+        let options = [correct];
+        const others = shuffle(list.filter(x => x.key !== current.key));
+        for (let i = 0; i < 3 && i < others.length; i++) {
+            options.push(others[i][targetLang]);
+        }
+        options = shuffle(options);
+        options.forEach(opt => {
+            const o = document.createElement("option");
+            o.value = opt;
+            o.textContent = opt;
+            answerSelect.appendChild(o);
+        });
+    }
+
+    function buildOptionsForAffirm(current) {
+        const correct = current[targetLang];
+        let options = [correct];
+        const others = shuffle(affirmations.filter(a => a.key !== current.key));
+        for (let i = 0; i < 3 && i < others.length; i++) {
+            options.push(others[i][targetLang]);
+        }
+        options = shuffle(options);
+        options.forEach(opt => {
+            const o = document.createElement("option");
+            o.value = opt;
+            o.textContent = opt;
+            answerSelect.appendChild(o);
+        });
+    }
+
+    function checkAnswer() {
+        if (!currentQuestion || currentMode === "listen" || currentMode === "goodcoins" || currentMode === "selfcheck") return;
+        const t = uiText[uiLang];
+        let userRaw = answerInput.value.trim();
+        if (!userRaw && answerSelect.value) userRaw = answerSelect.value;
+        if (!userRaw) {
+            feedback.textContent = t.feedbackEmpty;
+            feedback.className = "feedback";
+            return;
+        }
+        let isCorrect = false;
+        let correctText = "";
+        if (currentQuestion.type === "feelings" || currentQuestion.type === "actions") {
+            const targetCorrect = currentQuestion.item[targetLang];
+            correctText = targetCorrect;
+            const userNorm = normalize(userRaw);
+            const correctNorm = normalize(targetCorrect);
+            isCorrect = userNorm === correctNorm;
+        } else if (currentQuestion.type === "affirm") {
+            const targetCorrect = currentQuestion.item[targetLang];
+            correctText = targetCorrect;
+            const userNorm = normalize(userRaw);
+            const correctNorm = normalize(targetCorrect);
+            isCorrect = userNorm === correctNorm;
+        }
+        progress.total += 1;
+        if (isCorrect) {
+            progress.correct += 1;
+            progress.streak += 1;
+            if (progress.streak > progress.bestStreak) progress.bestStreak = progress.streak;
+            if (currentQuestion.type === "affirm") feedback.textContent = t.feedbackRightAffirm;
+            else feedback.textContent = t.feedbackRightVocab;
+            feedback.className = "feedback correct";
+            correctAnswer.textContent = "";
+            playPing();
+            let gained = 1;
+            if (progress.streak >= 5 && progress.streak < 10) gained += 1;
+            else if (progress.streak >= 10) gained += 2;
+            progress.goodcoins += gained;
+            if (progress.correct % 5 === 0) speakNameLine("normal");
+            const milestonesToCheck = [20, 50, 100];
+            milestonesToCheck.forEach(m => {
+                if (progress.correct >= m && !milestones[m]) {
+                    milestones[m] = true;
+                    playGong();
+                    speakNameLine("milestone");
+                }
+            });
+            saveMilestones();
+        } else {
+            progress.streak = 0;
+            if (currentQuestion.type === "affirm") feedback.textContent = t.feedbackWrongAffirm;
+            else feedback.textContent = t.feedbackWrongVocab;
+            feedback.className = "feedback incorrect";
+            correctAnswer.textContent = t.solutionLabel + " " + correctText;
+        }
+        saveProgress();
+        updateStatsUI();
+        setTimeout(() => nextQuestion(), currentQuestion.type === "affirm" ? 1600 : 900);
+    }
+
+    function showLittleGuy(messageMain, messageSub) {
+        const span = littleGuyMessage.querySelector("span");
+        const small = littleGuyMessage.querySelector("small");
+        span.textContent = messageMain;
+        small.textContent = messageSub;
+        littleGuy.classList.add("visible");
+        if (littleGuyTimeout) clearTimeout(littleGuyTimeout);
+        littleGuyTimeout = setTimeout(() => {
+            littleGuy.classList.remove("visible");
+        }, 6000);
+    }
+
+    function buildSelfcheckQuestions() {
+        const t = uiText[uiLang];
+        const list = selfcheckQuestionsData[uiLang];
+        selfcheckQuestionsDiv.innerHTML = "";
+        const scaleOptions = t.scScaleOptions;
+        list.forEach(q => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "selfcheck-question";
+            const label = document.createElement("label");
+            label.textContent = q.text;
+            const select = document.createElement("select");
+            select.className = "selfcheck-select";
+            select.dataset.dim = q.dim;
+            select.innerHTML = "<option value=''>–</option>";
+            for (let i = 0; i < scaleOptions.length; i++) {
+                const opt = document.createElement("option");
+                opt.value = (i + 1).toString();
+                opt.textContent = (i + 1) + " – " + scaleOptions[i];
+                select.appendChild(opt);
+            }
+            wrapper.appendChild(label);
+            wrapper.appendChild(select);
+            selfcheckQuestionsDiv.appendChild(wrapper);
+        });
+    }
+
+    function runSelfcheck() {
+        const t = uiText[uiLang];
+        const selects = selfcheckQuestionsDiv.querySelectorAll("select");
+        if (!selects.length) return;
+        const sums = { mood: 0, energy: 0, connection: 0, selfkind: 0, overwhelm: 0 };
+        const counts = { mood: 0, energy: 0, connection: 0, selfkind: 0, overwhelm: 0 };
+        let answered = 0;
+        selects.forEach(sel => {
+            const dim = sel.dataset.dim;
+            const v = parseInt(sel.value, 10);
+            if (!isNaN(v)) {
+                answered++;
+                sums[dim] += v;
+                counts[dim]++;
+            }
+        });
+        if (answered === 0) {
+            selfcheckResult.style.display = "block";
+            selfcheckResult.textContent = t.feedbackEmpty || "Bitte beantworte mindestens eine Frage, wenn du eine Auswertung möchtest.";
+            return;
+        }
+        const avgMood = counts.mood ? sums.mood / counts.mood : 0;
+        const avgEnergy = counts.energy ? sums.energy / counts.energy : 0;
+        const avgConn = counts.connection ? sums.connection / counts.connection : 0;
+        const avgSelfkind = counts.selfkind ? sums.selfkind / counts.selfkind : 0;
+        const avgOver = counts.overwhelm ? sums.overwhelm / counts.overwhelm : 0;
+        let text = "";
+        const overall = (avgMood + avgEnergy + avgConn + avgSelfkind + avgOver) / 5;
+        if (overall >= 3.5) text += t.scResultLow + " ";
+        else if (overall >= 2.3) text += t.scResultMid + " ";
+        else text += t.scResultHigh + " ";
+        if (avgEnergy >= 3) text += " " + t.scNeedsEnergy;
+        if (avgConn >= 3) text += " " + t.scNeedsConnection;
+        if (avgSelfkind >= 3) text += " " + t.scNeedsSelfkind;
+        if (avgOver >= 3) text += " " + t.scNeedsOverwhelm;
+        selfcheckResult.style.display = "block";
+        selfcheckResult.textContent = text.trim();
+        if (!milestones["selfcheckDoneOnce"]) {
+            milestones["selfcheckDoneOnce"] = true;
+            saveMilestones();
+            progress.goodcoins += 3;
+            saveProgress();
+            updateStatsUI();
+        }
+    }
+
+    function startBuddyChat() {
+        const span = littleGuyMessage.querySelector("span");
+        const small = littleGuyMessage.querySelector("small");
+
+        const oldInput = littleGuyMessage.querySelector(".buddy-chat-input");
+        const oldBtn = littleGuyMessage.querySelector(".buddy-chat-send");
+        if (oldInput) oldInput.remove();
+        if (oldBtn) oldBtn.remove();
+
+        let questionText;
+        let hintText;
+
+        if (uiLang === "de") {
+            questionText = userName + ", wie geht es dir gerade? Schreib einfach ein paar Worte.";
+            hintText = "Deine Antwort bleibt hier im Moment. Sie wird nicht auf einem Server gespeichert.";
+        } else if (uiLang === "en") {
+            questionText = userName + ", how are you right now? Just write a few words.";
+            hintText = "Your answer stays here in this moment. It is not sent to a server.";
+        } else if (uiLang === "pt") {
+            questionText = userName + ", como te sentes agora? Escreve só algumas palavras.";
+            hintText = "A tua resposta fica só aqui neste momento. Não é enviada para um servidor.";
+        } else {
+            questionText = userName + ", ¿cómo estás ahora mismo? Escribe solo unas palabras.";
+            hintText = "Tu respuesta se queda aquí en este momento. No se envía a un servidor.";
+        }
+
+        span.textContent = questionText;
+        small.textContent = hintText;
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "buddy-chat-input";
+        if (uiLang === "de") input.placeholder = "z. B. müde, traurig, es geht, ganz okay...";
+        else if (uiLang === "en") input.placeholder = "e.g. tired, sad, okay-ish, quite good...";
+        else if (uiLang === "pt") input.placeholder = "ex.: cansada(o), triste, mais ou menos, até bem...";
+        else input.placeholder = "p. ej. cansada(o), triste, más o menos, bastante bien...";
+
+        const btn = document.createElement("button");
+        btn.className = "story-answer buddy-chat-send";
+        if (uiLang === "de") btn.textContent = "Senden";
+        else if (uiLang === "en") btn.textContent = "Send";
+        else if (uiLang === "pt") btn.textContent = "Enviar";
+        else btn.textContent = "Enviar";
+
+        littleGuyMessage.appendChild(input);
+        littleGuyMessage.appendChild(btn);
+
+        littleGuy.classList.add("visible");
+        buddyChatActive = true;
+
+        if (littleGuyTimeout) {
+            clearTimeout(littleGuyTimeout);
+            littleGuyTimeout = null;
+        }
+
+        input.focus();
+
+        btn.addEventListener("click", () => {
+            const value = input.value.trim();
+            if (!value) return;
+            handleBuddyChatSubmit(value, input, btn);
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const value = input.value.trim();
+                if (!value) return;
+                handleBuddyChatSubmit(value, input, btn);
+            }
+        });
+    }
+
+    function handleBuddyChatSubmit(text, inputEl, buttonEl) {
+        const mood = analyseMoodText(text);
+        const reply = buddyReplyForMood(mood);
+
+        const span = littleGuyMessage.querySelector("span");
+        const small = littleGuyMessage.querySelector("small");
+
+        inputEl.disabled = true;
+        buttonEl.disabled = true;
+
+        span.textContent = reply.main;
+        small.textContent = reply.sub;
+
+        progress.goodcoins += 1;
+        saveProgress();
+        updateStatsUI();
+
+        speakStory(reply.main);
+
+        littleGuyTimeout = setTimeout(() => {
+            littleGuy.classList.remove("visible");
+            buddyChatActive = false;
+        }, 9000);
+    }
+
+    // Event listeners
+
+    modeButtons.addEventListener("click", e => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        const mode = chip.dataset.mode;
+        if (mode) setMode(mode);
+    });
+
+    uiLangSelect.addEventListener("change", () => {
+        uiLang = uiLangSelect.value;
+        localStorage.setItem(uiLangKey, uiLang);
+        updateUiText();
+        updateNameUI();
+    });
+
+    baseLangSelect.addEventListener("change", () => {
+        baseLang = baseLangSelect.value;
+        localStorage.setItem(baseLangKey, baseLang);
+        ensureDifferentBaseAndTarget();
+        updateUiText();
+        if (currentMode !== "goodcoins" && currentMode !== "selfcheck") nextQuestion();
+    });
+
+    targetLangSelect.addEventListener("change", () => {
+        targetLang = targetLangSelect.value;
+        ensureDifferentBaseAndTarget();
+        localStorage.setItem(targetLangKey, targetLang);
+        updateUiText();
+        if (currentMode !== "goodcoins" && currentMode !== "selfcheck") nextQuestion();
+    });
+
+    energyButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            energyLevel = btn.dataset.level;
+            localStorage.setItem(energyKey, energyLevel);
+            updateEnergyUI();
+        });
+    });
+
+    checkButton.addEventListener("click", () => {
+        getAudioCtx();
+        checkAnswer();
+    });
+
+    answerInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            getAudioCtx();
+            checkAnswer();
+        }
+    });
+
+    skipButton.addEventListener("click", () => {
+        resetFeedback();
+        if (currentMode === "listen") {
+            // Nur hören – kein Punkteverlust, einfach nächste Botschaft
+        }
+        nextQuestion();
+    });
+
+    selfcheckRunButton.addEventListener("click", () => {
+        runSelfcheck();
+    });
+
+    buddyButton.addEventListener("click", () => {
+        getAudioCtx();
+        if (buddyChatActive) {
+            // Klopfmann schließen
+            buddyChatActive = false;
+            if (littleGuyTimeout) {
+                clearTimeout(littleGuyTimeout);
+                littleGuyTimeout = null;
+            }
+            littleGuy.classList.remove("visible");
+            return;
+        }
+        speakNameLine("buddy");
+        startBuddyChat();
+    });
+
+    // AudioContext sanft initialisieren (Browser-Autoplay-Policy)
+    document.addEventListener("click", function initAudioOnce() {
+        getAudioCtx();
+        document.removeEventListener("click", initAudioOnce);
+    }, { once: true });
+
+    // Initialer Klopfmann-Gruß
+    function showIntroIfNeeded() {
+        if (milestones.introShown) return;
+        let main, sub;
+        if (uiLang === "de") {
+            main = userName + ", schön, dass du hier bist.";
+            sub = "Du musst hier nichts leisten. Wir fangen einfach mit einem Wort oder einem Atemzug an.";
+        } else if (uiLang === "en") {
+            main = userName + ", I am glad you are here.";
+            sub = "You do not have to perform. We can start with just one word or one breath.";
+        } else if (uiLang === "pt") {
+            main = userName + ", ainda bem que estás aqui.";
+            sub = "Aqui não precisas de provar nada. Podemos começar só com uma palavra ou uma respiração.";
+        } else {
+            main = userName + ", me alegra que estés aquí.";
+            sub = "No tienes que demostrar nada. Podemos empezar solo con una palabra o una respiración.";
+        }
+        setTimeout(() => {
+            showLittleGuy(main, sub);
+            milestones.introShown = true;
+            saveMilestones();
+        }, 1500);
+    }
+
+    // Initialisierung
+    function initApp() {
+        uiLangSelect.value = uiLang;
+        baseLangSelect.value = baseLang;
+        targetLangSelect.value = targetLang;
+
+        updateUiText();
+        updateNameUI();
+        updateEnergyUI();
+        ensureDifferentBaseAndTarget();
+        setMode(currentMode);
+        if (currentMode !== "goodcoins" && currentMode !== "selfcheck") {
+            nextQuestion();
+        }
+        showIntroIfNeeded();
+    }
+
+    initApp();
+</script>
+</body>
+</html>
+```
