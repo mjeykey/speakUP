@@ -1,0 +1,126 @@
+name: Deploy corrected SpeakUP with FillGap audio fix
+
+on:
+  push:
+    branches:
+      - agent/deploy-fillgap-native-audio
+    paths:
+      - .speakup-audio-fix-ready
+
+permissions:
+  contents: write
+
+jobs:
+  assemble-patch-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployment branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assemble previously transferred corrected build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .speakup-update
+          sha256sum -c SHA256SUMS
+          cat part-* > /tmp/index.html.xz.b64
+          base64 --decode /tmp/index.html.xz.b64 > /tmp/index.html.xz
+          xz --test /tmp/index.html.xz
+          xz --decompress --stdout /tmp/index.html.xz > ../index.html
+          cd ..
+          test "$(wc -c < index.html)" -eq 815545
+          echo "2424a7620bc04b56775f43e52347401fefd0ef06d78f60c86620eb68f688f97b  index.html" | sha256sum -c -
+
+      - name: Correct FillGap mother-language audio
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          fill_start = text.index('function FillGapMode({ sentence, settings, onSolved, onMenu })')
+          fill_end = text.index('define("screens/MemoryMode"', fill_start)
+          fill = text[fill_start:fill_end]
+
+          old_effect = """            });
+        }, [sentence, settings.language, settings.audioOn, settings.sentenceAudioOn, settings.gapAudioStyle]);"""
+          new_effect = """            });
+            return () => (0, speech_js_3.stopSpeaking)();
+        }, [sentence, settings.language, settings.audioOn, settings.sentenceAudioOn, settings.gapAudioStyle]);"""
+          if 'return () => (0, speech_js_3.stopSpeaking)();' not in fill:
+              if old_effect not in fill:
+                  raise SystemExit('FillGap speech cleanup anchor not found')
+              fill = fill.replace(old_effect, new_effect, 1)
+
+          old_complete = 'onComplete: () => onSolved(sentence)'
+          new_complete = 'onComplete: () => { (0, speech_js_3.stopSpeaking)(); onSolved(sentence); }'
+          if new_complete not in fill:
+              if old_complete not in fill:
+                  raise SystemExit('FillGap completion anchor not found')
+              fill = fill.replace(old_complete, new_complete, 1)
+
+          text = text[:fill_start] + fill + text[fill_end:]
+
+          translation_start = text.index('function TranslationScreen({ item, nativeLanguage')
+          translation_end = text.index('define("components/EffectLayer"', translation_start)
+          translation = text[translation_start:translation_end]
+
+          old_guard = 'if (!audioOn || !text || !language) {'
+          new_guard = 'if (!audioOn || !translationAudioOn || !text || !language) {'
+          if new_guard not in translation:
+              if old_guard not in translation:
+                  raise SystemExit('Translation audio guard anchor not found')
+              translation = translation.replace(old_guard, new_guard, 1)
+
+          old_dependency = """            audioOn,
+            clearLocalTimers,"""
+          new_dependency = """            audioOn,
+            translationAudioOn,
+            clearLocalTimers,"""
+          if new_dependency not in translation:
+              if old_dependency not in translation:
+                  raise SystemExit('Translation dependency anchor not found')
+              translation = translation.replace(old_dependency, new_dependency, 1)
+
+          text = text[:translation_start] + translation + text[translation_end:]
+
+          expected_mapping = 'item: translationItem || current, nativeLanguage: nativeLanguage, learningLanguage: language, audioOn: audioOn'
+          if expected_mapping not in text:
+              raise SystemExit('FillGap translation page is not receiving the selected learning language')
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Verify final application
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(wc -c < index.html)" -eq 815696
+          echo "d0f73401b835b0de2bbda891505dc4abfde90b73806424c8f3f6d1fc9ad36a28  index.html" | sha256sum -c -
+          grep -Fq 'return () => (0, speech_js_3.stopSpeaking)();' index.html
+          grep -Fq 'onComplete: () => { (0, speech_js_3.stopSpeaking)(); onSolved(sentence); }' index.html
+          grep -Fq 'if (!audioOn || !translationAudioOn || !text || !language) {' index.html
+          grep -Fq 'nativeLanguage: nativeLanguage, learningLanguage: language, audioOn: audioOn' index.html
+          grep -Fq "playReading('native')" index.html
+
+      - name: Remove transfer and temporary workflow files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .speakup-update
+          rm -f .speakup-audio-fix-ready
+          rm -f .github/workflows/apply-speakup-update.yml
+          rm -f .github/workflows/fix-fillgap-native-audio-pr.yml
+          rm -f .github/workflows/apply-fillgap-audio-update.yml
+
+      - name: Commit verified application
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy corrected SpeakUP and fix FillGap native audio"
+          git push origin agent/deploy-fillgap-native-audio
