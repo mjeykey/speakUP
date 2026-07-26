@@ -1,0 +1,104 @@
+name: Apply FillGap native-language audio fix
+
+on:
+  push:
+    branches:
+      - agent/fix-fillgap-native-audio
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[fillgap-audio-fixed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-fillgap-native-audio
+          fetch-depth: 0
+
+      - name: Patch bundled application
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          fill_start = text.index('function FillGapMode({ sentence, settings, onSolved, onMenu })')
+          fill_end = text.index('define("screens/MemoryMode"', fill_start)
+          fill = text[fill_start:fill_end]
+
+          old_effect_end = """            });
+        }, [sentence, settings.language, settings.audioOn, settings.sentenceAudioOn, settings.gapAudioStyle]);"""
+          new_effect_end = """            });
+            return () => (0, speech_js_3.stopSpeaking)();
+        }, [sentence, settings.language, settings.audioOn, settings.sentenceAudioOn, settings.gapAudioStyle]);"""
+          if old_effect_end not in fill:
+              raise SystemExit('FillGap speech cleanup anchor not found')
+          fill = fill.replace(old_effect_end, new_effect_end, 1)
+
+          old_complete = 'onComplete: () => onSolved(sentence)'
+          new_complete = 'onComplete: () => { (0, speech_js_3.stopSpeaking)(); onSolved(sentence); }'
+          if old_complete not in fill:
+              raise SystemExit('FillGap completion anchor not found')
+          fill = fill.replace(old_complete, new_complete, 1)
+          text = text[:fill_start] + fill + text[fill_end:]
+
+          translation_start = text.index('function TranslationScreen({ item, nativeLanguage')
+          translation_end = text.index('define("components/EffectLayer"', translation_start)
+          translation = text[translation_start:translation_end]
+          old_guard = 'if (!audioOn || !text || !language) {'
+          new_guard = 'if (!audioOn || !translationAudioOn || !text || !language) {'
+          if old_guard not in translation:
+              raise SystemExit('Translation audio guard anchor not found')
+          translation = translation.replace(old_guard, new_guard, 1)
+          old_dependency = """            audioOn,
+            clearLocalTimers,"""
+          new_dependency = """            audioOn,
+            translationAudioOn,
+            clearLocalTimers,"""
+          if old_dependency not in translation:
+              raise SystemExit('Translation dependency anchor not found')
+          translation = translation.replace(old_dependency, new_dependency, 1)
+          text = text[:translation_start] + translation + text[translation_end:]
+
+          app_start = text.index('function App() {')
+          app_end = text.index('define("main"', app_start)
+          app = text[app_start:app_end]
+          old_props = 'item: translationItem || current, nativeLanguage: nativeLanguage, audioOn: audioOn'
+          new_props = 'item: translationItem || current, nativeLanguage: nativeLanguage, learningLanguage: language, audioOn: audioOn'
+          if old_props not in app:
+              raise SystemExit('FillGap translation props anchor not found')
+          app = app.replace(old_props, new_props, 1)
+          text = text[:app_start] + app + text[app_end:]
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Verify audio routing
+        shell: python
+        run: |
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          checks = [
+              'return () => (0, speech_js_3.stopSpeaking)();',
+              'onComplete: () => { (0, speech_js_3.stopSpeaking)(); onSolved(sentence); }',
+              'if (!audioOn || !translationAudioOn || !text || !language) {',
+              'nativeLanguage: nativeLanguage, learningLanguage: language, audioOn: audioOn',
+              "playReading('native')"
+          ]
+          missing = [item for item in checks if item not in text]
+          if missing:
+              raise SystemExit(f'Missing verification markers: {missing}')
+          if text.count('nativeLanguage: nativeLanguage, learningLanguage: language, audioOn: audioOn') != 1:
+              raise SystemExit('Unexpected number of FillGap translation language mappings')
+
+      - name: Commit fix and remove one-time workflow
+        run: |
+          rm .github/workflows/apply-fillgap-native-audio-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/apply-fillgap-native-audio-fix.yml
+          git commit -m "Fix FillGap native-language audio [fillgap-audio-fixed]"
+          git push origin agent/fix-fillgap-native-audio
