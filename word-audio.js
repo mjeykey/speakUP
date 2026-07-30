@@ -1,6 +1,6 @@
 (() => {
-  if (window.__speakupUnifiedAudioV8) return;
-  window.__speakupUnifiedAudioV8 = true;
+  if (window.__speakupUnifiedAudioV9) return;
+  window.__speakupUnifiedAudioV9 = true;
 
   const ROOT_SELECTOR = [
     '.story-text',
@@ -11,8 +11,6 @@
     '.translation-text'
   ].join(',');
 
-  const WORD_SELECTOR = '.story-playback-word,.speakup-word,.speakup-audio-word';
-  let lastPointerTime = 0;
   let activeElement = null;
   let activeUtterance = null;
 
@@ -21,7 +19,6 @@
       .map(select => `${select.value || ''} ${select.options?.[select.selectedIndex]?.textContent || ''}`)
       .join(' ')
       .toLowerCase();
-
     if (selected.includes('portugu')) return 'pt-PT';
     if (selected.includes('deutsch') || selected.includes('german')) return 'de-DE';
     if (selected.includes('spanish') || selected.includes('español') || selected.includes('spanisch')) return 'es-ES';
@@ -32,9 +29,7 @@
   }
 
   function cleanWord(value) {
-    return String(value || '')
-      .replace(/^[^\p{L}\p{M}]+|[^\p{L}\p{M}'’\-]+$/gu, '')
-      .trim();
+    return String(value || '').replace(/^[^\p{L}\p{M}]+|[^\p{L}\p{M}'’\-]+$/gu, '').trim();
   }
 
   function clearHighlight() {
@@ -47,10 +42,7 @@
     if (!word || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
 
     clearHighlight();
-    try {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.resume();
-    } catch (_) {}
+    try { window.speechSynthesis.cancel(); } catch (_) {}
 
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = detectLanguage();
@@ -59,8 +51,8 @@
     utterance.volume = 1;
     activeUtterance = utterance;
     activeElement = element || null;
-
     if (activeElement) activeElement.classList.add('speakup-word-speaking');
+
     const finish = () => {
       if (activeUtterance === utterance) activeUtterance = null;
       clearHighlight();
@@ -68,100 +60,81 @@
     utterance.onend = finish;
     utterance.onerror = finish;
 
-    window.setTimeout(() => {
-      try {
-        window.speechSynthesis.speak(utterance);
-      } catch (_) {
-        finish();
-      }
-    }, 20);
+    try {
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    } catch (_) {
+      finish();
+    }
   }
 
-  function wordAtPoint(x, y, root) {
-    let node = null;
-    let offset = 0;
+  function makeWordSpan(text) {
+    const span = document.createElement('span');
+    span.className = 'speakup-direct-word';
+    span.textContent = text;
+    span.setAttribute('role', 'button');
+    span.setAttribute('tabindex', '0');
+    span.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      speak(text, span);
+    }, true);
+    span.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+    span.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      speak(text, span);
+    }, true);
+    return span;
+  }
 
-    if (document.caretPositionFromPoint) {
-      const pos = document.caretPositionFromPoint(x, y);
-      if (pos) {
-        node = pos.offsetNode;
-        offset = pos.offset;
-      }
-    } else if (document.caretRangeFromPoint) {
-      const range = document.caretRangeFromPoint(x, y);
-      if (range) {
-        node = range.startContainer;
-        offset = range.startOffset;
-      }
-    }
-
-    if (!node || !root.contains(node)) return '';
-    if (node.nodeType !== Node.TEXT_NODE) {
-      const textNode = Array.from(node.childNodes || []).find(child => child.nodeType === Node.TEXT_NODE);
-      if (!textNode) return '';
-      node = textNode;
-      offset = 0;
-    }
-
+  function wrapTextNode(node) {
     const text = node.nodeValue || '';
-    if (!text) return '';
-    const isWord = char => /[\p{L}\p{M}'’\-]/u.test(char || '');
-    let index = Math.min(Math.max(offset, 0), Math.max(text.length - 1, 0));
-    if (!isWord(text[index]) && index > 0 && isWord(text[index - 1])) index -= 1;
-    if (!isWord(text[index])) return '';
-
-    let start = index;
-    let end = index + 1;
-    while (start > 0 && isWord(text[start - 1])) start -= 1;
-    while (end < text.length && isWord(text[end])) end += 1;
-    return text.slice(start, end);
+    if (!/[\p{L}\p{M}]/u.test(text)) return;
+    const fragment = document.createDocumentFragment();
+    const parts = text.split(/([\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*)/gu);
+    for (const part of parts) {
+      if (!part) continue;
+      if (/^[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*$/u.test(part)) fragment.appendChild(makeWordSpan(part));
+      else fragment.appendChild(document.createTextNode(part));
+    }
+    node.parentNode?.replaceChild(fragment, node);
   }
 
-  function findStoryRoot(target) {
-    return target?.closest?.(ROOT_SELECTOR) || target?.closest?.('.story-center');
+  function prepareRoot(root) {
+    if (!root || root.dataset.speakupWordsReady === '1') return;
+    root.dataset.speakupWordsReady = '1';
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('button,.story-gap,.story-choice,.story-option-block,.speakup-direct-word,script,style')) return NodeFilter.FILTER_REJECT;
+        return /[\p{L}\p{M}]/u.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(wrapTextNode);
   }
 
-  function activate(event) {
-    if (event.type === 'click' && Date.now() - lastPointerTime < 500) return;
-    if (event.type === 'pointerup') lastPointerTime = Date.now();
-
-    const target = event.target;
-    const root = findStoryRoot(target);
-    if (!root) return;
-    if (target?.closest?.('button,.story-gap,.story-choice,.story-option-block')) return;
-
-    const wordElement = target?.closest?.(WORD_SELECTOR);
-    const word = wordElement?.textContent || wordAtPoint(event.clientX, event.clientY, root);
-    if (!cleanWord(word)) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    speak(word, wordElement || root);
+  function prepareAll() {
+    document.querySelectorAll(ROOT_SELECTOR).forEach(prepareRoot);
   }
 
   const style = document.createElement('style');
-  style.id = 'speakup-unified-audio-style-v8';
+  style.id = 'speakup-unified-audio-style-v9';
   style.textContent = `
     ${ROOT_SELECTOR}{touch-action:manipulation}
-    ${WORD_SELECTOR}{cursor:pointer;touch-action:manipulation}
+    .speakup-direct-word{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .speakup-word-speaking{color:#65e8ff!important;text-shadow:0 0 16px rgba(101,232,255,.9)!important}
   `;
   document.head.appendChild(style);
 
-  document.addEventListener('pointerdown', () => {
-    try {
-      window.speechSynthesis?.resume();
-      window.speechSynthesis?.getVoices();
-    } catch (_) {}
-  }, { capture: true, once: true });
-
-  document.addEventListener('pointerup', activate, true);
-  document.addEventListener('click', activate, true);
-  document.addEventListener('keydown', event => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    const wordElement = event.target?.closest?.(WORD_SELECTOR);
-    if (!wordElement) return;
-    event.preventDefault();
-    speak(wordElement.textContent, wordElement);
-  }, true);
+  prepareAll();
+  const observer = new MutationObserver(() => window.requestAnimationFrame(prepareAll));
+  observer.observe(document.body, { childList: true, subtree: true });
 })();
