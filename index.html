@@ -10,115 +10,19 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=word-audio-5" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=word-audio-6" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
-  (() => {
-    const frame = document.getElementById('speakup-app');
-    const languageMap = {
-      english:'en-US', englisch:'en-US',
-      portuguese:'pt-PT', portugiesisch:'pt-PT', português:'pt-PT',
-      german:'de-DE', deutsch:'de-DE',
-      spanish:'es-ES', spanisch:'es-ES', español:'es-ES',
-      french:'fr-FR', französisch:'fr-FR', français:'fr-FR',
-      italian:'it-IT', italienisch:'it-IT', italiano:'it-IT',
-      croatian:'hr-HR', kroatisch:'hr-HR', hrvatski:'hr-HR'
-    };
-
-    function detectLearningLanguage(doc) {
-      for (const select of doc.querySelectorAll('select')) {
-        const selected = select.options && select.options[select.selectedIndex];
-        const text = `${select.value || ''} ${selected ? selected.textContent : ''}`.toLowerCase();
-        for (const [name, code] of Object.entries(languageMap)) {
-          if (text.includes(name) || text.includes(code.toLowerCase().split('-')[0])) return code;
-        }
-      }
-      return doc.documentElement.lang || 'en-US';
-    }
-
-    function speak(doc, word, element) {
-      const clean = (word || '').replace(/^[^\p{L}\p{M}]+|[^\p{L}\p{M}'’\-]+$/gu, '').trim();
-      if (!clean || !frame.contentWindow.speechSynthesis) return;
-      const synth = frame.contentWindow.speechSynthesis;
-      synth.cancel();
-      const utterance = new frame.contentWindow.SpeechSynthesisUtterance(clean);
-      utterance.lang = detectLearningLanguage(doc);
-      utterance.rate = 0.75;
-      if (element) {
-        element.classList.add('speakup-word-speaking');
-        setTimeout(() => element.classList.remove('speakup-word-speaking'), 700);
-      }
-      utterance.onend = utterance.onerror = () => element && element.classList.remove('speakup-word-speaking');
-      synth.speak(utterance);
-    }
-
-    function wrapTextNode(doc, node) {
-      const parent = node.parentElement;
-      if (!parent || parent.closest('.speakup-audio-word,button,.story-gap,.story-option-block')) return;
-      const text = node.nodeValue;
-      if (!text || !/[\p{L}\p{M}]/u.test(text)) return;
-      const parts = text.split(/([\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*)/gu);
-      const frag = doc.createDocumentFragment();
-      for (const part of parts) {
-        if (/^[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*$/u.test(part)) {
-          const span = doc.createElement('span');
-          span.className = 'speakup-audio-word';
-          span.textContent = part;
-          span.dataset.word = part;
-          frag.appendChild(span);
-        } else {
-          frag.appendChild(doc.createTextNode(part));
-        }
-      }
-      node.replaceWith(frag);
-    }
-
-    function enhanceStory(doc) {
-      doc.querySelectorAll('.story-text').forEach(root => {
-        const walker = doc.createTreeWalker(root, frame.contentWindow.NodeFilter.SHOW_TEXT, {
-          acceptNode(node) {
-            const parent = node.parentElement;
-            if (!parent || parent.closest('.speakup-audio-word,button,.story-gap,.story-option-block')) return frame.contentWindow.NodeFilter.FILTER_REJECT;
-            return /[\p{L}\p{M}]/u.test(node.nodeValue || '') ? frame.contentWindow.NodeFilter.FILTER_ACCEPT : frame.contentWindow.NodeFilter.FILTER_REJECT;
-          }
-        });
-        const nodes = [];
-        while (walker.nextNode()) nodes.push(walker.currentNode);
-        nodes.forEach(node => wrapTextNode(doc, node));
+    (() => {
+      const frame = document.getElementById('speakup-app');
+      frame.addEventListener('load', () => {
+        const doc = frame.contentDocument;
+        if (!doc || doc.getElementById('speakup-word-audio-v6')) return;
+        const script = doc.createElement('script');
+        script.id = 'speakup-word-audio-v6';
+        script.src = 'word-audio.js?v=6';
+        doc.body.appendChild(script);
       });
-    }
-
-    function install() {
-      const doc = frame.contentDocument;
-      if (!doc || doc.__speakupWordAudioV5) return;
-      doc.__speakupWordAudioV5 = true;
-
-      const style = doc.createElement('style');
-      style.textContent = '.story-text .speakup-audio-word{cursor:pointer;touch-action:manipulation;border-radius:.18em;padding:0 .015em}.story-text .speakup-audio-word:active,.story-text .speakup-word-speaking{color:#65e8ff!important;text-shadow:0 0 14px rgba(101,232,255,.7)}';
-      doc.head.appendChild(style);
-
-      doc.addEventListener('click', event => {
-        const target = event.target && event.target.closest ? event.target.closest('.speakup-audio-word') : null;
-        if (!target || !target.closest('.story-text')) return;
-        event.preventDefault();
-        event.stopPropagation();
-        speak(doc, target.dataset.word || target.textContent, target);
-      }, true);
-
-      let queued = false;
-      const observer = new frame.contentWindow.MutationObserver(() => {
-        if (queued) return;
-        queued = true;
-        frame.contentWindow.requestAnimationFrame(() => {
-          queued = false;
-          enhanceStory(doc);
-        });
-      });
-      observer.observe(doc.body, {childList:true,subtree:true,characterData:true});
-      enhanceStory(doc);
-    }
-
-    frame.addEventListener('load', install);
-  })();
+    })();
   </script>
 </body>
 </html>
