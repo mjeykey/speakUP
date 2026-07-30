@@ -10,16 +10,16 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=audio-repair-10" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=audio-repair-11" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     (() => {
       const frame = document.getElementById('speakup-app');
       frame.addEventListener('load', () => {
         const doc = frame.contentDocument;
-        if (!doc || doc.getElementById('speakup-unified-audio-v10')) return;
+        if (!doc || doc.getElementById('speakup-unified-audio-v11')) return;
         const script = doc.createElement('script');
-        script.id = 'speakup-unified-audio-v10';
-        script.src = 'word-audio.js?v=10';
+        script.id = 'speakup-unified-audio-v11';
+        script.src = 'word-audio.js?v=11';
         doc.body.appendChild(script);
       });
     })();
