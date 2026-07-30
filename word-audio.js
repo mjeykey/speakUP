@@ -1,6 +1,6 @@
 (() => {
-  if (window.__speakupDirectWordAudio) return;
-  window.__speakupDirectWordAudio = true;
+  if (window.__speakupDirectWordAudioV5) return;
+  window.__speakupDirectWordAudioV5 = true;
 
   const languageMap = {
     english: 'en-US', englisch: 'en-US',
@@ -32,19 +32,22 @@
     utterance.rate = 0.78;
     if (element) {
       element.classList.add('speakup-word-speaking');
+      setTimeout(() => element.classList.remove('speakup-word-speaking'), 700);
       utterance.onend = utterance.onerror = () => element.classList.remove('speakup-word-speaking');
     }
     speechSynthesis.speak(utterance);
   }
 
   function wrapTextNode(node) {
-    if (!node.parentElement || node.parentElement.closest('.speakup-word')) return;
+    const parent = node.parentElement;
+    if (!parent || parent.closest('.speakup-word,button,.story-gap,.story-option-block')) return;
     const text = node.nodeValue;
     if (!text || !/[\p{L}\p{M}]/u.test(text)) return;
+
     const fragment = document.createDocumentFragment();
     const parts = text.split(/([\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*)/gu);
     for (const part of parts) {
-      if (/^[\p{L}\p{M}]/u.test(part)) {
+      if (/^[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*$/u.test(part)) {
         const span = document.createElement('span');
         span.className = 'speakup-word';
         span.textContent = part;
@@ -60,18 +63,17 @@
   }
 
   function enhanceStory(story) {
-    if (!story || story.dataset.speakupAudioReady === '1') return;
+    if (!story) return;
     const walker = document.createTreeWalker(story, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const parent = node.parentElement;
-        if (!parent || parent.closest('button,.story-gap,.speakup-word')) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
+        if (!parent || parent.closest('.speakup-word,button,.story-gap,.story-option-block')) return NodeFilter.FILTER_REJECT;
+        return /[\p{L}\p{M}]/u.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach(wrapTextNode);
-    story.dataset.speakupAudioReady = '1';
   }
 
   function scan() {
@@ -81,11 +83,11 @@
   const style = document.createElement('style');
   style.textContent = `
     .speakup-word{cursor:pointer;touch-action:manipulation;border-radius:.22em;padding:.02em .03em}
-    .speakup-word:active,.speakup-word-speaking{color:#65e8ff;text-shadow:0 0 14px rgba(101,232,255,.7)}
+    .speakup-word:active,.speakup-word-speaking{color:#65e8ff!important;text-shadow:0 0 14px rgba(101,232,255,.7)}
   `;
   document.head.appendChild(style);
 
-  document.addEventListener('pointerup', event => {
+  document.addEventListener('click', event => {
     const word = event.target.closest && event.target.closest('.speakup-word');
     if (!word) return;
     event.preventDefault();
@@ -101,6 +103,15 @@
     }
   }, true);
 
-  new MutationObserver(scan).observe(document.documentElement, { childList: true, subtree: true });
+  let queued = false;
+  const observer = new MutationObserver(() => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      scan();
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   scan();
 })();
