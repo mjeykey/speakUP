@@ -10,20 +10,23 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=word-audio-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=word-audio-2" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
   (() => {
     const frame = document.getElementById('speakup-app');
+
     const languageMap = {
-      english:'en-US', englisch:'en-US', portuguese:'pt-PT', portugiesisch:'pt-PT', português:'pt-PT',
-      german:'de-DE', deutsch:'de-DE', spanish:'es-ES', spanisch:'es-ES', español:'es-ES',
-      french:'fr-FR', französisch:'fr-FR', français:'fr-FR', italian:'it-IT', italienisch:'it-IT', italiano:'it-IT',
+      english:'en-US', englisch:'en-US',
+      portuguese:'pt-PT', portugiesisch:'pt-PT', português:'pt-PT',
+      german:'de-DE', deutsch:'de-DE',
+      spanish:'es-ES', spanisch:'es-ES', español:'es-ES',
+      french:'fr-FR', französisch:'fr-FR', français:'fr-FR',
+      italian:'it-IT', italienisch:'it-IT', italiano:'it-IT',
       croatian:'hr-HR', kroatisch:'hr-HR', hrvatski:'hr-HR'
     };
 
     function detectLearningLanguage(doc) {
-      const candidates = [...doc.querySelectorAll('select')];
-      for (const select of candidates) {
+      for (const select of doc.querySelectorAll('select')) {
         const selected = select.options && select.options[select.selectedIndex];
         const text = `${select.value || ''} ${selected ? selected.textContent : ''}`.toLowerCase();
         for (const [name, code] of Object.entries(languageMap)) {
@@ -45,15 +48,14 @@
         if (!range) return '';
         node = range.startContainer;
         offset = range.startOffset;
-      } else {
-        return '';
-      }
-      if (!node || node.nodeType !== Node.TEXT_NODE) return '';
+      } else return '';
+
+      if (!node || node.nodeType !== 3) return '';
       const text = node.textContent || '';
       if (!text.trim()) return '';
+      const isWord = ch => /[\p{L}\p{M}'’\-]/u.test(ch || '');
       let start = Math.min(offset, text.length);
       let end = start;
-      const isWord = ch => /[\p{L}\p{M}'’-]/u.test(ch || '');
       if (!isWord(text[start]) && start > 0 && isWord(text[start - 1])) start--;
       while (start > 0 && isWord(text[start - 1])) start--;
       while (end < text.length && isWord(text[end])) end++;
@@ -61,33 +63,40 @@
     }
 
     function speak(doc, word) {
-      if (!word || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(word);
+      if (!word) return;
+      const win = doc.defaultView;
+      if (!win || !win.speechSynthesis || !win.SpeechSynthesisUtterance) return;
+      win.speechSynthesis.cancel();
+      const utterance = new win.SpeechSynthesisUtterance(word);
       utterance.lang = detectLearningLanguage(doc);
-      utterance.rate = 0.82;
-      window.speechSynthesis.speak(utterance);
+      utterance.rate = 0.78;
+      utterance.pitch = 1;
+      win.speechSynthesis.speak(utterance);
     }
 
-    function enhance() {
+    function install() {
       const doc = frame.contentDocument;
       if (!doc || doc.__speakupWordAudioInstalled) return;
       doc.__speakupWordAudioInstalled = true;
 
       const style = doc.createElement('style');
-      style.textContent = '.story-text{cursor:pointer}.story-text:active{opacity:.92}';
+      style.textContent = '.story-text{cursor:pointer;touch-action:manipulation}.story-text [class*="story-"]{cursor:pointer}.story-text:active{opacity:.9}';
       doc.head.appendChild(style);
 
-      doc.addEventListener('click', event => {
-        const target = event.target instanceof Element ? event.target : event.target.parentElement;
+      const handle = event => {
+        const ElementCtor = doc.defaultView.Element;
+        const target = event.target instanceof ElementCtor ? event.target : event.target && event.target.parentElement;
         const story = target && target.closest('.story-text');
         if (!story) return;
+        if (target.closest('button,.story-choice,.story-gap')) return;
         const word = wordAtPoint(doc, event.clientX, event.clientY);
         if (word) speak(doc, word);
-      }, true);
+      };
+
+      doc.addEventListener('click', handle, true);
     }
 
-    frame.addEventListener('load', enhance);
+    frame.addEventListener('load', install);
   })();
   </script>
 </body>
