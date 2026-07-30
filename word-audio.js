@@ -1,6 +1,6 @@
 (() => {
-  if (window.__speakupUnifiedAudioV7) return;
-  window.__speakupUnifiedAudioV7 = true;
+  if (window.__speakupUnifiedAudioV8) return;
+  window.__speakupUnifiedAudioV8 = true;
 
   const ROOT_SELECTOR = [
     '.story-text',
@@ -68,7 +68,6 @@
     utterance.onend = finish;
     utterance.onerror = finish;
 
-    // Android Chrome is more reliable when speech starts just after the tap handler.
     window.setTimeout(() => {
       try {
         window.speechSynthesis.speak(utterance);
@@ -129,7 +128,7 @@
     const target = event.target;
     const root = findStoryRoot(target);
     if (!root) return;
-    if (target?.closest?.('button,.story-gap,.story-choice,.story-option-block,.story-active-card')) return;
+    if (target?.closest?.('button,.story-gap,.story-choice,.story-option-block')) return;
 
     const wordElement = target?.closest?.(WORD_SELECTOR);
     const word = wordElement?.textContent || wordAtPoint(event.clientX, event.clientY, root);
@@ -141,7 +140,7 @@
   }
 
   const style = document.createElement('style');
-  style.id = 'speakup-unified-audio-style-v7';
+  style.id = 'speakup-unified-audio-style-v8';
   style.textContent = `
     ${ROOT_SELECTOR}{touch-action:manipulation}
     ${WORD_SELECTOR}{cursor:pointer;touch-action:manipulation}
@@ -149,7 +148,6 @@
   `;
   document.head.appendChild(style);
 
-  // Prime the browser audio engine on the first genuine user interaction.
   document.addEventListener('pointerdown', () => {
     try {
       window.speechSynthesis?.resume();
