@@ -92,12 +92,21 @@
 
   synth.speak = utterance => {
     try {
+      if (window.__speakUpSuppressCompletedBlock && utterance) {
+        queueMicrotask(() => {
+          try {
+            if (typeof utterance.onend === 'function') utterance.onend({ type: 'end', utterance });
+          } catch (_) {}
+        });
+        return;
+      }
+
       const override = window.__speakUpPortugueseOverride;
       if (utterance && override && !override.consumed && override.expires > Date.now() && override.text) {
         override.consumed = true;
         const replacement = new SpeechSynthesisUtterance(String(override.text));
         replacement.lang = 'pt-PT';
-        replacement.rate = Number.isFinite(utterance.rate) ? utterance.rate : 0.9;
+        replacement.rate = Number.isFinite(utterance.rate) ? utterance.rate : 0.88;
         replacement.pitch = Number.isFinite(utterance.pitch) ? utterance.pitch : 1;
         replacement.volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
         replacement.voice = bestVoice('pt-PT', null);
