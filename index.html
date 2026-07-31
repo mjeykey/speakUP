@@ -10,121 +10,25 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=portuguese-content-fix-3" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=bilingual-story-audio-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
 
     frame.addEventListener('load', () => {
       try {
-        const win = frame.contentWindow;
         const doc = frame.contentDocument;
-        if (!win || !doc) return;
-
+        if (!doc) return;
         doc.documentElement.lang = 'en';
-
-        const normalizeLanguage = value => String(value || '').toLowerCase().split('-')[0];
-        const nativeTranslator = win.Translator || null;
-
-        // Remove old entries where English text was previously cached as Portuguese.
-        // This forces Story Mode to translate the page first and only then build gaps.
-        try {
-          const stalePrefixes = [
-            'speakup-story-translation-v2:',
-            'speakup-mobile-translation-v1:',
-            'speakup-mobile-translation-v2:',
-            'speakup-portuguese-story-v1:',
-            'speakup-portuguese-story-v2:'
-          ];
-          const keysToRemove = [];
-          for (let index = 0; index < win.localStorage.length; index += 1) {
-            const key = win.localStorage.key(index);
-            if (key && stalePrefixes.some(prefix => key.startsWith(prefix))) {
-              keysToRemove.push(key);
-            }
-          }
-          keysToRemove.forEach(key => win.localStorage.removeItem(key));
-        } catch (_) {}
-
-        async function translateToPortuguese(text, sourceLanguage = 'auto') {
-          const input = String(text ?? '');
-          if (!input) return input;
-
-          const source = normalizeLanguage(sourceLanguage) || 'auto';
-          if (source === 'pt') return input;
-
-          const cacheKey = `speakup-portuguese-story-v3:${source}:${input}`;
-          try {
-            const cached = win.localStorage.getItem(cacheKey);
-            if (cached) return cached;
-          } catch (_) {}
-
-          const url = new URL('https://translate.googleapis.com/translate_a/single');
-          url.searchParams.set('client', 'gtx');
-          url.searchParams.set('sl', source === 'auto' ? 'auto' : source);
-          url.searchParams.set('tl', 'pt');
-          url.searchParams.set('dt', 't');
-          url.searchParams.set('q', input);
-
-          const response = await fetch(url.toString(), { cache: 'no-store' });
-          if (!response.ok) throw new Error(`Portuguese translation failed (${response.status})`);
-
-          const payload = await response.json();
-          const translated = Array.isArray(payload?.[0])
-            ? payload[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join('')
-            : '';
-          if (!translated) throw new Error('The Portuguese translation service returned no text');
-
-          try {
-            win.localStorage.setItem(cacheKey, translated);
-          } catch (_) {}
-          return translated;
-        }
-
-        win.Translator = {
-          async availability(options = {}) {
-            const target = normalizeLanguage(options.targetLanguage);
-            const source = normalizeLanguage(options.sourceLanguage);
-
-            if (target === 'pt') return source === 'pt' ? 'available' : 'downloadable';
-
-            if (nativeTranslator && typeof nativeTranslator.availability === 'function') {
-              return nativeTranslator.availability(options);
-            }
-            return 'unavailable';
-          },
-
-          async create(options = {}) {
-            const target = normalizeLanguage(options.targetLanguage);
-            const source = normalizeLanguage(options.sourceLanguage) || 'auto';
-
-            if (target === 'pt') {
-              if (typeof options.monitor === 'function') {
-                options.monitor({ addEventListener() {} });
-              }
-              return {
-                async translate(text) {
-                  return translateToPortuguese(text, source);
-                },
-                destroy() {}
-              };
-            }
-
-            if (nativeTranslator && typeof nativeTranslator.create === 'function') {
-              return nativeTranslator.create(options);
-            }
-            throw new Error(`Translation to ${target || 'the selected language'} is unavailable.`);
-          }
-        };
 
         if (!doc.getElementById('speakup-voice-router')) {
           const script = doc.createElement('script');
           script.id = 'speakup-voice-router';
-          script.src = 'voice-router.js?v=1';
+          script.src = 'voice-router.js?v=2';
           script.defer = true;
           (doc.head || doc.documentElement).appendChild(script);
         }
       } catch (error) {
-        console.warn('SpeakUP Portuguese helper could not be loaded:', error);
+        console.warn('SpeakUP bilingual voice helper could not be loaded:', error);
       }
     });
   </script>
