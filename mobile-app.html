@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" translate="no" class="notranslate">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SpeakUP</title>
+</head>
+<body>
+<script>
+  // Install the Story Mode translation capability before app.html executes.
+  // The full story text remains English. Visible gap words are localized later.
+  window.Translator = {
+    async availability() {
+      return 'available';
+    },
+    async create() {
+      return {
+        async translate(text) {
+          return String(text ?? '');
+        },
+        destroy() {}
+      };
+    }
+  };
+
+  (async () => {
+    try {
+      const response = await fetch('app.html?v=bilingual-story-2', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
+      let html = await response.text();
+      const helpers = '<script src="voice-router.js?v=3"><\/script><script src="story-bilingual.js?v=1"><\/script>';
+      html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (error) {
+      document.body.innerHTML = `<p style="color:white;background:#020205;padding:24px;font-family:Arial">SpeakUP could not start.<br>${String(error.message || error)}</p>`;
+    }
+  })();
+</script>
+</body>
+</html>
