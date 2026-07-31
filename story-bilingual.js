@@ -3,6 +3,7 @@
 
   const cache = new Map();
   const translating = new WeakSet();
+  let lastSpokenAt = 0;
 
   async function translateWordToPortuguese(text) {
     const input = String(text || '').trim();
@@ -32,9 +33,41 @@
   }
 
   function isStoryWordElement(element) {
-    return element instanceof HTMLElement && (
-      element.matches('.story-choice, .story-correct, .story-gap:not(:empty)')
+    return element instanceof HTMLElement && element.matches(
+      '.story-choice, .story-correct, .story-gap:not(:empty)'
     );
+  }
+
+  function findPortugueseVoice() {
+    const voices = window.speechSynthesis?.getVoices?.() || [];
+    const ptVoices = voices.filter(voice => String(voice.lang || '').toLowerCase().startsWith('pt'));
+    return ptVoices.find(voice => /google|microsoft|natural|premium|online/i.test(voice.name))
+      || ptVoices.find(voice => String(voice.lang).toLowerCase() === 'pt-pt')
+      || ptVoices[0]
+      || null;
+  }
+
+  function speakPortuguese(text) {
+    const value = String(text || '').trim();
+    if (!value || !window.speechSynthesis) return;
+
+    const now = Date.now();
+    if (now - lastSpokenAt < 120) return;
+    lastSpokenAt = now;
+
+    // The app may queue the original English word from its own click handler.
+    // Run after that handler, cancel it, then speak the visible Portuguese word.
+    window.setTimeout(() => {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(value);
+        utterance.lang = 'pt-PT';
+        const voice = findPortugueseVoice();
+        if (voice) utterance.voice = voice;
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      } catch (_) {}
+    }, 90);
   }
 
   async function localizeElement(element) {
@@ -49,6 +82,7 @@
       element.textContent = translated;
       element.dataset.speakupLanguage = 'pt-PT';
       element.setAttribute('lang', 'pt-PT');
+      element.setAttribute('aria-label', `${translated}, Portuguese`);
     }
     translating.delete(element);
   }
@@ -57,6 +91,23 @@
     if (root instanceof HTMLElement && isStoryWordElement(root)) localizeElement(root);
     root.querySelectorAll?.('.story-choice, .story-correct, .story-gap:not(:empty)').forEach(localizeElement);
   }
+
+  document.addEventListener('click', event => {
+    const target = event.target instanceof Element
+      ? event.target.closest('.story-choice, .story-correct, .story-gap:not(:empty)')
+      : null;
+    if (!target) return;
+    speakPortuguese(target.textContent);
+  }, true);
+
+  document.addEventListener('pointerup', event => {
+    if (event.pointerType !== 'touch') return;
+    const target = event.target instanceof Element
+      ? event.target.closest('.story-choice, .story-correct, .story-gap:not(:empty)')
+      : null;
+    if (!target) return;
+    speakPortuguese(target.textContent);
+  }, true);
 
   const observer = new MutationObserver(records => {
     for (const record of records) {
