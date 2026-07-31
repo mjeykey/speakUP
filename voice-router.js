@@ -28,6 +28,9 @@
   };
 
   const preferredNames = ['Google', 'Microsoft', 'Natural', 'Online', 'Premium'];
+  const commonEnglishWords = new Set([
+    'a','an','and','are','as','at','be','but','by','for','from','he','her','his','i','in','is','it','its','my','not','of','on','or','our','she','so','that','the','their','there','they','this','to','was','we','were','with','you','your'
+  ]);
 
   function refreshVoices() {
     voices = synth.getVoices() || [];
@@ -50,6 +53,13 @@
     const requested = String(requestedLang || '').toLowerCase();
     if (!voice || !requested) return false;
     return voice === requested || voice.split('-')[0] === requested.split('-')[0];
+  }
+
+  function looksLikeEnglishStoryText(text) {
+    const words = String(text || '').toLowerCase().match(/[a-z']+/g) || [];
+    if (words.length < 6) return false;
+    const matches = words.filter(word => commonEnglishWords.has(word)).length;
+    return matches >= 2 && matches / words.length >= 0.12;
   }
 
   function bestVoice(lang, currentVoice) {
@@ -76,11 +86,21 @@
 
   synth.speak = utterance => {
     try {
-      const normalizedLang = normalizeLanguage(utterance && utterance.lang);
-      if (utterance && normalizedLang) {
-        utterance.lang = normalizedLang;
-        const voice = bestVoice(normalizedLang, utterance.voice);
-        if (voice) utterance.voice = voice;
+      if (utterance) {
+        let normalizedLang = normalizeLanguage(utterance.lang);
+
+        // Story narration is stored in English. When Portuguese is selected as
+        // the learning language, keep long English narration on the English
+        // original voice. Short gap words and answer options stay Portuguese.
+        if (normalizedLang.toLowerCase().startsWith('pt') && looksLikeEnglishStoryText(utterance.text)) {
+          normalizedLang = 'en-GB';
+        }
+
+        if (normalizedLang) {
+          utterance.lang = normalizedLang;
+          const voice = bestVoice(normalizedLang, utterance.voice);
+          if (voice) utterance.voice = voice;
+        }
       }
     } catch (error) {
       console.warn('SpeakUP voice routing fallback:', error);
