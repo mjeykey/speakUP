@@ -3,6 +3,8 @@
 
   const cache = new Map();
   const translating = new WeakSet();
+  let skipRepeatScreensUntil = 0;
+  let skipInProgress = false;
 
   async function translateWordToPortuguese(text) {
     const input = String(text || '').trim();
@@ -76,11 +78,76 @@
     };
   }
 
-  // Capture phase runs before React's original click handler. The app can still
-  // process the answer normally, but its English utterance is replaced centrally.
+  function normalizedText(element) {
+    return String(element?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function isStoryCompletionButton(element) {
+    if (!(element instanceof HTMLButtonElement)) return false;
+    const text = normalizedText(element);
+    return text.includes('continue to full translation')
+      || text.includes('full translation')
+      || text.includes('continue to translation');
+  }
+
+  function isRepeatScreen() {
+    if (document.querySelector('.story-text, .story-active-card')) return false;
+
+    const visibleLongTexts = Array.from(document.querySelectorAll(
+      '.learning-sentence, .translation-text, .dissolve-sentence, main p, main h1, main h2, main h3'
+    ))
+      .filter(element => element instanceof HTMLElement && element.offsetParent !== null)
+      .map(element => normalizedText(element))
+      .filter(text => text.length > 45);
+
+    if (!visibleLongTexts.length) return false;
+    const hasRepeatedText = visibleLongTexts.some((text, index) => visibleLongTexts.indexOf(text) !== index);
+    return hasRepeatedText || Boolean(document.querySelector('.translation-text, .learning-sentence'));
+  }
+
+  function findContinueButton() {
+    const buttons = Array.from(document.querySelectorAll('button'))
+      .filter(button => button instanceof HTMLButtonElement && button.offsetParent !== null && !button.disabled);
+
+    return buttons.find(button => {
+      const text = normalizedText(button);
+      return /^(continue|next|done|finish|back to story|next block|continue story)/.test(text)
+        && !text.includes('menu')
+        && !text.includes('audio')
+        && !text.includes('read');
+    }) || null;
+  }
+
+  function skipDuplicateRepeatScreen() {
+    if (Date.now() > skipRepeatScreensUntil || skipInProgress || !isRepeatScreen()) return;
+    const button = findContinueButton();
+    if (!button) return;
+
+    skipInProgress = true;
+    window.speechSynthesis?.cancel?.();
+    window.setTimeout(() => {
+      try {
+        button.click();
+      } finally {
+        window.setTimeout(() => {
+          skipInProgress = false;
+          skipDuplicateRepeatScreen();
+        }, 140);
+      }
+    }, 0);
+  }
+
   document.addEventListener('pointerdown', preparePortugueseSpeech, true);
   document.addEventListener('touchstart', preparePortugueseSpeech, { capture: true, passive: true });
-  document.addEventListener('click', preparePortugueseSpeech, true);
+  document.addEventListener('click', event => {
+    preparePortugueseSpeech(event);
+
+    const button = event.target instanceof Element ? event.target.closest('button') : null;
+    if (button && isStoryCompletionButton(button)) {
+      skipRepeatScreensUntil = Date.now() + 12000;
+      window.setTimeout(skipDuplicateRepeatScreen, 0);
+    }
+  }, true);
 
   const observer = new MutationObserver(records => {
     for (const record of records) {
@@ -91,6 +158,7 @@
         localizeElement(record.target.parentElement);
       }
     }
+    skipDuplicateRepeatScreen();
   });
 
   observer.observe(document.documentElement, {
