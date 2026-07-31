@@ -76,6 +76,12 @@
     return preferred(exact) || exact[0] || preferred(sameLanguage) || sameLanguage[0] || currentVoice || null;
   }
 
+  function copyCallbacks(source, target) {
+    ['onstart', 'onend', 'onerror', 'onpause', 'onresume', 'onmark', 'onboundary'].forEach(name => {
+      try { target[name] = source[name]; } catch (_) {}
+    });
+  }
+
   synth.addEventListener?.('voiceschanged', refreshVoices);
   const previousVoicesChanged = synth.onvoiceschanged;
   synth.onvoiceschanged = event => {
@@ -86,16 +92,24 @@
 
   synth.speak = utterance => {
     try {
+      const override = window.__speakUpPortugueseOverride;
+      if (utterance && override && !override.consumed && override.expires > Date.now() && override.text) {
+        override.consumed = true;
+        const replacement = new SpeechSynthesisUtterance(String(override.text));
+        replacement.lang = 'pt-PT';
+        replacement.rate = Number.isFinite(utterance.rate) ? utterance.rate : 0.9;
+        replacement.pitch = Number.isFinite(utterance.pitch) ? utterance.pitch : 1;
+        replacement.volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
+        replacement.voice = bestVoice('pt-PT', null);
+        copyCallbacks(utterance, replacement);
+        return originalSpeak(replacement);
+      }
+
       if (utterance) {
         let normalizedLang = normalizeLanguage(utterance.lang);
-
-        // Story narration is stored in English. When Portuguese is selected as
-        // the learning language, keep long English narration on the English
-        // original voice. Short gap words and answer options stay Portuguese.
         if (normalizedLang.toLowerCase().startsWith('pt') && looksLikeEnglishStoryText(utterance.text)) {
           normalizedLang = 'en-GB';
         }
-
         if (normalizedLang) {
           utterance.lang = normalizedLang;
           const voice = bestVoice(normalizedLang, utterance.voice);
