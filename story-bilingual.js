@@ -3,8 +3,7 @@
 
   const cache = new Map();
   const translating = new WeakSet();
-  let skipRepeatScreensUntil = 0;
-  let skipInProgress = false;
+  let completionSkipRunning = false;
 
   async function translateWordToPortuguese(text) {
     const input = String(text || '').trim();
@@ -31,6 +30,10 @@
     } catch (_) {
       return input;
     }
+  }
+
+  function normalizedText(element) {
+    return String(element?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
   }
 
   function isStoryWordElement(element) {
@@ -78,76 +81,68 @@
     };
   }
 
-  function normalizedText(element) {
-    return String(element?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-  }
-
-  function isStoryCompletionButton(element) {
-    if (!(element instanceof HTMLButtonElement)) return false;
-    const text = normalizedText(element);
-    return text.includes('continue to full translation')
-      || text.includes('full translation')
-      || text.includes('continue to translation');
-  }
-
-  function isRepeatScreen() {
-    if (document.querySelector('.story-text, .story-active-card')) return false;
-
-    const visibleLongTexts = Array.from(document.querySelectorAll(
-      '.learning-sentence, .translation-text, .dissolve-sentence, main p, main h1, main h2, main h3'
-    ))
-      .filter(element => element instanceof HTMLElement && element.offsetParent !== null)
-      .map(element => normalizedText(element))
-      .filter(text => text.length > 45);
-
-    if (!visibleLongTexts.length) return false;
-    const hasRepeatedText = visibleLongTexts.some((text, index) => visibleLongTexts.indexOf(text) !== index);
-    return hasRepeatedText || Boolean(document.querySelector('.translation-text, .learning-sentence'));
-  }
-
-  function findContinueButton() {
-    const buttons = Array.from(document.querySelectorAll('button'))
-      .filter(button => button instanceof HTMLButtonElement && button.offsetParent !== null && !button.disabled);
-
-    return buttons.find(button => {
-      const text = normalizedText(button);
-      return /^(continue|next|done|finish|back to story|next block|continue story)/.test(text)
-        && !text.includes('menu')
-        && !text.includes('audio')
-        && !text.includes('read');
+  function completionPhaseMarker() {
+    const elements = Array.from(document.querySelectorAll('main *'));
+    return elements.find(element => {
+      if (!(element instanceof HTMLElement) || element.offsetParent === null) return false;
+      const text = normalizedText(element);
+      return text.includes('listening to the completed block')
+        || text.includes('stay on this text until the final sentence has finished')
+        || text.includes('completed block in portuguese');
     }) || null;
   }
 
-  function skipDuplicateRepeatScreen() {
-    if (Date.now() > skipRepeatScreensUntil || skipInProgress || !isRepeatScreen()) return;
-    const button = findContinueButton();
-    if (!button) return;
+  function findAdvanceButton() {
+    const buttons = Array.from(document.querySelectorAll('button'))
+      .filter(button => button instanceof HTMLButtonElement && !button.disabled);
 
-    skipInProgress = true;
+    return buttons.find(button => {
+      const text = normalizedText(button);
+      return button.classList.contains('story-completion-button')
+        || text.includes('continue to full translation')
+        || /^(continue|next|next block|continue story|done|finish)/.test(text);
+    }) || null;
+  }
+
+  function removeCompletedBlockPhase() {
+    const marker = completionPhaseMarker();
+    if (!marker || completionSkipRunning) return;
+
+    completionSkipRunning = true;
+    window.__speakUpSuppressCompletedBlock = true;
     window.speechSynthesis?.cancel?.();
-    window.setTimeout(() => {
-      try {
+
+    const panel = marker.closest('section, article, div');
+    if (panel instanceof HTMLElement) panel.style.display = 'none';
+
+    const storyText = document.querySelector('.story-text');
+    if (storyText instanceof HTMLElement) storyText.style.visibility = 'hidden';
+
+    let attempts = 0;
+    const advance = () => {
+      attempts += 1;
+      const button = findAdvanceButton();
+      if (button) {
         button.click();
-      } finally {
         window.setTimeout(() => {
-          skipInProgress = false;
-          skipDuplicateRepeatScreen();
-        }, 140);
+          window.__speakUpSuppressCompletedBlock = false;
+          completionSkipRunning = false;
+        }, 250);
+        return;
       }
-    }, 0);
+      if (attempts < 30) {
+        window.setTimeout(advance, 100);
+      } else {
+        window.__speakUpSuppressCompletedBlock = false;
+        completionSkipRunning = false;
+      }
+    };
+    advance();
   }
 
   document.addEventListener('pointerdown', preparePortugueseSpeech, true);
   document.addEventListener('touchstart', preparePortugueseSpeech, { capture: true, passive: true });
-  document.addEventListener('click', event => {
-    preparePortugueseSpeech(event);
-
-    const button = event.target instanceof Element ? event.target.closest('button') : null;
-    if (button && isStoryCompletionButton(button)) {
-      skipRepeatScreensUntil = Date.now() + 12000;
-      window.setTimeout(skipDuplicateRepeatScreen, 0);
-    }
-  }, true);
+  document.addEventListener('click', preparePortugueseSpeech, true);
 
   const observer = new MutationObserver(records => {
     for (const record of records) {
@@ -158,7 +153,7 @@
         localizeElement(record.target.parentElement);
       }
     }
-    skipDuplicateRepeatScreen();
+    removeCompletedBlockPhase();
   });
 
   observer.observe(document.documentElement, {
@@ -168,4 +163,5 @@
   });
 
   scan();
+  removeCompletedBlockPhase();
 })();
