@@ -10,28 +10,44 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=story-mobile-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=multilingual-voices-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
-    frame.addEventListener('load', () => {
-      const win = frame.contentWindow;
-      if (!win || 'Translator' in win) return;
 
-      // Mobile fallback: keep Story Mode usable when Chrome's desktop-only
-      // on-device Translator API is unavailable. Text remains unchanged.
-      win.Translator = {
-        async availability() {
-          return 'available';
-        },
-        async create() {
-          return {
-            async translate(text) {
-              return String(text ?? '');
+    frame.addEventListener('load', () => {
+      try {
+        const win = frame.contentWindow;
+        const doc = frame.contentDocument;
+        if (!win || !doc) return;
+
+        if (!('Translator' in win)) {
+          // Mobile fallback: Story Mode remains usable where Chrome's
+          // desktop-only on-device Translator API is unavailable.
+          win.Translator = {
+            async availability() {
+              return 'available';
             },
-            destroy() {}
+            async create() {
+              return {
+                async translate(text) {
+                  return String(text ?? '');
+                },
+                destroy() {}
+              };
+            }
           };
         }
-      };
+
+        if (!doc.getElementById('speakup-voice-router')) {
+          const script = doc.createElement('script');
+          script.id = 'speakup-voice-router';
+          script.src = 'voice-router.js?v=1';
+          script.defer = true;
+          (doc.head || doc.documentElement).appendChild(script);
+        }
+      } catch (error) {
+        console.warn('SpeakUP mobile helpers could not be loaded:', error);
+      }
     });
   </script>
 </body>
