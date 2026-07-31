@@ -10,27 +10,6 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=bilingual-story-audio-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
-  <script>
-    const frame = document.getElementById('speakup-app');
-
-    frame.addEventListener('load', () => {
-      try {
-        const doc = frame.contentDocument;
-        if (!doc) return;
-        doc.documentElement.lang = 'en';
-
-        if (!doc.getElementById('speakup-voice-router')) {
-          const script = doc.createElement('script');
-          script.id = 'speakup-voice-router';
-          script.src = 'voice-router.js?v=2';
-          script.defer = true;
-          (doc.head || doc.documentElement).appendChild(script);
-        }
-      } catch (error) {
-        console.warn('SpeakUP bilingual voice helper could not be loaded:', error);
-      }
-    });
-  </script>
+  <iframe id="speakup-app" src="mobile-app.html?v=bilingual-story-2" title="SpeakUP" allow="microphone; autoplay"></iframe>
 </body>
 </html>
