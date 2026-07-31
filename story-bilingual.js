@@ -3,7 +3,6 @@
 
   const cache = new Map();
   const translating = new WeakSet();
-  let lastSpokenAt = 0;
 
   async function translateWordToPortuguese(text) {
     const input = String(text || '').trim();
@@ -38,38 +37,6 @@
     );
   }
 
-  function findPortugueseVoice() {
-    const voices = window.speechSynthesis?.getVoices?.() || [];
-    const ptVoices = voices.filter(voice => String(voice.lang || '').toLowerCase().startsWith('pt'));
-    return ptVoices.find(voice => /google|microsoft|natural|premium|online/i.test(voice.name))
-      || ptVoices.find(voice => String(voice.lang).toLowerCase() === 'pt-pt')
-      || ptVoices[0]
-      || null;
-  }
-
-  function speakPortuguese(text) {
-    const value = String(text || '').trim();
-    if (!value || !window.speechSynthesis) return;
-
-    const now = Date.now();
-    if (now - lastSpokenAt < 120) return;
-    lastSpokenAt = now;
-
-    // The app may queue the original English word from its own click handler.
-    // Run after that handler, cancel it, then speak the visible Portuguese word.
-    window.setTimeout(() => {
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(value);
-        utterance.lang = 'pt-PT';
-        const voice = findPortugueseVoice();
-        if (voice) utterance.voice = voice;
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-      } catch (_) {}
-    }, 90);
-  }
-
   async function localizeElement(element) {
     if (!isStoryWordElement(element) || translating.has(element)) return;
     const original = element.dataset.speakupEnglish || element.textContent?.trim() || '';
@@ -80,6 +47,7 @@
     const translated = await translateWordToPortuguese(original);
     if (element.isConnected && translated) {
       element.textContent = translated;
+      element.dataset.speakupPortuguese = translated;
       element.dataset.speakupLanguage = 'pt-PT';
       element.setAttribute('lang', 'pt-PT');
       element.setAttribute('aria-label', `${translated}, Portuguese`);
@@ -92,22 +60,27 @@
     root.querySelectorAll?.('.story-choice, .story-correct, .story-gap:not(:empty)').forEach(localizeElement);
   }
 
-  document.addEventListener('click', event => {
+  function preparePortugueseSpeech(event) {
     const target = event.target instanceof Element
       ? event.target.closest('.story-choice, .story-correct, .story-gap:not(:empty)')
       : null;
     if (!target) return;
-    speakPortuguese(target.textContent);
-  }, true);
 
-  document.addEventListener('pointerup', event => {
-    if (event.pointerType !== 'touch') return;
-    const target = event.target instanceof Element
-      ? event.target.closest('.story-choice, .story-correct, .story-gap:not(:empty)')
-      : null;
-    if (!target) return;
-    speakPortuguese(target.textContent);
-  }, true);
+    const text = target.dataset.speakupPortuguese || target.textContent?.trim() || '';
+    if (!text) return;
+
+    window.__speakUpPortugueseOverride = {
+      text,
+      consumed: false,
+      expires: Date.now() + 1200
+    };
+  }
+
+  // Capture phase runs before React's original click handler. The app can still
+  // process the answer normally, but its English utterance is replaced centrally.
+  document.addEventListener('pointerdown', preparePortugueseSpeech, true);
+  document.addEventListener('touchstart', preparePortugueseSpeech, { capture: true, passive: true });
+  document.addEventListener('click', preparePortugueseSpeech, true);
 
   const observer = new MutationObserver(records => {
     for (const record of records) {
