@@ -26,7 +26,7 @@
       const response = await fetch('app.html?v=bilingual-story-2', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = await response.text();
-      const helpers = '<script src="voice-router.js?v=3"><\/script><script src="story-bilingual.js?v=2"><\/script>';
+      const helpers = '<script src="voice-router.js?v=4"><\/script><script src="story-bilingual.js?v=3"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
       document.write(html);
