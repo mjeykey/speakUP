@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=menu-language-only-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=portuguese-story-only-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
 
@@ -20,19 +20,17 @@
         const doc = frame.contentDocument;
         if (!win || !doc) return;
 
-        // English is only the interface language. Learning content always follows
-        // the language selected inside SpeakUP.
+        // English remains the interface language only.
         doc.documentElement.lang = 'en';
 
         if (!('Translator' in win)) {
           const normalizeLanguage = value => String(value || '').toLowerCase().split('-')[0];
 
-          async function translateWithGoogle(text, _sourceLanguage, targetLanguage) {
-            const target = normalizeLanguage(targetLanguage);
+          async function translateToPortuguese(text) {
             const input = String(text ?? '');
-            if (!input || !target) return input;
+            if (!input) return input;
 
-            const cacheKey = `speakup-mobile-translation-v2:auto:${target}:${input}`;
+            const cacheKey = `speakup-portuguese-story-v1:${input}`;
             try {
               const cached = win.localStorage.getItem(cacheKey);
               if (cached) return cached;
@@ -41,17 +39,18 @@
             const url = new URL('https://translate.googleapis.com/translate_a/single');
             url.searchParams.set('client', 'gtx');
             url.searchParams.set('sl', 'auto');
-            url.searchParams.set('tl', target);
+            url.searchParams.set('tl', 'pt');
             url.searchParams.set('dt', 't');
             url.searchParams.set('q', input);
 
             const response = await fetch(url.toString(), { cache: 'no-store' });
-            if (!response.ok) throw new Error(`Translation request failed (${response.status})`);
+            if (!response.ok) throw new Error(`Portuguese translation failed (${response.status})`);
+
             const payload = await response.json();
             const translated = Array.isArray(payload?.[0])
               ? payload[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join('')
               : '';
-            if (!translated) throw new Error('The translation service returned no text');
+            if (!translated) throw new Error('The Portuguese translation service returned no text');
 
             try {
               win.localStorage.setItem(cacheKey, translated);
@@ -60,16 +59,19 @@
           }
 
           win.Translator = {
-            async availability() {
-              return 'downloadable';
+            async availability({ targetLanguage = '' } = {}) {
+              return normalizeLanguage(targetLanguage) === 'pt' ? 'downloadable' : 'unavailable';
             },
             async create({ targetLanguage = '', monitor } = {}) {
+              if (normalizeLanguage(targetLanguage) !== 'pt') {
+                throw new Error('Only Portuguese Story Mode is enabled on mobile.');
+              }
               if (typeof monitor === 'function') {
                 monitor({ addEventListener() {} });
               }
               return {
                 async translate(text) {
-                  return translateWithGoogle(text, 'auto', targetLanguage);
+                  return translateToPortuguese(text);
                 },
                 destroy() {}
               };
@@ -85,7 +87,7 @@
           (doc.head || doc.documentElement).appendChild(script);
         }
       } catch (error) {
-        console.warn('SpeakUP mobile helpers could not be loaded:', error);
+        console.warn('SpeakUP Portuguese Story helper could not be loaded:', error);
       }
     });
   </script>
