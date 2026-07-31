@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=portuguese-targeted-fix-2" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=portuguese-content-fix-3" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
 
@@ -25,6 +25,26 @@
         const normalizeLanguage = value => String(value || '').toLowerCase().split('-')[0];
         const nativeTranslator = win.Translator || null;
 
+        // Remove old entries where English text was previously cached as Portuguese.
+        // This forces Story Mode to translate the page first and only then build gaps.
+        try {
+          const stalePrefixes = [
+            'speakup-story-translation-v2:',
+            'speakup-mobile-translation-v1:',
+            'speakup-mobile-translation-v2:',
+            'speakup-portuguese-story-v1:',
+            'speakup-portuguese-story-v2:'
+          ];
+          const keysToRemove = [];
+          for (let index = 0; index < win.localStorage.length; index += 1) {
+            const key = win.localStorage.key(index);
+            if (key && stalePrefixes.some(prefix => key.startsWith(prefix))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => win.localStorage.removeItem(key));
+        } catch (_) {}
+
         async function translateToPortuguese(text, sourceLanguage = 'auto') {
           const input = String(text ?? '');
           if (!input) return input;
@@ -32,7 +52,7 @@
           const source = normalizeLanguage(sourceLanguage) || 'auto';
           if (source === 'pt') return input;
 
-          const cacheKey = `speakup-portuguese-story-v2:${source}:${input}`;
+          const cacheKey = `speakup-portuguese-story-v3:${source}:${input}`;
           try {
             const cached = win.localStorage.getItem(cacheKey);
             if (cached) return cached;
