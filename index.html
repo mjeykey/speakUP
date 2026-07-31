@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="app.html?v=story-language-text-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="app.html?v=menu-language-only-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
 
@@ -20,16 +20,19 @@
         const doc = frame.contentDocument;
         if (!win || !doc) return;
 
-        if (!('Translator' in win)) {
-          const normalizeLanguage = value => String(value || 'en').toLowerCase().split('-')[0];
+        // English is only the interface language. Learning content always follows
+        // the language selected inside SpeakUP.
+        doc.documentElement.lang = 'en';
 
-          async function translateWithGoogle(text, sourceLanguage, targetLanguage) {
-            const source = normalizeLanguage(sourceLanguage);
+        if (!('Translator' in win)) {
+          const normalizeLanguage = value => String(value || '').toLowerCase().split('-')[0];
+
+          async function translateWithGoogle(text, _sourceLanguage, targetLanguage) {
             const target = normalizeLanguage(targetLanguage);
             const input = String(text ?? '');
-            if (!input || source === target) return input;
+            if (!input || !target) return input;
 
-            const cacheKey = `speakup-mobile-translation-v1:${source}:${target}:${input}`;
+            const cacheKey = `speakup-mobile-translation-v2:auto:${target}:${input}`;
             try {
               const cached = win.localStorage.getItem(cacheKey);
               if (cached) return cached;
@@ -37,7 +40,7 @@
 
             const url = new URL('https://translate.googleapis.com/translate_a/single');
             url.searchParams.set('client', 'gtx');
-            url.searchParams.set('sl', source);
+            url.searchParams.set('sl', 'auto');
             url.searchParams.set('tl', target);
             url.searchParams.set('dt', 't');
             url.searchParams.set('q', input);
@@ -57,18 +60,16 @@
           }
 
           win.Translator = {
-            async availability({ sourceLanguage, targetLanguage } = {}) {
-              return normalizeLanguage(sourceLanguage) === normalizeLanguage(targetLanguage)
-                ? 'available'
-                : 'downloadable';
+            async availability() {
+              return 'downloadable';
             },
-            async create({ sourceLanguage = 'en', targetLanguage = 'en', monitor } = {}) {
+            async create({ targetLanguage = '', monitor } = {}) {
               if (typeof monitor === 'function') {
                 monitor({ addEventListener() {} });
               }
               return {
                 async translate(text) {
-                  return translateWithGoogle(text, sourceLanguage, targetLanguage);
+                  return translateWithGoogle(text, 'auto', targetLanguage);
                 },
                 destroy() {}
               };
