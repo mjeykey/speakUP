@@ -7,9 +7,7 @@
   const HELPER_SCRIPTS = [
     'voice-router.js?v=12',
     'story-bilingual.js?v=5',
-    'story-language-quality.js?v=2',
-    'story-flow-controller.js?v=9',
-    'src/story/story-start-ui.js?v=1'
+    'story-language-quality.js?v=2'
   ];
 
   function ensureTranslatorFallback() {
