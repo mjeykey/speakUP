@@ -14,6 +14,8 @@ export function renderMenu(root, store) {
     <h1>Choose your path</h1><p class="muted">Everything runs calmly, one step at a time.</p>
     <h2>Learning Mode</h2><div class="card-grid" data-modes></div>
     ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
+    <h2>Personalise</h2>
+    <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
     <div class="settings-row"><label>Learning Language<select data-learning><option value="pt-PT">Portuguese</option></select></label><label>Mother Language<select data-native><option value="en-GB">English</option></select></label></div>
     <div class="menu-action" data-action></div>
   </div></section>`;
@@ -26,6 +28,8 @@ export function renderMenu(root, store) {
     button.onclick = () => store.setState({ mode: id, selectedStory: id === 'story' ? null : state.selectedStory });
     modes.appendChild(button);
   });
+
+  root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
 
   const stories = root.querySelector('[data-stories]');
   if (stories) STORIES.forEach(story => {
