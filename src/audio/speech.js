@@ -48,7 +48,7 @@ export function speak(textOrRequest, language, options = {}) {
   });
 }
 
-export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, enabled = true, onWord }) {
+export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, enabled = true, onWord }) {
   return new Promise(resolve => {
     const value = String(text || '').replace(/\s+/g, ' ').trim();
     if (!value || !synth || enabled === false) {
@@ -59,7 +59,9 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
     stopSpeech();
     const utterance = new SpeechSynthesisUtterance(value);
     utterance.lang = language;
-    utterance.rate = adjustedRate(language, rate, 0.62);
+    utterance.rate = String(language || '').toLowerCase().startsWith('pt')
+      ? Math.min(adjustedRate(language, rate, 0.56), 0.56)
+      : adjustedRate(language, rate, 0.56);
     const voice = pickVoice(language);
     if (voice) utterance.voice = voice;
 
@@ -74,7 +76,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
     let activeIndex = -1;
     let finished = false;
     let lastBoundaryAt = performance.now();
-    const averageWordDelay = Math.max(310, 455 / utterance.rate);
+    const averageWordDelay = Math.max(340, 470 / utterance.rate);
 
     const highlight = index => {
       if (index < 0 || index >= words.length || index === activeIndex) return;
@@ -92,8 +94,6 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
         else break;
       }
 
-      // Some Android voices skip boundary events. Briefly surface every
-      // omitted word before moving to the boundary reported by the voice.
       if (index > activeIndex + 1) {
         let missing = activeIndex + 1;
         const advanceMissing = () => {
@@ -103,7 +103,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
           }
           highlight(missing);
           missing += 1;
-          window.setTimeout(advanceMissing, 90);
+          window.setTimeout(advanceMissing, 110);
         };
         advanceMissing();
       } else {
@@ -111,13 +111,12 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
       }
     };
 
-    // Fallback for voices that expose no useful word-boundary events.
     const fallbackTimer = window.setInterval(() => {
       if (finished || activeIndex >= words.length - 1) return;
       if (performance.now() - lastBoundaryAt >= averageWordDelay) {
         highlight(activeIndex + 1);
       }
-    }, 90);
+    }, 100);
 
     const finish = () => {
       if (finished) return;
@@ -133,7 +132,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, 
           }
           onWord?.(index);
           index += 1;
-          window.setTimeout(showRemaining, 80);
+          window.setTimeout(showRemaining, 100);
         };
         showRemaining();
         return;
