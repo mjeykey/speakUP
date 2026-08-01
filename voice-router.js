@@ -7,6 +7,9 @@
 
   const originalSpeak = synth.speak.bind(synth);
   const originalCancel = synth.cancel.bind(synth);
+  window.__speakUpSpeakPreview = utterance => originalSpeak(utterance);
+  window.__speakUpCancelSpeech = () => originalCancel();
+
   let voices = [];
   let lastKey = '';
   let lastAt = 0;
@@ -39,7 +42,6 @@
     refreshVoices();
     if (!voices.length || !lang) return currentVoice;
     if (currentVoice && languageMatches(currentVoice.lang, lang)) return currentVoice;
-
     const normalized = lang.toLowerCase();
     const base = normalized.split('-')[0];
     const exact = voices.filter(voice => String(voice.lang || '').toLowerCase() === normalized);
@@ -65,9 +67,7 @@
 
   function finishSilently(utterance) {
     queueMicrotask(() => {
-      try {
-        utterance?.onend?.({ type: 'end', utterance });
-      } catch (_) {}
+      try { utterance?.onend?.({ type: 'end', utterance }); } catch (_) {}
     });
   }
 
@@ -92,14 +92,13 @@
   synth.speak = utterance => {
     try {
       if (!utterance) return originalSpeak(utterance);
+      if (utterance.__speakUpFlowPreview === true) return originalSpeak(utterance);
 
-      const isFlowPreview = window.__speakUpFlowOwnSpeech === true;
       const override = window.__speakUpPortugueseOverride;
-      if (!isFlowPreview && override && !override.consumed && override.expires > Date.now() && override.text) {
+      if (override && !override.consumed && override.expires > Date.now() && override.text) {
         override.consumed = true;
         clearTimeout(portugueseTimer);
         originalCancel();
-
         const replacement = new SpeechSynthesisUtterance(String(override.text));
         replacement.lang = 'pt-PT';
         replacement.voice = bestVoice('pt-PT');
@@ -107,42 +106,32 @@
         replacement.pitch = 1;
         replacement.volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
         copyCallbacks(utterance, replacement);
-
         portugueseTimer = window.setTimeout(() => originalSpeak(replacement), 180);
         return;
       }
 
       const text = String(utterance.text || '').trim();
       let lang = normalizeLanguage(utterance.lang);
-
-      if (!isFlowPreview && (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock)) {
+      if (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock) {
         finishSilently(utterance);
         return;
       }
-
       if (lang.startsWith('pt') && looksLikeEnglishNarration(text)) lang = 'en-GB';
       if (!lang && looksLikeEnglishNarration(text)) lang = 'en-GB';
-
-      if (!isFlowPreview && duplicate(text, lang)) {
+      if (duplicate(text, lang)) {
         finishSilently(utterance);
         return;
       }
-
       if (lang) {
         utterance.lang = lang;
         const voice = bestVoice(lang, utterance.voice);
         if (voice) utterance.voice = voice;
       }
-
-      if (lang.startsWith('pt')) {
-        utterance.rate = isFlowPreview ? utterance.rate : 0.86;
-      } else if (lang.startsWith('en')) {
-        utterance.rate = isFlowPreview ? utterance.rate : 1;
-      }
+      if (lang.startsWith('pt')) utterance.rate = 0.86;
+      else if (lang.startsWith('en')) utterance.rate = 1;
     } catch (error) {
       console.warn('SpeakUP audio engine fallback:', error);
     }
-
     return originalSpeak(utterance);
   };
 })();
