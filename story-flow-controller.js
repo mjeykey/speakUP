@@ -6,15 +6,15 @@
   let voices = [];
 
   const TIMING = {
-    openingPause: 700,
+    openingPause: 2100,
     englishRate: 0.92,
     portugueseRate: 0.72,
-    englishMinimumVisible: 4800,
-    portugueseMinimumVisible: 6500,
-    afterEnglish: 1400,
-    betweenLanguages: 650,
-    afterPortuguese: 1900,
-    beforeExercise: 700
+    englishMinimumVisible: 14400,
+    portugueseMinimumVisible: 19500,
+    afterEnglish: 4200,
+    betweenLanguages: 1950,
+    afterPortuguese: 5700,
+    beforeExercise: 2100
   };
 
   function refreshVoices() {
