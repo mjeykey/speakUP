@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="mobile-app.html?v=words-portuguese-audio-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="mobile-app.html?v=words-bilingual-audio-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
     frame.addEventListener('load', () => {
@@ -27,7 +27,7 @@
       if (!doc.getElementById('speakup-words-audio-fix')) {
         const wordsScript = doc.createElement('script');
         wordsScript.id = 'speakup-words-audio-fix';
-        wordsScript.src = 'words-audio-fix.js?v=1';
+        wordsScript.src = 'words-audio-fix.js?v=2';
         doc.body.appendChild(wordsScript);
       }
     });
