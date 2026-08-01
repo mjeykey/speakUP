@@ -1,7 +1,9 @@
+import { everydayStory } from './stories/everyday.js';
+
 export const STORIES = [
-  { id: 'everyday', emoji: '🏠', title: 'Everyday Life', subtitle: 'A Morning in the Neighborhood', english: 'Every morning, Leonor leaves her house and walks down the street.', portuguese: 'Todas as manhãs, Leonor sai de casa e caminha pela rua.' },
-  { id: 'romance', emoji: '❤️', title: 'Romance', subtitle: 'The Café in the Rain', english: 'They meet in a quiet café while rain touches the windows.', portuguese: 'Eles encontram-se num café tranquilo enquanto a chuva toca nas janelas.' },
-  { id: 'travel', emoji: '✈️', title: 'Travel', subtitle: 'One Hundred Euros in Portugal', english: 'A small journey begins at the station with one light bag.', portuguese: 'Uma pequena viagem começa na estação com uma mala leve.' }
+  everydayStory,
+  { id: 'romance', emoji: '❤️', title: 'Romance', subtitle: 'The Café in the Rain', pages: ['They meet in a quiet café while rain touches the windows.'] },
+  { id: 'travel', emoji: '✈️', title: 'Travel', subtitle: 'One Hundred Euros in Portugal', pages: ['A small journey begins at the station with one light bag.'] }
 ];
 
 export const WORDS = [
