@@ -48,7 +48,7 @@ export function speak(textOrRequest, language, options = {}) {
   });
 }
 
-export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, enabled = true, onWord }) {
+export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, enabled = true, onWord }) {
   return new Promise(resolve => {
     const value = String(text || '').replace(/\s+/g, ' ').trim();
     if (!value || !synth || enabled === false) {
@@ -60,8 +60,8 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, 
     const utterance = new SpeechSynthesisUtterance(value);
     utterance.lang = language;
     utterance.rate = String(language || '').toLowerCase().startsWith('pt')
-      ? Math.min(adjustedRate(language, rate, 0.56), 0.56)
-      : adjustedRate(language, rate, 0.56);
+      ? Math.min(adjustedRate(language, rate, 0.48), 0.48)
+      : adjustedRate(language, rate, 0.48);
     const voice = pickVoice(language);
     if (voice) utterance.voice = voice;
 
@@ -75,17 +75,28 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, 
 
     let activeIndex = -1;
     let finished = false;
-    let lastBoundaryAt = performance.now();
-    const averageWordDelay = Math.max(340, 470 / utterance.rate);
+    let lastHighlightAt = 0;
+    let pendingTimer = 0;
+    const isSlowPortuguese = String(language || '').toLowerCase().startsWith('pt') && utterance.rate <= 0.5;
+    const minimumLightTime = isSlowPortuguese ? 620 : Math.max(280, 300 / utterance.rate);
+    const fallbackWordDelay = isSlowPortuguese ? 760 : Math.max(340, 470 / utterance.rate);
 
-    const highlight = index => {
-      if (index < 0 || index >= words.length || index === activeIndex) return;
+    const showWord = index => {
+      if (finished || index < 0 || index >= words.length || index === activeIndex) return;
       activeIndex = index;
-      lastBoundaryAt = performance.now();
+      lastHighlightAt = performance.now();
       onWord?.(index);
     };
 
-    utterance.onstart = () => highlight(0);
+    const requestWord = index => {
+      if (finished || index < 0 || index >= words.length || index <= activeIndex) return;
+      const elapsed = performance.now() - lastHighlightAt;
+      const wait = Math.max(0, minimumLightTime - elapsed);
+      window.clearTimeout(pendingTimer);
+      pendingTimer = window.setTimeout(() => showWord(index), wait);
+    };
+
+    utterance.onstart = () => showWord(0);
     utterance.onboundary = event => {
       if (typeof event.charIndex !== 'number') return;
       let index = 0;
@@ -93,28 +104,13 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, 
         if (starts[i] <= event.charIndex) index = i;
         else break;
       }
-
-      if (index > activeIndex + 1) {
-        let missing = activeIndex + 1;
-        const advanceMissing = () => {
-          if (finished || missing >= index) {
-            highlight(index);
-            return;
-          }
-          highlight(missing);
-          missing += 1;
-          window.setTimeout(advanceMissing, 110);
-        };
-        advanceMissing();
-      } else {
-        highlight(index);
-      }
+      requestWord(index);
     };
 
     const fallbackTimer = window.setInterval(() => {
       if (finished || activeIndex >= words.length - 1) return;
-      if (performance.now() - lastBoundaryAt >= averageWordDelay) {
-        highlight(activeIndex + 1);
+      if (performance.now() - lastHighlightAt >= fallbackWordDelay) {
+        requestWord(activeIndex + 1);
       }
     }, 100);
 
@@ -122,23 +118,23 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.56, 
       if (finished) return;
       finished = true;
       window.clearInterval(fallbackTimer);
-      if (activeIndex < words.length - 1) {
-        let index = activeIndex + 1;
-        const showRemaining = () => {
-          if (index >= words.length) {
+      window.clearTimeout(pendingTimer);
+
+      const remaining = [];
+      for (let index = activeIndex + 1; index < words.length; index += 1) remaining.push(index);
+      const showRemaining = () => {
+        const index = remaining.shift();
+        if (index === undefined) {
+          window.setTimeout(() => {
             onWord?.(-1);
             resolve();
-            return;
-          }
-          onWord?.(index);
-          index += 1;
-          window.setTimeout(showRemaining, 100);
-        };
-        showRemaining();
-        return;
-      }
-      onWord?.(-1);
-      resolve();
+          }, minimumLightTime);
+          return;
+        }
+        onWord?.(index);
+        window.setTimeout(showRemaining, minimumLightTime);
+      };
+      showRemaining();
     };
 
     utterance.onend = finish;
