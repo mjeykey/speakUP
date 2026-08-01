@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" translate="no" class="notranslate">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SpeakUP</title>
+  <style>html,body{margin:0;min-height:100%;background:#020205}</style>
+</head>
+<body>
+<script>
+(() => {
+  const nativeFetch = window.fetch.bind(window);
+
+  function removeTranslationScreen(bundle) {
+    let html = String(bundle || '');
+
+    // Remove the complete embedded TranslationScreen module from the runtime bundle.
+    html = html.replace(
+      /define\("screens\/TranslationScreen"[\s\S]*?(?=define\("screens\/FillGapMode")/,
+      ''
+    );
+
+    // Remove the module from the App dependency list and callback arguments.
+    html = html.replace(/,\s*"screens\/TranslationScreen"/g, '');
+    html = html.replace(/,\s*TranslationScreen_jsx_2(?=,|\))/g, '');
+    html = html.replace(/\s*TranslationScreen_jsx_2\s*=\s*__importDefault\(TranslationScreen_jsx_2\);/g, '');
+
+    // Remove the global translation route and send completed exercises onward directly.
+    html = html.replace(
+      /const showTranslation = \(item = current\) => \{\s*setTranslationItem\(item\);\s*setScreen\('translation'\);\s*\};/g,
+      'const showTranslation = () => nextSentence();'
+    );
+    html = html.replace(
+      /if \(screen === 'translation'\) \{[\s\S]*?\n\s*\}/g,
+      ''
+    );
+
+    return html;
+  }
+
+  window.fetch = async (...args) => {
+    const response = await nativeFetch(...args);
+    const target = String(args[0] || '');
+    if (!/(^|\/)app\.html(?:\?|$)/.test(target)) return response;
+
+    const cleaned = removeTranslationScreen(await response.text());
+    return new Response(cleaned, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
+  };
+
+  nativeFetch('mobile-app.html?v=translation-module-removed-1', { cache: 'no-store' })
+    .then(response => {
+      if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
+      return response.text();
+    })
+    .then(source => {
+      document.open();
+      document.write(source);
+      document.close();
+    })
+    .catch(error => {
+      document.body.innerHTML = `<p style="color:white;padding:24px;font-family:Arial">SpeakUP could not start.<br>${String(error.message || error)}</p>`;
+    });
+})();
+</script>
+</body>
+</html>
