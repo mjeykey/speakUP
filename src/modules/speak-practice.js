@@ -1,49 +1,13 @@
-import { speak, stopSpeech } from '../audio/speech.js?v=31';
-
-const EXERCISES = [
-  {
-    sentence: 'Eu vou ao mercado.',
-    english: 'I am going to the market.',
-    alternative: 'Vou comprar pão.',
-    alternativeEnglish: 'I am going to buy bread.'
-  },
-  {
-    sentence: 'Hoje está um dia bonito.',
-    english: 'Today is a beautiful day.',
-    alternative: 'Hoje está bom tempo.',
-    alternativeEnglish: 'The weather is nice today.'
-  },
-  {
-    sentence: 'Gosto de beber café de manhã.',
-    english: 'I like drinking coffee in the morning.',
-    alternative: 'Bebo café de manhã.',
-    alternativeEnglish: 'I drink coffee in the morning.'
-  },
-  {
-    sentence: 'A minha casa fica perto daqui.',
-    english: 'My house is near here.',
-    alternative: 'Moro perto daqui.',
-    alternativeEnglish: 'I live near here.'
-  },
-  {
-    sentence: 'Estou a aprender português.',
-    english: 'I am learning Portuguese.',
-    alternative: 'Aprendo português todos os dias.',
-    alternativeEnglish: 'I learn Portuguese every day.'
-  }
-];
+import { speak, stopSpeech } from '../audio/speech.js?v=32';
+import { VOICE_CATEGORIES } from '../voice/index.js?v=32';
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
 function normalize(text) {
-  return String(text || '')
-    .toLocaleLowerCase('pt-PT')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return String(text || '').toLocaleLowerCase('pt-PT').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
 }
 
 function similarity(expected, heard) {
@@ -55,26 +19,22 @@ function similarity(expected, heard) {
   let matches = 0;
   a.forEach(word => {
     const amount = counts.get(word) || 0;
-    if (amount > 0) {
-      matches += 1;
-      counts.set(word, amount - 1);
-    }
+    if (amount > 0) { matches += 1; counts.set(word, amount - 1); }
   });
-  const coverage = matches / a.length;
-  const precision = matches / b.length;
-  return (coverage * 0.72) + (precision * 0.28);
+  return (matches / a.length * .72) + (matches / b.length * .28);
 }
 
-function rememberForLater(sentence) {
+function rememberForLater(sentence, categoryId) {
   try {
     const key = 'speakup-practice-later';
     const saved = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!saved.includes(sentence)) saved.push(sentence);
-    localStorage.setItem(key, JSON.stringify(saved.slice(-30)));
+    if (!saved.some(item => item.sentence === sentence)) saved.push({ sentence, categoryId });
+    localStorage.setItem(key, JSON.stringify(saved.slice(-40)));
   } catch (_) {}
 }
 
 export function renderSpeakPractice(root, store) {
+  let category = null;
   let index = 0;
   let attempts = 0;
   let usingAlternative = false;
@@ -82,7 +42,8 @@ export function renderSpeakPractice(root, store) {
   let listening = false;
   let streak = 0;
 
-  const current = () => EXERCISES[index % EXERCISES.length];
+  const exercises = () => category?.exercises || [];
+  const current = () => exercises()[index % Math.max(1, exercises().length)];
   const activeSentence = () => usingAlternative ? current().alternative : current().sentence;
   const activeEnglish = () => usingAlternative ? current().alternativeEnglish : current().english;
 
@@ -92,84 +53,82 @@ export function renderSpeakPractice(root, store) {
     store.setState({ screen: 'menu' });
   }
 
-  function render(message = 'Listen first, then speak when you are ready.', tone = 'calm') {
-    const supported = Boolean(Recognition);
-    root.innerHTML = `<section class="screen speak-screen">
-      <button class="menu-button" data-menu>Menu</button>
-      <div class="center speak-view">
-        <p class="kicker">Speak & Grow</p>
-        <h1>Say it your way</h1>
-        <p class="speak-progress">Sentence ${index + 1} · Streak ${streak}</p>
-        <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}">
-          <p class="speak-label">Português</p>
-          <p class="speak-sentence">${activeSentence()}</p>
-          <p class="speak-translation">${activeEnglish()}</p>
-        </div>
-        <p class="speak-feedback is-${tone}" data-feedback>${message}</p>
-        <p class="speak-heard" data-heard></p>
-        <div class="speak-actions">
-          <button class="secondary-button" data-listen>🔊 Listen</button>
-          <button class="primary-button speak-mic" data-speak ${supported ? '' : 'disabled'}>${listening ? 'Listening…' : '🎙 Speak'}</button>
-        </div>
-        ${supported ? '' : '<p class="speak-support">Speech recognition is not available in this browser. Chrome on Android usually supports it.</p>'}
-      </div>
-    </section>`;
-
+  function showCategories() {
+    stopSpeech();
+    root.innerHTML = `<section class="screen speak-screen"><button class="menu-button" data-menu>Menu</button>
+      <div class="center speak-view"><p class="kicker">Speak & Grow</p><h1>What do you need today?</h1>
+      <p class="muted">Choose one feeling or learning path. Every category has its own voice practice.</p>
+      <div class="voice-category-grid" data-categories></div></div></section>`;
     root.querySelector('[data-menu]').onclick = leave;
+    const grid = root.querySelector('[data-categories]');
+    VOICE_CATEGORIES.forEach(item => {
+      const button = document.createElement('button');
+      button.className = 'voice-category-card';
+      button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small>`;
+      button.onclick = () => {
+        category = item; index = 0; attempts = 0; streak = 0; usingAlternative = false;
+        renderPractice();
+        window.setTimeout(() => playSentence(false), 350);
+      };
+      grid.appendChild(button);
+    });
+  }
+
+  function renderPractice(message = 'Listen first, then speak when you are ready.', tone = 'calm') {
+    const supported = Boolean(Recognition);
+    root.innerHTML = `<section class="screen speak-screen"><button class="menu-button" data-menu>Menu</button>
+      <button class="secondary-button speak-back" data-back>← Categories</button>
+      <div class="center speak-view"><p class="kicker">${category.emoji} ${category.title}</p><h1>Say it your way</h1>
+      <p class="speak-progress">Sentence ${index + 1} / ${exercises().length} · Streak ${streak}</p>
+      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}"><p class="speak-label">Português</p>
+      <p class="speak-sentence">${activeSentence()}</p><p class="speak-translation">${activeEnglish()}</p></div>
+      <p class="speak-feedback is-${tone}" data-feedback>${message}</p><p class="speak-heard" data-heard></p>
+      <div class="speak-actions"><button class="secondary-button" data-listen>🔊 Listen</button>
+      <button class="primary-button speak-mic" data-speak ${supported ? '' : 'disabled'}>${listening ? 'Listening…' : '🎙 Speak'}</button></div>
+      ${supported ? '' : '<p class="speak-support">Speech recognition is not available in this browser. Chrome on Android usually supports it.</p>'}
+      </div></section>`;
+    root.querySelector('[data-menu]').onclick = leave;
+    root.querySelector('[data-back]').onclick = showCategories;
     root.querySelector('[data-listen]').onclick = () => playSentence(false);
     if (supported) root.querySelector('[data-speak]').onclick = startListening;
   }
 
   async function playSentence(slower) {
     stopSpeech();
-    await speak(activeSentence(), 'pt-PT', {
-      enabled: store.getState().audioOn,
-      rate: slower ? 0.48 : 0.58
-    });
+    await speak(activeSentence(), 'pt-PT', { enabled: store.getState().audioOn, rate: slower ? .48 : .58 });
   }
 
   async function celebrate() {
-    streak += 1;
-    attempts = 0;
-    render(streak >= 3 ? 'Beautiful — you are finding your rhythm! ✨' : 'That was good. You did it! ✨', 'success');
+    streak += 1; attempts = 0;
+    renderPractice(streak >= 3 ? 'Beautiful — your voice is getting stronger! ✨' : 'That was good. You did it! ✨', 'success');
     await sleep(1250);
-    index = (index + 1) % EXERCISES.length;
+    index = (index + 1) % exercises().length;
     usingAlternative = false;
-    render('Ready for the next small step.', 'calm');
+    renderPractice('Ready for the next small step.', 'calm');
     await playSentence(false);
   }
 
   async function softenAfterMiss(heard) {
-    attempts += 1;
-    streak = 0;
+    attempts += 1; streak = 0;
     if (attempts === 1) {
-      render('Almost. Let us hear it once more, a little slower.', 'gentle');
-      const heardNode = root.querySelector('[data-heard]');
-      if (heardNode && heard) heardNode.textContent = `I heard: “${heard}”`;
-      await sleep(450);
-      await playSentence(true);
-      return;
+      renderPractice('Almost. Let us hear it once more, a little slower.', 'gentle');
+      const node = root.querySelector('[data-heard]');
+      if (node && heard) node.textContent = `I heard: “${heard}”`;
+      await sleep(450); await playSentence(true); return;
     }
-
-    rememberForLater(activeSentence());
-    usingAlternative = true;
-    attempts = 0;
-    render('Let us try the same idea in an easier way. You can do this.', 'gentle');
-    await sleep(550);
-    await playSentence(true);
+    rememberForLater(activeSentence(), category.id);
+    usingAlternative = true; attempts = 0;
+    renderPractice('Let us try the same idea in an easier way. You can do this.', 'gentle');
+    await sleep(550); await playSentence(true);
   }
 
   function startListening() {
     if (listening || !Recognition) return;
     stopSpeech();
     recognition = new Recognition();
-    recognition.lang = 'pt-PT';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 3;
-    recognition.continuous = false;
-    listening = true;
-    render('I am listening. Take your time.', 'listening');
-
+    recognition.lang = 'pt-PT'; recognition.interimResults = false;
+    recognition.maxAlternatives = 3; recognition.continuous = false;
+    listening = true; renderPractice('I am listening. Take your time.', 'listening');
     recognition.onresult = async event => {
       const alternatives = Array.from(event.results?.[0] || []).map(result => result.transcript);
       const best = alternatives.reduce((winner, text) => {
@@ -177,33 +136,19 @@ export function renderSpeakPractice(root, store) {
         return score > winner.score ? { text, score } : winner;
       }, { text: '', score: 0 });
       listening = false;
-      if (best.score >= 0.64) await celebrate();
-      else await softenAfterMiss(best.text);
+      if (best.score >= .64) await celebrate(); else await softenAfterMiss(best.text);
     };
-
-    recognition.onerror = async event => {
+    recognition.onerror = event => {
       listening = false;
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        render('Microphone access is needed for this exercise. Nothing was marked wrong.', 'gentle');
-        return;
-      }
-      render('I could not hear that clearly. Let us simply try once more.', 'gentle');
+      const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+        ? 'Microphone access is needed. Nothing was marked wrong.'
+        : 'I could not hear that clearly. Let us simply try once more.';
+      renderPractice(message, 'gentle');
     };
-
-    recognition.onend = () => {
-      listening = false;
-      const button = root.querySelector('[data-speak]');
-      if (button) button.textContent = '🎙 Speak';
-    };
-
-    try {
-      recognition.start();
-    } catch (_) {
-      listening = false;
-      render('The microphone needs a short moment. Please tap Speak again.', 'gentle');
-    }
+    recognition.onend = () => { listening = false; };
+    try { recognition.start(); }
+    catch (_) { listening = false; renderPractice('The microphone needs a short moment. Please tap Speak again.', 'gentle'); }
   }
 
-  render();
-  window.setTimeout(() => playSentence(false), 350);
+  showCategories();
 }
