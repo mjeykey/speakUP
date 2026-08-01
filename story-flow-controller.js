@@ -9,12 +9,10 @@
     openingPause: 2100,
     englishRate: 0.92,
     portugueseRate: 0.72,
-    englishMinimumVisible: 14400,
-    portugueseMinimumVisible: 19500,
-    afterEnglish: 4200,
-    betweenLanguages: 1950,
-    afterPortuguese: 5700,
-    beforeExercise: 2100
+    englishHoldAfterSpeech: 12000,
+    portugueseHoldAfterSpeech: 15000,
+    betweenLanguages: 3000,
+    beforeExercise: 3000
   };
 
   function refreshVoices() {
@@ -90,6 +88,7 @@
       .speakup-flow-word{display:inline-block;padding:0 .08em;border-radius:.2em;transition:color .16s ease,background .16s ease,text-shadow .16s ease,transform .16s ease;}
       .speakup-flow-word.active{color:#020205;background:#65e8ff;text-shadow:none;transform:translateY(-1px) scale(1.035);}
       .speakup-flow-hidden{visibility:hidden!important;pointer-events:none!important;}
+      .speakup-flow-countdown{margin-top:26px;font:13px Arial,sans-serif;letter-spacing:.08em;color:#7f8ba6;}
     `;
     document.head.appendChild(style);
   }
@@ -117,10 +116,12 @@
       if (index < words.length - 1) line.appendChild(document.createTextNode(' '));
     });
 
-    card.append(heading, line);
+    const countdown = document.createElement('div');
+    countdown.className = 'speakup-flow-countdown';
+    card.append(heading, line, countdown);
     overlay.appendChild(card);
     document.body.appendChild(overlay);
-    return { overlay, words: Array.from(line.querySelectorAll('.speakup-flow-word')) };
+    return { overlay, words: Array.from(line.querySelectorAll('.speakup-flow-word')), countdown };
   }
 
   function speakHighlighted(text, lang, rate, wordElements) {
@@ -186,9 +187,14 @@
     return new Promise(resolve => window.setTimeout(resolve, ms));
   }
 
-  async function keepVisibleFrom(startedAt, minimumMs) {
-    const remaining = minimumMs - (Date.now() - startedAt);
-    if (remaining > 0) await delay(remaining);
+  async function holdAfterSpeech(preview, durationMs, message) {
+    const started = Date.now();
+    while (Date.now() - started < durationMs) {
+      const remaining = Math.ceil((durationMs - (Date.now() - started)) / 1000);
+      preview.countdown.textContent = `${message} · ${remaining}s`;
+      await delay(250);
+    }
+    preview.countdown.textContent = '';
   }
 
   async function removeOverlaySmoothly(overlay) {
@@ -216,21 +222,17 @@
     synth?.cancel?.();
 
     let preview = createOverlay('Listen in English', english);
-    let phaseStarted = Date.now();
     await delay(TIMING.openingPause);
     await speakHighlighted(english, 'en-GB', TIMING.englishRate, preview.words);
-    await keepVisibleFrom(phaseStarted, TIMING.englishMinimumVisible);
-    await delay(TIMING.afterEnglish);
+    await holdAfterSpeech(preview, TIMING.englishHoldAfterSpeech, 'Read again');
     await removeOverlaySmoothly(preview.overlay);
     await delay(TIMING.betweenLanguages);
 
     const portuguese = await translateToPortuguese(english);
     preview = createOverlay('Ouve em português', portuguese);
-    phaseStarted = Date.now();
     await delay(TIMING.openingPause);
     await speakHighlighted(portuguese, 'pt-PT', TIMING.portugueseRate, preview.words);
-    await keepVisibleFrom(phaseStarted, TIMING.portugueseMinimumVisible);
-    await delay(TIMING.afterPortuguese);
+    await holdAfterSpeech(preview, TIMING.portugueseHoldAfterSpeech, 'Lê novamente');
     await removeOverlaySmoothly(preview.overlay);
     await delay(TIMING.beforeExercise);
 
