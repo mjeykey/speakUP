@@ -1,5 +1,5 @@
-import { GAPS } from '../data/content.js?v=5';
-import { speak, stopSpeech } from '../audio/speech.js?v=32';
+import { SENTENCE_LEVELS, getSentenceLevel } from '../data/sentences/index.js?v=1';
+import { speak, stopSpeech } from '../audio/speech.js?v=33';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -13,6 +13,16 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function fillAnswers(sentence, answers, solvedCount = answers.length) {
+  let index = 0;
+  return String(sentence).replace(/_____/g, () => {
+    const answer = answers[index];
+    const visible = index < solvedCount ? answer : '_____';
+    index += 1;
+    return visible;
+  });
+}
+
 async function dissolve(element) {
   if (!element) return;
   await nextFrame();
@@ -20,90 +30,128 @@ async function dissolve(element) {
     { opacity: 1, filter: 'blur(0)', transform: 'translateY(0) scale(1)' },
     { opacity: .86, offset: .28 },
     { opacity: 0, filter: 'blur(12px)', transform: 'translateY(-18px) scale(.96)' }
-  ], {
-    duration: 1750,
-    easing: 'cubic-bezier(.22,.61,.36,1)',
-    fill: 'forwards'
-  });
+  ], { duration: 1750, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' });
   await animation.finished.catch(() => {});
 }
 
 export function renderFillGap(root, store) {
   const state = store.getState();
-  const item = GAPS[state.currentIndex % GAPS.length];
-  const completeSentence = item.sentence.replace('_____', item.answer);
+  let selectedLevelId = null;
+  let sentenceIndex = 0;
+  let solvedCount = 0;
   let solved = false;
-
-  root.innerHTML = `<section class="screen sentence-mode-screen">
-    <button class="menu-button" data-menu>Menu</button>
-    <div class="center sentence-mode-view">
-      <p class="kicker">Sentences · Beginner</p>
-      <div class="sentence-mode-stage" data-stage>
-        <p class="sentence-mode-label">Português</p>
-        <p class="sentence sentence-mode-portuguese" data-portuguese>${escapeHtml(item.sentence)}</p>
-        <p class="sentence-mode-label sentence-mode-english-label">English</p>
-        <p class="sentence-mode-english" data-english>${escapeHtml(item.english)}</p>
-      </div>
-      <div class="choices" data-choices></div>
-      <p class="feedback sentence-mode-feedback" data-feedback></p>
-    </div>
-  </section>`;
 
   const leave = () => {
     stopSpeech();
     store.setState({ screen: 'menu', currentIndex: 0 });
   };
 
-  root.querySelector('[data-menu]').onclick = leave;
-  const choices = root.querySelector('[data-choices]');
+  function renderLevelSelection() {
+    stopSpeech();
+    root.innerHTML = `<section class="screen sentence-mode-screen">
+      <button class="menu-button" data-menu>Menu</button>
+      <div class="center sentence-level-view">
+        <p class="kicker">Sentences</p>
+        <h1>Choose your level</h1>
+        <p class="muted">Feel how the support changes as you grow.</p>
+        <div class="sentence-level-grid">
+          ${SENTENCE_LEVELS.map(level => `<button class="sentence-level-card" data-level="${level.id}">
+            <span class="sentence-level-emoji">${level.emoji}</span>
+            <span class="sentence-level-title">${level.title}</span>
+            <small>${level.description}</small>
+          </button>`).join('')}
+        </div>
+      </div>
+    </section>`;
+    root.querySelector('[data-menu]').onclick = leave;
+    root.querySelectorAll('[data-level]').forEach(button => {
+      button.onclick = () => {
+        selectedLevelId = button.dataset.level;
+        sentenceIndex = 0;
+        solvedCount = 0;
+        renderSentence();
+      };
+    });
+  }
 
-  item.options.forEach(option => {
-    const button = document.createElement('button');
-    button.className = 'choice';
-    button.textContent = option;
-    button.onclick = async () => {
-      if (solved) return;
+  function renderSentence() {
+    const level = getSentenceLevel(selectedLevelId);
+    const item = level.items[sentenceIndex % level.items.length];
+    solved = false;
+    const visibleSentence = fillAnswers(item.sentence, item.answers, solvedCount);
 
-      if (option !== item.answer) {
-        button.animate([
-          { transform: 'translateX(0)' },
-          { transform: 'translateX(-5px)' },
-          { transform: 'translateX(5px)' },
-          { transform: 'translateX(0)' }
-        ], { duration: 340, easing: 'ease' });
-        root.querySelector('[data-feedback]').textContent = 'Almost — try another word.';
-        return;
-      }
+    root.innerHTML = `<section class="screen sentence-mode-screen">
+      <button class="menu-button" data-menu>Menu</button>
+      <button class="sentence-level-back" data-levels>Levels</button>
+      <div class="center sentence-mode-view">
+        <p class="kicker">Sentences · ${level.title}</p>
+        <p class="sentence-mode-progress">Sentence ${sentenceIndex + 1} / ${level.items.length} · Gap ${Math.min(solvedCount + 1, item.answers.length)} / ${item.answers.length}</p>
+        <div class="sentence-mode-stage" data-stage>
+          <p class="sentence-mode-label">Português</p>
+          <p class="sentence sentence-mode-portuguese" data-portuguese>${escapeHtml(visibleSentence)}</p>
+          <p class="sentence-mode-label sentence-mode-english-label">English</p>
+          <p class="sentence-mode-english ${level.englishClass}" data-english>${escapeHtml(item.english)}</p>
+        </div>
+        <div class="choices" data-choices></div>
+        <p class="feedback sentence-mode-feedback" data-feedback></p>
+      </div>
+    </section>`;
 
-      solved = true;
-      choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
-      root.querySelector('[data-portuguese]').textContent = completeSentence;
-      root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
+    root.querySelector('[data-menu]').onclick = leave;
+    root.querySelector('[data-levels]').onclick = renderLevelSelection;
+    const choices = root.querySelector('[data-choices]');
+    const expected = item.answers[solvedCount];
 
-      await speak(completeSentence, 'pt-PT', {
-        enabled: state.audioOn,
-        rate: 0.58
-      });
+    item.options.forEach(option => {
+      const button = document.createElement('button');
+      button.className = 'choice';
+      button.textContent = option;
+      button.disabled = item.answers.slice(0, solvedCount).includes(option);
+      button.onclick = async () => {
+        if (solved) return;
+        if (option !== expected) {
+          button.animate([
+            { transform: 'translateX(0)' }, { transform: 'translateX(-5px)' },
+            { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }
+          ], { duration: 340, easing: 'ease' });
+          root.querySelector('[data-feedback]').textContent = 'Almost — try another word.';
+          return;
+        }
 
-      await sleep(500);
-      await Promise.all([
-        dissolve(root.querySelector('[data-portuguese]')),
-        dissolve(root.querySelector('[data-english]'))
-      ]);
+        solvedCount += 1;
+        root.querySelector('[data-portuguese]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
+        await speak(option, 'pt-PT', { enabled: state.audioOn, rate: 0.58 });
 
-      await sleep(260);
-      store.setState({ currentIndex: state.currentIndex + 1 });
-    };
-    choices.appendChild(button);
-  });
+        if (solvedCount < item.answers.length) {
+          root.querySelector('[data-feedback]').textContent = 'Good — one more step.';
+          await sleep(250);
+          renderSentence();
+          return;
+        }
 
-  const spokenGapSentence = item.sentence.replace('_____', '...');
-  window.setTimeout(() => {
-    if (!solved) {
-      speak(spokenGapSentence, 'pt-PT', {
-        enabled: state.audioOn,
-        rate: 0.56
-      });
-    }
-  }, 350);
+        solved = true;
+        choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
+        const completeSentence = fillAnswers(item.sentence, item.answers);
+        root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
+        await speak(completeSentence, 'pt-PT', { enabled: state.audioOn, rate: 0.58 });
+        await sleep(500);
+        await Promise.all([
+          dissolve(root.querySelector('[data-portuguese]')),
+          dissolve(root.querySelector('[data-english]'))
+        ]);
+        await sleep(260);
+        sentenceIndex = (sentenceIndex + 1) % level.items.length;
+        solvedCount = 0;
+        renderSentence();
+      };
+      choices.appendChild(button);
+    });
+
+    const spokenSentence = fillAnswers(item.sentence, item.answers.map(() => '...'));
+    window.setTimeout(() => {
+      if (!solved) speak(spokenSentence, 'pt-PT', { enabled: state.audioOn, rate: 0.56 });
+    }, 350);
+  }
+
+  renderLevelSelection();
 }
