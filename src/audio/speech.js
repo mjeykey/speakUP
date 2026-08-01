@@ -1,4 +1,5 @@
 const synth = window.speechSynthesis;
+let speechRunId = 0;
 
 function pickVoice(language) {
   const requested = String(language || '').toLowerCase();
@@ -16,135 +17,174 @@ function adjustedRate(language, requestedRate, fallbackRate = 0.82) {
     : value;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+function punctuationPause(text) {
+  const ending = String(text || '').trim().slice(-1);
+  if (ending === ',') return 200;
+  if (ending === '.') return 600;
+  if (ending === '?' || ending === '!') return 650;
+  if (ending === ';' || ending === ':') return 350;
+  return 0;
+}
+
+function splitSpeechSegments(text) {
+  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  return value.match(/[^,.;:!?]+[,.;:!?]?/g)?.map(segment => segment.trim()).filter(Boolean) || [];
+}
+
+function createUtterance(text, language, rate, pitch = 1) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = language;
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+  const voice = pickVoice(language);
+  if (voice) utterance.voice = voice;
+  return utterance;
+}
+
+function playUtterance(utterance, runId, onBoundary) {
+  return new Promise(resolve => {
+    if (!synth || runId !== speechRunId) {
+      resolve(false);
+      return;
+    }
+    if (onBoundary) utterance.onboundary = onBoundary;
+    utterance.onend = () => resolve(runId === speechRunId);
+    utterance.onerror = () => resolve(runId === speechRunId);
+    window.setTimeout(() => {
+      if (runId !== speechRunId) {
+        resolve(false);
+        return;
+      }
+      synth.speak(utterance);
+    }, 40);
+  });
+}
+
 export function stopSpeech() {
+  speechRunId += 1;
   synth?.cancel?.();
 }
 
 export function speak(textOrRequest, language, options = {}) {
-  return new Promise(resolve => {
-    const request = textOrRequest && typeof textOrRequest === 'object'
-      ? textOrRequest
-      : { text: textOrRequest, language, ...options };
+  const request = textOrRequest && typeof textOrRequest === 'object'
+    ? textOrRequest
+    : { text: textOrRequest, language, ...options };
 
-    const value = String(request.text || '').replace(/\s+/g, ' ').trim();
-    const selectedLanguage = request.language || language || 'en-GB';
-    const enabled = request.enabled ?? options.enabled;
+  const value = String(request.text || '').replace(/\s+/g, ' ').trim();
+  const selectedLanguage = request.language || language || 'en-GB';
+  const enabled = request.enabled ?? options.enabled;
 
-    if (!value || !synth || enabled === false) {
-      resolve();
-      return;
+  if (!value || !synth || enabled === false) return Promise.resolve();
+
+  stopSpeech();
+  const runId = speechRunId;
+  const rate = adjustedRate(selectedLanguage, request.rate ?? options.rate);
+  const pitch = request.pitch ?? options.pitch ?? 1;
+  const segments = splitSpeechSegments(value);
+
+  return (async () => {
+    for (const segment of segments) {
+      if (runId !== speechRunId) return;
+      const utterance = createUtterance(segment, selectedLanguage, rate, pitch);
+      const completed = await playUtterance(utterance, runId);
+      if (!completed || runId !== speechRunId) return;
+      const pause = punctuationPause(segment);
+      if (pause) await sleep(pause);
     }
-
-    stopSpeech();
-    const utterance = new SpeechSynthesisUtterance(value);
-    utterance.lang = selectedLanguage;
-    utterance.rate = adjustedRate(selectedLanguage, request.rate ?? options.rate);
-    utterance.pitch = request.pitch ?? options.pitch ?? 1;
-    const voice = pickVoice(selectedLanguage);
-    if (voice) utterance.voice = voice;
-    utterance.onend = resolve;
-    utterance.onerror = resolve;
-    window.setTimeout(() => synth.speak(utterance), 40);
-  });
+  })();
 }
 
 export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, enabled = true, onWord }) {
-  return new Promise(resolve => {
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
-    if (!value || !synth || enabled === false) {
-      resolve();
-      return;
-    }
+  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!value || !synth || enabled === false) return Promise.resolve();
 
-    stopSpeech();
-    const utterance = new SpeechSynthesisUtterance(value);
-    utterance.lang = language;
-    utterance.rate = String(language || '').toLowerCase().startsWith('pt')
-      ? Math.min(adjustedRate(language, rate, 0.48), 0.48)
-      : adjustedRate(language, rate, 0.48);
-    const voice = pickVoice(language);
-    if (voice) utterance.voice = voice;
+  stopSpeech();
+  const runId = speechRunId;
+  const selectedRate = String(language || '').toLowerCase().startsWith('pt')
+    ? Math.min(adjustedRate(language, rate, 0.48), 0.48)
+    : adjustedRate(language, rate, 0.48);
+  const isSlowPortuguese = String(language || '').toLowerCase().startsWith('pt') && selectedRate <= 0.5;
+  const minimumLightTime = isSlowPortuguese ? 520 : Math.max(280, 300 / selectedRate);
+  const fallbackWordDelay = isSlowPortuguese ? 640 : Math.max(340, 470 / selectedRate);
+  const segments = splitSpeechSegments(value);
 
-    const starts = [];
-    const words = [];
-    value.replace(/\S+/g, (word, offset) => {
-      starts.push(offset);
-      words.push(word);
-      return word;
-    });
+  return (async () => {
+    let globalWordIndex = 0;
 
-    let activeIndex = -1;
-    let finished = false;
-    let lastHighlightAt = 0;
-    let pendingTimer = 0;
-    const isSlowPortuguese = String(language || '').toLowerCase().startsWith('pt') && utterance.rate <= 0.5;
-    const minimumLightTime = isSlowPortuguese ? 520 : Math.max(280, 300 / utterance.rate);
-    const fallbackWordDelay = isSlowPortuguese ? 640 : Math.max(340, 470 / utterance.rate);
+    for (const segment of segments) {
+      if (runId !== speechRunId) return;
 
-    const showWord = index => {
-      if (finished || index < 0 || index >= words.length || index === activeIndex) return;
-      activeIndex = index;
-      lastHighlightAt = performance.now();
-      onWord?.(index);
-    };
+      const segmentWords = segment.match(/\S+/g) || [];
+      const wordStarts = [];
+      segment.replace(/\S+/g, (word, offset) => {
+        wordStarts.push(offset);
+        return word;
+      });
 
-    const requestWord = index => {
-      if (finished || index < 0 || index >= words.length || index <= activeIndex) return;
-      const elapsed = performance.now() - lastHighlightAt;
-      const wait = Math.max(0, minimumLightTime - elapsed);
-      window.clearTimeout(pendingTimer);
-      pendingTimer = window.setTimeout(() => showWord(index), wait);
-    };
+      let localActive = -1;
+      let lastHighlightAt = 0;
+      let pendingTimer = 0;
+      let segmentFinished = false;
 
-    utterance.onstart = () => showWord(0);
-    utterance.onboundary = event => {
-      if (typeof event.charIndex !== 'number') return;
-      let index = 0;
-      for (let i = 0; i < starts.length; i += 1) {
-        if (starts[i] <= event.charIndex) index = i;
-        else break;
-      }
-      requestWord(index);
-    };
+      const showLocalWord = localIndex => {
+        if (segmentFinished || runId !== speechRunId || localIndex < 0 || localIndex >= segmentWords.length || localIndex === localActive) return;
+        localActive = localIndex;
+        lastHighlightAt = performance.now();
+        onWord?.(globalWordIndex + localIndex);
+      };
 
-    const fallbackTimer = window.setInterval(() => {
-      if (finished || activeIndex >= words.length - 1) return;
-      if (performance.now() - lastHighlightAt >= fallbackWordDelay) {
-        requestWord(activeIndex + 1);
-      }
-    }, 90);
+      const requestLocalWord = localIndex => {
+        if (segmentFinished || localIndex <= localActive || localIndex >= segmentWords.length) return;
+        const elapsed = performance.now() - lastHighlightAt;
+        const wait = Math.max(0, minimumLightTime - elapsed);
+        window.clearTimeout(pendingTimer);
+        pendingTimer = window.setTimeout(() => showLocalWord(localIndex), wait);
+      };
 
-    const finish = () => {
-      if (finished) return;
-      finished = true;
+      const utterance = createUtterance(segment, language, selectedRate);
+      utterance.onstart = () => showLocalWord(0);
+
+      const fallbackTimer = window.setInterval(() => {
+        if (segmentFinished || runId !== speechRunId || localActive >= segmentWords.length - 1) return;
+        if (performance.now() - lastHighlightAt >= fallbackWordDelay) requestLocalWord(localActive + 1);
+      }, 90);
+
+      const completed = await playUtterance(utterance, runId, event => {
+        if (typeof event.charIndex !== 'number') return;
+        let localIndex = 0;
+        for (let index = 0; index < wordStarts.length; index += 1) {
+          if (wordStarts[index] <= event.charIndex) localIndex = index;
+          else break;
+        }
+        requestLocalWord(localIndex);
+      });
+
+      segmentFinished = true;
       window.clearInterval(fallbackTimer);
       window.clearTimeout(pendingTimer);
+      if (!completed || runId !== speechRunId) return;
 
-      const remaining = [];
-      for (let index = activeIndex + 1; index < words.length; index += 1) remaining.push(index);
-      const showRemaining = () => {
-        const index = remaining.shift();
-        if (index === undefined) {
-          window.setTimeout(() => {
-            onWord?.(-1);
-            resolve();
-          }, minimumLightTime);
-          return;
-        }
-        onWord?.(index);
-        window.setTimeout(showRemaining, minimumLightTime);
-      };
-      showRemaining();
-    };
+      for (let index = localActive + 1; index < segmentWords.length; index += 1) {
+        onWord?.(globalWordIndex + index);
+        await sleep(minimumLightTime);
+        if (runId !== speechRunId) return;
+      }
 
-    utterance.onend = finish;
-    utterance.onerror = finish;
-    window.setTimeout(() => synth.speak(utterance), 40);
-  });
+      globalWordIndex += segmentWords.length;
+      const pause = punctuationPause(segment);
+      if (pause) await sleep(pause);
+    }
+
+    if (runId === speechRunId) onWord?.(-1);
+  })();
 }
 
 export async function speakPair(first, second, options = {}) {
   await speak({ ...first, enabled: first.enabled ?? options.enabled });
-  await new Promise(resolve => window.setTimeout(resolve, options.pause ?? 320));
+  await sleep(options.pause ?? 320);
   await speak({ ...second, enabled: second.enabled ?? options.enabled });
 }
