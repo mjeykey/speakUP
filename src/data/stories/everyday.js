@@ -1,4 +1,4 @@
-import { EVERYDAY_PT_PAGES } from './everyday-pt.js?v=1';
+import { EVERYDAY_PT_PAGES } from './everyday-pt.js?v=2';
 
 const EVERYDAY_EN_PAGES = [
   "Every morning, Leonor leaves her house and walks down the street. She buys bread at the market and meets a neighbor. They smile at each other and begin the day calmly.",
