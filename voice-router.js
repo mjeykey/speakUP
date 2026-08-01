@@ -2,30 +2,15 @@
   'use strict';
 
   const synth = window.speechSynthesis;
-  if (!synth || synth.__speakUpVoiceRouterInstalled) return;
-  synth.__speakUpVoiceRouterInstalled = true;
+  if (!synth || synth.__speakUpAudioEngineInstalled) return;
+  synth.__speakUpAudioEngineInstalled = true;
 
   const originalSpeak = synth.speak.bind(synth);
+  const originalCancel = synth.cancel.bind(synth);
   let voices = [];
-
-  const languageCodes = {
-    english: 'en-GB', en: 'en-GB', 'en-gb': 'en-GB', 'en-us': 'en-US',
-    portuguese: 'pt-PT', português: 'pt-PT', portugues: 'pt-PT', pt: 'pt-PT', 'pt-pt': 'pt-PT', 'pt-br': 'pt-BR',
-    german: 'de-DE', deutsch: 'de-DE', de: 'de-DE', 'de-de': 'de-DE',
-    spanish: 'es-ES', español: 'es-ES', espanol: 'es-ES', es: 'es-ES', 'es-es': 'es-ES',
-    french: 'fr-FR', français: 'fr-FR', francais: 'fr-FR', fr: 'fr-FR', 'fr-fr': 'fr-FR',
-    italian: 'it-IT', italiano: 'it-IT', it: 'it-IT', 'it-it': 'it-IT',
-    dutch: 'nl-NL', nederlands: 'nl-NL', nl: 'nl-NL',
-    polish: 'pl-PL', polski: 'pl-PL', pl: 'pl-PL',
-    croatian: 'hr-HR', hrvatski: 'hr-HR', hr: 'hr-HR',
-    greek: 'el-GR', ελληνικά: 'el-GR', el: 'el-GR',
-    turkish: 'tr-TR', türkçe: 'tr-TR', turkce: 'tr-TR', tr: 'tr-TR',
-    russian: 'ru-RU', русский: 'ru-RU', ru: 'ru-RU',
-    arabic: 'ar-SA', العربية: 'ar-SA', ar: 'ar-SA',
-    japanese: 'ja-JP', 日本語: 'ja-JP', ja: 'ja-JP',
-    korean: 'ko-KR', 한국어: 'ko-KR', ko: 'ko-KR',
-    chinese: 'zh-CN', 中文: 'zh-CN', mandarin: 'zh-CN', zh: 'zh-CN'
-  };
+  let lastKey = '';
+  let lastAt = 0;
+  let portugueseTimer = 0;
 
   const preferredNames = ['Google', 'Microsoft', 'Natural', 'Online', 'Premium'];
   const commonEnglishWords = new Set([
@@ -37,43 +22,62 @@
   }
 
   function normalizeLanguage(value) {
-    const raw = String(value || '').trim();
+    const raw = String(value || '').trim().toLowerCase().replace(/_/g, '-');
     if (!raw) return '';
-    const key = raw.toLowerCase().replace(/_/g, '-');
-    if (languageCodes[key]) return languageCodes[key];
-    if (/^[a-z]{2,3}(-[a-z]{2})?$/i.test(key)) {
-      const parts = key.split('-');
-      return parts.length === 1 ? parts[0].toLowerCase() : `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
-    }
+    if (raw === 'pt' || raw === 'portuguese' || raw === 'português' || raw === 'portugues') return 'pt-PT';
+    if (raw === 'en' || raw === 'english') return 'en-GB';
     return raw;
   }
 
   function languageMatches(voiceLang, requestedLang) {
     const voice = String(voiceLang || '').toLowerCase();
     const requested = String(requestedLang || '').toLowerCase();
-    if (!voice || !requested) return false;
-    return voice === requested || voice.split('-')[0] === requested.split('-')[0];
+    return Boolean(voice && requested && (voice === requested || voice.split('-')[0] === requested.split('-')[0]));
   }
 
-  function looksLikeEnglishStoryText(text) {
+  function bestVoice(lang, currentVoice = null) {
+    refreshVoices();
+    if (!voices.length || !lang) return currentVoice;
+    if (currentVoice && languageMatches(currentVoice.lang, lang)) return currentVoice;
+
+    const normalized = lang.toLowerCase();
+    const base = normalized.split('-')[0];
+    const exact = voices.filter(voice => String(voice.lang || '').toLowerCase() === normalized);
+    const sameLanguage = voices.filter(voice => String(voice.lang || '').toLowerCase().split('-')[0] === base);
+    const preferred = list => list.find(voice => preferredNames.some(name => String(voice.name || '').includes(name)));
+    return preferred(exact) || exact[0] || preferred(sameLanguage) || sameLanguage[0] || currentVoice;
+  }
+
+  function looksLikeEnglishNarration(text) {
     const words = String(text || '').toLowerCase().match(/[a-z']+/g) || [];
     if (words.length < 6) return false;
     const matches = words.filter(word => commonEnglishWords.has(word)).length;
     return matches >= 2 && matches / words.length >= 0.12;
   }
 
-  function bestVoice(lang, currentVoice) {
-    refreshVoices();
-    if (!voices.length || !lang) return currentVoice || null;
-    if (currentVoice && languageMatches(currentVoice.lang, lang)) return currentVoice;
+  function completionPhaseVisible() {
+    const text = String(document.body?.innerText || '').toLowerCase();
+    return text.includes('listening to the completed block')
+      || text.includes('listen to the complete block')
+      || text.includes('stay on this text until the final sentence has finished')
+      || text.includes('the missing words are included');
+  }
 
-    const normalized = lang.toLowerCase();
-    const base = normalized.split('-')[0];
-    const exact = voices.filter(voice => String(voice.lang).toLowerCase() === normalized);
-    const sameLanguage = voices.filter(voice => String(voice.lang).toLowerCase().split('-')[0] === base);
-    const preferred = list => list.find(voice => preferredNames.some(name => voice.name.includes(name)));
+  function finishSilently(utterance) {
+    queueMicrotask(() => {
+      try {
+        utterance?.onend?.({ type: 'end', utterance });
+      } catch (_) {}
+    });
+  }
 
-    return preferred(exact) || exact[0] || preferred(sameLanguage) || sameLanguage[0] || currentVoice || null;
+  function duplicate(text, lang) {
+    const key = `${lang}|${String(text || '').trim().toLowerCase()}`;
+    const now = Date.now();
+    const repeated = key === lastKey && now - lastAt < 1800;
+    lastKey = key;
+    lastAt = now;
+    return repeated;
   }
 
   function copyCallbacks(source, target) {
@@ -83,51 +87,61 @@
   }
 
   synth.addEventListener?.('voiceschanged', refreshVoices);
-  const previousVoicesChanged = synth.onvoiceschanged;
-  synth.onvoiceschanged = event => {
-    refreshVoices();
-    if (typeof previousVoicesChanged === 'function') previousVoicesChanged.call(synth, event);
-  };
   refreshVoices();
 
   synth.speak = utterance => {
     try {
-      if (window.__speakUpSuppressCompletedBlock && utterance) {
-        queueMicrotask(() => {
-          try {
-            if (typeof utterance.onend === 'function') utterance.onend({ type: 'end', utterance });
-          } catch (_) {}
-        });
+      if (!utterance) return originalSpeak(utterance);
+
+      const override = window.__speakUpPortugueseOverride;
+      if (override && !override.consumed && override.expires > Date.now() && override.text) {
+        override.consumed = true;
+        clearTimeout(portugueseTimer);
+        originalCancel();
+
+        const replacement = new SpeechSynthesisUtterance(String(override.text));
+        replacement.lang = 'pt-PT';
+        replacement.voice = bestVoice('pt-PT');
+        replacement.rate = 0.86;
+        replacement.pitch = 1;
+        replacement.volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
+        copyCallbacks(utterance, replacement);
+
+        portugueseTimer = window.setTimeout(() => originalSpeak(replacement), 180);
         return;
       }
 
-      const override = window.__speakUpPortugueseOverride;
-      if (utterance && override && !override.consumed && override.expires > Date.now() && override.text) {
-        override.consumed = true;
-        const replacement = new SpeechSynthesisUtterance(String(override.text));
-        replacement.lang = 'pt-PT';
-        replacement.rate = Number.isFinite(utterance.rate) ? utterance.rate : 0.88;
-        replacement.pitch = Number.isFinite(utterance.pitch) ? utterance.pitch : 1;
-        replacement.volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
-        replacement.voice = bestVoice('pt-PT', null);
-        copyCallbacks(utterance, replacement);
-        return originalSpeak(replacement);
+      const text = String(utterance.text || '').trim();
+      let lang = normalizeLanguage(utterance.lang);
+
+      if (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock) {
+        finishSilently(utterance);
+        return;
       }
 
-      if (utterance) {
-        let normalizedLang = normalizeLanguage(utterance.lang);
-        if (normalizedLang.toLowerCase().startsWith('pt') && looksLikeEnglishStoryText(utterance.text)) {
-          normalizedLang = 'en-GB';
-        }
-        if (normalizedLang) {
-          utterance.lang = normalizedLang;
-          const voice = bestVoice(normalizedLang, utterance.voice);
-          if (voice) utterance.voice = voice;
-        }
+      if (lang.startsWith('pt') && looksLikeEnglishNarration(text)) lang = 'en-GB';
+      if (!lang && looksLikeEnglishNarration(text)) lang = 'en-GB';
+
+      if (duplicate(text, lang)) {
+        finishSilently(utterance);
+        return;
+      }
+
+      if (lang) {
+        utterance.lang = lang;
+        const voice = bestVoice(lang, utterance.voice);
+        if (voice) utterance.voice = voice;
+      }
+
+      if (lang.startsWith('pt')) {
+        utterance.rate = 0.86;
+      } else if (lang.startsWith('en')) {
+        utterance.rate = 1;
       }
     } catch (error) {
-      console.warn('SpeakUP voice routing fallback:', error);
+      console.warn('SpeakUP audio engine fallback:', error);
     }
+
     return originalSpeak(utterance);
   };
 })();
