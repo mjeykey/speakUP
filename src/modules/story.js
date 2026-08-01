@@ -1,5 +1,5 @@
-import { STORIES } from '../data/content.js';
-import { speak, stopSpeech } from '../audio/speech.js';
+import { STORIES } from '../data/content.js?v=4';
+import { speak, stopSpeech } from '../audio/speech.js?v=4';
 
 export function renderStory(root, store) {
   const state = store.getState();
@@ -17,7 +17,7 @@ export function renderStory(root, store) {
   const getPageText = page => {
     if (typeof page === 'string') return page;
     if (page && typeof page === 'object') {
-      return page.english || page.text || page.translation || '';
+      return String(page.english ?? page.text ?? page.portuguese ?? page.translation ?? '');
     }
     return '';
   };
