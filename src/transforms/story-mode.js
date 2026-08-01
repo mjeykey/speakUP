@@ -6,31 +6,49 @@
   window.SpeakUPTransforms.improveStoryMode = function improveStoryMode(source) {
     let html = String(source || '');
 
-    const narrationState = '        const [initialNarrationDone, setInitialNarrationDone] = (0, react_10.useState)(!Boolean(settings.audioOn && settings.sentenceAudioOn));';
-    const manualStartState = `${narrationState}\n        const [storyManuallyStarted, setStoryManuallyStarted] = (0, react_10.useState)(false);`;
-
-    if (!html.includes('storyManuallyStarted') && html.includes(narrationState)) {
-      html = html.replace(narrationState, manualStartState);
+    if (html.includes('const [storyManuallyStarted, setStoryManuallyStarted]')) {
+      return html;
     }
 
-    const leaveStoryFunction = '        function leaveStory() {\n            resetAllPlayback();\n            onMenu();\n        }';
-    const startAndLeaveFunctions = `        function startStoryMode() {
+    const statePattern = /(const \[initialNarrationDone, setInitialNarrationDone\] = \(0, react_10\.useState\)\([^;]+;)/;
+    if (!statePattern.test(html)) {
+      throw new Error('Story start rewrite failed: narration state not found.');
+    }
+
+    html = html.replace(
+      statePattern,
+      `$1\n        const [storyManuallyStarted, setStoryManuallyStarted] = (0, react_10.useState)(false);`
+    );
+
+    const leavePattern = /(\n\s*function leaveStory\(\) \{\s*resetAllPlayback\(\);\s*onMenu\(\);\s*\})/;
+    if (!leavePattern.test(html)) {
+      throw new Error('Story start rewrite failed: leaveStory function not found.');
+    }
+
+    html = html.replace(
+      leavePattern,
+      `
+        function startStoryMode() {
             if (storyManuallyStarted)
                 return;
             setStoryManuallyStarted(true);
             window.setTimeout(() => {
                 playFullCurrentPage({ markInitialComplete: true });
-            }, 80);
+            }, 120);
         }
-${leaveStoryFunction}`;
+$1`
+    );
 
-    if (!html.includes('function startStoryMode()') && html.includes(leaveStoryFunction)) {
-      html = html.replace(leaveStoryFunction, startAndLeaveFunctions);
+    const renderPattern = /(\n\s*return \(react_10\.default\.createElement\("main", \{ className: "screen story-screen" \},\s*react_10\.default\.createElement\("div", \{ className: "top-actions" \},\s*react_10\.default\.createElement\("button", \{ type: "button", onClick: leaveStory \}, "Menu"),\s*react_10\.default\.createElement\("button", \{ type: "button", onClick: readCurrentPage \})/;
+
+    if (!renderPattern.test(html)) {
+      throw new Error('Story start rewrite failed: normal Story Mode render not found.');
     }
 
-    const normalStoryRender = '        return (react_10.default.createElement("main", { className: "screen story-screen" },\n            react_10.default.createElement("div", { className: "top-actions" },\n                react_10.default.createElement("button", { type: "button", onClick: leaveStory }, "Menu"),\n                react_10.default.createElement("button", { type: "button", onClick: readCurrentPage }';
-
-    const newStartScreen = `        if (!storyManuallyStarted) {
+    html = html.replace(
+      renderPattern,
+      `
+        if (!storyManuallyStarted) {
             return (react_10.default.createElement("main", { className: "screen story-screen" },
                 react_10.default.createElement("div", { className: "top-actions" },
                     react_10.default.createElement("button", { type: "button", onClick: leaveStory }, "Menu")),
@@ -39,13 +57,14 @@ ${leaveStoryFunction}`;
                     story.subtitle && react_10.default.createElement("div", { className: "story-subtitle" }, story.subtitle),
                     react_10.default.createElement("div", { className: "story-active-card" },
                         react_10.default.createElement("div", { className: "story-prompt" }, "Ready when you are"),
-                        react_10.default.createElement("button", { type: "button", className: "primary-button story-start-button", onClick: startStoryMode }, "Start Story Mode")))));
+                        react_10.default.createElement("button", {
+                            type: "button",
+                            className: "primary-button story-start-button",
+                            onClick: startStoryMode
+                        }, "Start Story Mode")))));
         }
-${normalStoryRender}`;
-
-    if (!html.includes('"Ready when you are"') && html.includes(normalStoryRender)) {
-      html = html.replace(normalStoryRender, newStartScreen);
-    }
+$1`
+    );
 
     return html;
   };
