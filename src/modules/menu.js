@@ -4,6 +4,7 @@ const MODES = [
   ['fill-gap', 'Fill Gap', 'Complete calm sentences in your learning language.'],
   ['memory', 'Memory', 'Find matching word cards.'],
   ['words', 'Words', 'One word after another.'],
+  ['speak-practice', 'Speak & Grow', 'Repeat, retry gently, and always leave with a success.'],
   ['story', 'Story Mode', 'Tiny stories with mother-language clues.']
 ];
 
