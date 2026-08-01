@@ -92,17 +92,7 @@
   synth.speak = utterance => {
     try {
       if (!utterance) return originalSpeak(utterance);
-      if (utterance.__speakUpFlowPreview === true || utterance.__speakUpMemoryFast === true) {
-        return originalSpeak(utterance);
-      }
-
-      const text = String(utterance.text || '').trim();
-      const memorySuppress = window.__speakUpMemoryFastSuppress;
-      if (memorySuppress && memorySuppress.expires > Date.now() && memorySuppress.text === text.toLowerCase()) {
-        window.__speakUpMemoryFastSuppress = null;
-        finishSilently(utterance);
-        return;
-      }
+      if (utterance.__speakUpFlowPreview === true) return originalSpeak(utterance);
 
       const override = window.__speakUpPortugueseOverride;
       if (override && !override.consumed && override.expires > Date.now() && override.text) {
@@ -120,6 +110,7 @@
         return;
       }
 
+      const text = String(utterance.text || '').trim();
       let lang = normalizeLanguage(utterance.lang);
       if (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock) {
         finishSilently(utterance);
