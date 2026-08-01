@@ -45,7 +45,7 @@ const PAGES = [
   },
   {
     english: 'Marta laughs and agrees. A few minutes later, her phone receives a message: See you on Saturday?',
-    portuguese: 'A Marta ri-se e concorda. Uns minutos depois, recebe uma mensagem no telemóvel: vemos-nos no sábado?'
+    portuguese: 'A Marta ri-se e concorda. Uns minutos depois, recebe uma mensagem no telemóvel: vemo-nos no sábado?'
   }
 ];
 
