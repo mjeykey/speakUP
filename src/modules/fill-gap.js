@@ -1,8 +1,8 @@
 import { SENTENCE_LEVELS, getSentenceLevel } from '../data/sentences/index.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=33';
+import { speak, stopSpeech } from '../audio/speech.js?v=36';
+import { explodeText, getTextEffect } from '../effects/text-effects.js?v=1';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
-const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -21,17 +21,6 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
     index += 1;
     return visible;
   });
-}
-
-async function dissolve(element) {
-  if (!element) return;
-  await nextFrame();
-  const animation = element.animate([
-    { opacity: 1, filter: 'blur(0)', transform: 'translateY(0) scale(1)' },
-    { opacity: .86, offset: .28 },
-    { opacity: 0, filter: 'blur(12px)', transform: 'translateY(-18px) scale(.96)' }
-  ], { duration: 1750, easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' });
-  await animation.finished.catch(() => {});
 }
 
 export function renderFillGap(root, store) {
@@ -135,11 +124,11 @@ export function renderFillGap(root, store) {
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
         await speak(completeSentence, 'pt-PT', { enabled: state.audioOn, rate: 0.58 });
         await sleep(500);
-        await Promise.all([
-          dissolve(root.querySelector('[data-portuguese]')),
-          dissolve(root.querySelector('[data-english]'))
-        ]);
-        await sleep(260);
+        await explodeText([
+          root.querySelector('[data-portuguese]'),
+          root.querySelector('[data-english]')
+        ], getTextEffect(), { duration: 1650, stagger: 12 });
+        await sleep(180);
         sentenceIndex = (sentenceIndex + 1) % level.items.length;
         solvedCount = 0;
         renderSentence();
