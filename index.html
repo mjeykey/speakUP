@@ -10,35 +10,6 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="mobile-app.html?v=remove-full-translation-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
-  <script>
-    const frame = document.getElementById('speakup-app');
-
-    frame.addEventListener('load', () => {
-      const doc = frame.contentDocument;
-      if (!doc) return;
-
-      const skipFullTranslation = () => {
-        const text = String(doc.body?.innerText || '').toLowerCase();
-        const isFullTranslation = text.includes('full translation') && text.includes('translation complete');
-        if (!isFullTranslation) return;
-
-        const buttons = [...doc.querySelectorAll('button')];
-        const continueButton = buttons.find(button => String(button.textContent || '').trim().toLowerCase() === 'continue');
-        if (!continueButton) return;
-
-        const screen = continueButton.closest('main, .screen') || doc.body;
-        screen.style.visibility = 'hidden';
-        continueButton.click();
-      };
-
-      skipFullTranslation();
-      new MutationObserver(skipFullTranslation).observe(doc.documentElement, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-    });
-  </script>
+  <iframe id="speakup-app" src="clean-app.html?v=translation-module-removed-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
 </body>
 </html>
