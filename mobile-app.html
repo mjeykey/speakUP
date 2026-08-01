@@ -19,9 +19,6 @@
 
   function removeLegacyStoryNarration(source) {
     let html = String(source || '');
-
-    // The new Story flow owns the complete English and Portuguese preview.
-    // Therefore the original Story component must start directly in exercise-ready mode.
     html = html.replace(
       /\(0, react_10\.useState\)\(!Boolean\(settings\.audioOn && settings\.sentenceAudioOn\)\)/g,
       '(0, react_10.useState)(true)'
@@ -30,23 +27,19 @@
       /setInitialNarrationDone\(!Boolean\(settings\.audioOn && settings\.sentenceAudioOn\)\);/g,
       'setInitialNarrationDone(true);'
     );
-
-    // Remove the second full-block narration after the final gap. The solved page now
-    // becomes ready immediately instead of entering the legacy finishing-audio phase.
     html = html.replace(
       /resetAllPlayback\(\);\s*setIsPageFinishing\(true\);\s*setLearningReplayCharIndex\(0\);\s*setPageReadyToContinue\(false\);/g,
       'resetAllPlayback();\n            setIsPageFinishing(false);\n            setLearningReplayCharIndex(currentPage.text.length);\n            setPageReadyToContinue(true);\n            return;'
     );
-
     return html;
   }
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=story-clean-audio-1', { cache: 'no-store' });
+      const response = await fetch('app.html?v=story-sync-audio-1', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = removeLegacyStoryNarration(await response.text());
-      const helpers = '<script src="voice-router.js?v=8"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=7"><\/script>';
+      const helpers = '<script src="voice-router.js?v=9"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
       document.write(html);
