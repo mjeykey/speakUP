@@ -1,6 +1,6 @@
 import { SENTENCE_LEVELS, getSentenceLevel } from '../data/sentences/index.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=36';
-import { explodeText, getTextEffect } from '../effects/text-effects.js?v=1';
+import { speak, stopSpeech } from '../audio/speech.js?v=38';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
@@ -127,7 +127,7 @@ export function renderFillGap(root, store) {
         await explodeText([
           root.querySelector('[data-portuguese]'),
           root.querySelector('[data-english]')
-        ], getTextEffect(), { duration: 1650, stagger: 12 });
+        ], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
         await sleep(180);
         sentenceIndex = (sentenceIndex + 1) % level.items.length;
         solvedCount = 0;
