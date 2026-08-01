@@ -51,6 +51,13 @@
     return html;
   }
 
+  function skipFillGapTranslationScreen(source) {
+    return String(source || '').replace(
+      'return react_11.default.createElement(FillGapMode_jsx_1.default, { sentence: current, settings: settings, onSolved: showTranslation, onMenu: () => setScreen(\'menu\') });',
+      'return react_11.default.createElement(FillGapMode_jsx_1.default, { sentence: current, settings: settings, onSolved: nextSentence, onMenu: () => setScreen(\'menu\') });'
+    );
+  }
+
   function improveFillGapMode(source) {
     let html = String(source || '');
 
@@ -198,12 +205,13 @@
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=fill-gap-sequence-2', { cache: 'no-store' });
+      const response = await fetch('app.html?v=fill-gap-skip-translation-1', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = await response.text();
       html = removeLegacyStoryNarration(html);
       html = improveMemoryMode(html);
       html = improveFillGapMode(html);
+      html = skipFillGapTranslationScreen(html);
       const helpers = '<script src="voice-router.js?v=12"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
