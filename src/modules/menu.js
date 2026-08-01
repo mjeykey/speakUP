@@ -1,4 +1,4 @@
-import { STORIES } from '../data/content.js';
+import { STORIES } from '../data/content.js?v=4';
 
 const MODES = [
   ['fill-gap', 'Fill Gap', 'Complete calm sentences in your learning language.'],
