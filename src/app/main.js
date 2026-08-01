@@ -1,10 +1,10 @@
-import { createStore } from './state.js?v=11';
-import { renderMenu } from '../modules/menu.js?v=11';
-import { renderWords } from '../modules/words.js?v=11';
-import { renderMemory } from '../modules/memory.js?v=11';
-import { renderFillGap } from '../modules/fill-gap.js?v=11';
-import { renderStory } from '../modules/story.js?v=11';
-import { stopSpeech } from '../audio/speech.js?v=11';
+import { createStore } from './state.js?v=12';
+import { renderMenu } from '../modules/menu.js?v=12';
+import { renderWords } from '../modules/words.js?v=12';
+import { renderMemory } from '../modules/memory.js?v=12';
+import { renderFillGap } from '../modules/fill-gap.js?v=12';
+import { renderStory } from '../modules/story.js?v=12';
+import { stopSpeech } from '../audio/speech.js?v=12';
 
 const root = document.getElementById('app');
 const store = createStore();
