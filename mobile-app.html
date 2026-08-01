@@ -36,7 +36,6 @@
 
   function improveMemoryMode(source) {
     let html = String(source || '');
-
     html = html.replace(
       "{ id: 'friend_f', en: 'friend', de: 'Freundin', pt: 'amiga'",
       "{ id: 'friend_f', en: 'friend female', de: 'Freundin', pt: 'amiga'"
@@ -45,21 +44,55 @@
       "{ id: 'friend_m', en: 'friend', de: 'Freund', pt: 'amigo'",
       "{ id: 'friend_m', en: 'friend male', de: 'Freund', pt: 'amigo'"
     );
-
     html = html.replace(
       /(\/\/ Chrome and some Android browsers need a short beat after cancel\(\)\.[\s\S]*?startTimer\s*=\s*window\.setTimeout\(\(\)\s*=>\s*\{[\s\S]*?speakQueueItem\(queue,\s*0,\s*lang,\s*language,\s*token,\s*options\);\s*\},\s*)\d+(\s*\);)/,
       '$120$2'
     );
+    return html;
+  }
+
+  function improveFillGapMode(source) {
+    let html = String(source || '');
+
+    const oldChoose = `        function choose(option) {
+            if (option !== sentence.gap)
+                return;
+            (0, speech_js_3.speak)(option, settings.language, settings.audioOn && settings.sentenceAudioOn, (0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.72, pitch: 1.05 }));
+            setSolved(true);
+        }`;
+
+    const newChoose = `        function choose(option) {
+            if (option !== sentence.gap)
+                return;
+            const audioEnabled = settings.audioOn && settings.sentenceAudioOn;
+            (0, speech_js_3.speak)(option, settings.language, audioEnabled, (0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.72, pitch: 1.05 }));
+            window.setTimeout(() => {
+                (0, speech_js_3.speak)(sentence.sentence, settings.language, audioEnabled, {
+                    chunk: false,
+                    ...(0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.76, pitch: 1.02 })
+                });
+            }, audioEnabled ? 650 : 0);
+            setSolved(true);
+        }`;
+
+    html = html.replace(oldChoose, newChoose);
+
+    const oldDissolve = `react_6.default.createElement(SentenceDissolve_jsx_1.default, { text: sentence.sentence, effect: settings.effect, customSound: settings.customSound, onComplete: () => onSolved(sentence) })`;
+    const newDissolve = `react_6.default.createElement(SentenceDissolve_jsx_1.default, { text: sentence.sentence, effect: settings.effect, customSound: settings.customSound, startDelay: settings.audioOn && settings.sentenceAudioOn ? Math.max(3200, sentence.sentence.split(/\\s+/).length * 620) : 350, onComplete: () => onSolved(sentence) })`;
+    html = html.replace(oldDissolve, newDissolve);
 
     return html;
   }
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=fill-gap-repeat-1', { cache: 'no-store' });
+      const response = await fetch('app.html?v=fill-gap-native-repeat-2', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
-      let html = improveMemoryMode(removeLegacyStoryNarration(await response.text()));
-      const helpers = '<script src="voice-router.js?v=12"><\/script><script src="fill-gap-repeat.js?v=1"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
+      let html = await response.text();
+      html = removeLegacyStoryNarration(html);
+      html = improveMemoryMode(html);
+      html = improveFillGapMode(html);
+      const helpers = '<script src="voice-router.js?v=12"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
       document.write(html);
