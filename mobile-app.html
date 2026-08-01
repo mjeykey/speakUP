@@ -34,11 +34,34 @@
     return html;
   }
 
+  function improveMemoryMode(source) {
+    let html = String(source || '');
+
+    const friendRules = [
+      [/(word\s*:\s*["']amigo["'][\s\S]{0,180}?translation\s*:\s*)["']friend["']/gi, '$1"male friend"'],
+      [/(translation\s*:\s*["']friend["'][\s\S]{0,180}?word\s*:\s*)["']amigo["']/gi, 'translation: "male friend", word: "amigo"'],
+      [/(word\s*:\s*["']amiga["'][\s\S]{0,180}?translation\s*:\s*)["']friend["']/gi, '$1"female friend"'],
+      [/(translation\s*:\s*["']friend["'][\s\S]{0,180}?word\s*:\s*)["']amiga["']/gi, 'translation: "female friend", word: "amiga"'],
+      [/("word"\s*:\s*"amigo"[\s\S]{0,180}?"translation"\s*:\s*)"friend"/gi, '$1"male friend"'],
+      [/("word"\s*:\s*"amiga"[\s\S]{0,180}?"translation"\s*:\s*)"friend"/gi, '$1"female friend"']
+    ];
+    friendRules.forEach(([pattern, replacement]) => { html = html.replace(pattern, replacement); });
+
+    html = html.replace(
+      /(startTimer\s*=\s*window\.setTimeout\(\(\)\s*=>\s*\{[\s\S]*?speakQueueItem\(queue,\s*0,\s*lang,\s*language,\s*token,\s*options\);\s*\},\s*)\d+(\s*\);)/,
+      '$130$2'
+    );
+
+    return html;
+  }
+
   (async () => {
     try {
-      const response = await fetch('app.html?v=audio-restored-1', { cache: 'no-store' });
+      const response = await fetch('app.html?v=memory-audio-polish-1', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
-      let html = removeLegacyStoryNarration(await response.text());
+      let html = await response.text();
+      html = removeLegacyStoryNarration(html);
+      html = improveMemoryMode(html);
       const helpers = '<script src="voice-router.js?v=11"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
