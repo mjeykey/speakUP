@@ -78,8 +78,8 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
     let lastHighlightAt = 0;
     let pendingTimer = 0;
     const isSlowPortuguese = String(language || '').toLowerCase().startsWith('pt') && utterance.rate <= 0.5;
-    const minimumLightTime = isSlowPortuguese ? 560 : Math.max(280, 300 / utterance.rate);
-    const fallbackWordDelay = isSlowPortuguese ? 690 : Math.max(340, 470 / utterance.rate);
+    const minimumLightTime = isSlowPortuguese ? 520 : Math.max(280, 300 / utterance.rate);
+    const fallbackWordDelay = isSlowPortuguese ? 640 : Math.max(340, 470 / utterance.rate);
 
     const showWord = index => {
       if (finished || index < 0 || index >= words.length || index === activeIndex) return;
