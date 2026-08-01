@@ -62,7 +62,7 @@ function findLearningItems(english, portuguese) {
     const portugueseMatch = pair.portuguese.find(word => pt.includes(normalizeWord(word)));
     if (!englishMatch || !portugueseMatch || items.some(item => normalizeWord(item.portuguese) === normalizeWord(portugueseMatch))) continue;
     items.push({ english: englishMatch, portuguese: portugueseMatch });
-    if (items.length === 3) break;
+    if (items.length === 6) break;
   }
   return items;
 }
