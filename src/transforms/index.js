@@ -8,7 +8,9 @@
 
     const orderedTransforms = [
       window.SpeakUPTransforms.improveMemoryMode,
-      window.SpeakUPTransforms.improveWordsMode
+      window.SpeakUPTransforms.improveWordsMode,
+      window.SpeakUPTransforms.improveFillGapMode,
+      window.SpeakUPTransforms.skipFillGapTranslationScreen
     ];
 
     for (const transform of orderedTransforms) {
