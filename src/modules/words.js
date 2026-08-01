@@ -1,5 +1,5 @@
-import { WORDS } from '../data/content.js';
-import { speakPair, stopSpeech } from '../audio/speech.js';
+import { WORDS } from '../data/content.js?v=6';
+import { speakPair, stopSpeech } from '../audio/speech.js?v=35';
 
 export function renderWords(root, store) {
   const state = store.getState();
