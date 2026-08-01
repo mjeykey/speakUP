@@ -1,4 +1,4 @@
-import { everydayStory } from './stories/everyday.js?v=2';
+import { everydayStory } from './stories/everyday.js?v=3';
 
 export const STORIES = [
   everydayStory,
