@@ -37,19 +37,20 @@
   function improveMemoryMode(source) {
     let html = String(source || '');
 
-    const friendRules = [
-      [/(word\s*:\s*["']amigo["'][\s\S]{0,180}?translation\s*:\s*)["']friend["']/gi, '$1"male friend"'],
-      [/(translation\s*:\s*["']friend["'][\s\S]{0,180}?word\s*:\s*)["']amigo["']/gi, 'translation: "male friend", word: "amigo"'],
-      [/(word\s*:\s*["']amiga["'][\s\S]{0,180}?translation\s*:\s*)["']friend["']/gi, '$1"female friend"'],
-      [/(translation\s*:\s*["']friend["'][\s\S]{0,180}?word\s*:\s*)["']amiga["']/gi, 'translation: "female friend", word: "amiga"'],
-      [/("word"\s*:\s*"amigo"[\s\S]{0,180}?"translation"\s*:\s*)"friend"/gi, '$1"male friend"'],
-      [/("word"\s*:\s*"amiga"[\s\S]{0,180}?"translation"\s*:\s*)"friend"/gi, '$1"female friend"']
-    ];
-    friendRules.forEach(([pattern, replacement]) => { html = html.replace(pattern, replacement); });
-
+    // Exact entries used by the current vocabulary and Memory data source.
     html = html.replace(
-      /(startTimer\s*=\s*window\.setTimeout\(\(\)\s*=>\s*\{[\s\S]*?speakQueueItem\(queue,\s*0,\s*lang,\s*language,\s*token,\s*options\);\s*\},\s*)\d+(\s*\);)/,
-      '$130$2'
+      "{ id: 'friend_f', en: 'friend', de: 'Freundin', pt: 'amiga'",
+      "{ id: 'friend_f', en: 'female friend', de: 'Freundin', pt: 'amiga'"
+    );
+    html = html.replace(
+      "{ id: 'friend_m', en: 'friend', de: 'Freund', pt: 'amigo'",
+      "{ id: 'friend_m', en: 'male friend', de: 'Freund', pt: 'amigo'"
+    );
+
+    // Shorten the real speech queue delay after cancel() without adding a second audio path.
+    html = html.replace(
+      /(\/\/ Chrome and some Android browsers need a short beat after cancel\(\)\.[\s\S]*?startTimer\s*=\s*window\.setTimeout\(\(\)\s*=>\s*\{[\s\S]*?speakQueueItem\(queue,\s*0,\s*lang,\s*language,\s*token,\s*options\);\s*\},\s*)\d+(\s*\);)/,
+      '$120$2'
     );
 
     return html;
@@ -57,11 +58,9 @@
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=memory-audio-polish-1', { cache: 'no-store' });
+      const response = await fetch('app.html?v=memory-exact-fix-2', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
-      let html = await response.text();
-      html = removeLegacyStoryNarration(html);
-      html = improveMemoryMode(html);
+      let html = improveMemoryMode(removeLegacyStoryNarration(await response.text()));
       const helpers = '<script src="voice-router.js?v=11"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=9"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
