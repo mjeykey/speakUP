@@ -1,5 +1,6 @@
-import { STORIES } from '../data/content.js?v=5';
-import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=5';
+import { STORIES } from '../data/content.js?v=6';
+import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=6';
+import { recordWordAnswer, recordWordExposure } from '../learning/progress.js?v=1';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 const escapeHtml = value => String(value ?? '')
@@ -14,6 +15,44 @@ const BUILT_IN_PT = {
     0: 'Todas as manhãs, Leonor sai de casa e caminha pela rua. Compra pão no mercado e encontra uma vizinha. Sorriem uma para a outra e começam o dia com calma.'
   }
 };
+
+const VERB_PAIRS = [
+  { english: ['leaves', 'leave'], portuguese: ['sai', 'saem'] },
+  { english: ['walks', 'walk'], portuguese: ['caminha', 'caminham'] },
+  { english: ['buys', 'buy'], portuguese: ['compra', 'compram'] },
+  { english: ['meets', 'meet'], portuguese: ['encontra', 'encontram'] },
+  { english: ['smile', 'smiles'], portuguese: ['sorri', 'sorriem'] },
+  { english: ['begin', 'begins'], portuguese: ['começa', 'começam'] },
+  { english: ['lives', 'live'], portuguese: ['vive', 'vivem'] },
+  { english: ['carry', 'carries', 'carrying'], portuguese: ['leva', 'levam', 'carrega', 'carregam'] },
+  { english: ['asks', 'ask'], portuguese: ['pergunta', 'perguntam'] },
+  { english: ['wants', 'want'], portuguese: ['quer', 'querem'] },
+  { english: ['make', 'makes'], portuguese: ['fazer', 'faz', 'fazem'] },
+  { english: ['invites', 'invite'], portuguese: ['convida', 'convidam'] },
+  { english: ['eat', 'eats'], portuguese: ['comer', 'come', 'comem'] },
+  { english: ['accepts', 'accept'], portuguese: ['aceita', 'aceitam'] },
+  { english: ['enters', 'enter'], portuguese: ['entra', 'entram'] },
+  { english: ['orders', 'order'], portuguese: ['pede', 'pedem'] },
+  { english: ['sits', 'sit'], portuguese: ['senta-se', 'sentam-se', 'senta', 'sentam'] },
+  { english: ['starts', 'start'], portuguese: ['começa', 'começam'] },
+  { english: ['stops', 'stop'], portuguese: ['para', 'param'] },
+  { english: ['looks', 'look'], portuguese: ['olha', 'olham'] },
+  { english: ['drinks', 'drink'], portuguese: ['bebe', 'bebem'] },
+  { english: ['watches', 'watch'], portuguese: ['observa', 'observam'] },
+  { english: ['returns', 'return'], portuguese: ['regressa', 'regressam', 'volta', 'voltam'] },
+  { english: ['opens', 'open'], portuguese: ['abre', 'abrem'] },
+  { english: ['hears', 'hear'], portuguese: ['ouve', 'ouvem'] },
+  { english: ['works', 'work'], portuguese: ['trabalha', 'trabalham'] },
+  { english: ['checks', 'check'], portuguese: ['verifica', 'verificam'] },
+  { english: ['speaks', 'speak'], portuguese: ['fala', 'falam'] },
+  { english: ['plan', 'plans'], portuguese: ['planeia', 'planeiam'] },
+  { english: ['jumps', 'jump'], portuguese: ['salta', 'saltam'] },
+  { english: ['laughs', 'laugh'], portuguese: ['ri', 'riem'] }
+];
+
+function normalizeWord(value) {
+  return String(value || '').toLocaleLowerCase('pt-PT').replace(/^[^a-zà-ÿ]+|[^a-zà-ÿ]+$/gi, '');
+}
 
 function getEnglish(page) {
   if (typeof page === 'string') return page;
@@ -67,30 +106,34 @@ async function getPortuguese(story, pageIndex, page) {
   }
 }
 
-function chooseGapWords(text) {
-  const stopWords = new Set(['about', 'after', 'again', 'because', 'before', 'being', 'between', 'could', 'every', 'from', 'have', 'into', 'other', 'their', 'there', 'these', 'they', 'this', 'through', 'until', 'very', 'when', 'where', 'which', 'while', 'with', 'would']);
-  const words = text.match(/[A-Za-zÀ-ÿ’'-]+/g) || [];
-  const candidates = words.filter(word => word.length >= 5 && !stopWords.has(word.toLowerCase()));
-  const unique = [...new Map(candidates.map(word => [word.toLowerCase(), word])).values()];
-  return unique.slice(0, Math.min(3, unique.length));
+function findLearningItems(english, portuguese) {
+  const englishWords = new Set((english.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord));
+  const portugueseWords = (portuguese.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord);
+  const items = [];
+
+  for (const pair of VERB_PAIRS) {
+    const englishMatch = pair.english.find(word => englishWords.has(normalizeWord(word)));
+    const portugueseMatch = pair.portuguese.find(word => portugueseWords.includes(normalizeWord(word)));
+    if (!englishMatch || !portugueseMatch) continue;
+    if (items.some(item => normalizeWord(item.portuguese) === normalizeWord(portugueseMatch))) continue;
+    items.push({ english: englishMatch, portuguese: portugueseMatch });
+    if (items.length === 3) break;
+  }
+  return items;
 }
 
-function buildGapHtml(text, targets, solvedCount) {
-  let targetIndex = 0;
-  const targetSet = new Set(targets.map(word => word.toLowerCase()));
-  return escapeHtml(text).replace(/[A-Za-zÀ-ÿ’'-]+/g, word => {
-    if (!targetSet.has(word.toLowerCase())) return word;
-    const index = targetIndex++;
-    return index < solvedCount
-      ? `<span class="story-gap-solved">${escapeHtml(targets[index])}</span>`
-      : `<span class="story-gap-blank" data-gap="${index}">_____</span>`;
+function buildPortugueseGapHtml(portuguese, items, solvedCount) {
+  const used = new Set();
+  return escapeHtml(portuguese).replace(/[A-Za-zÀ-ÿ’'-]+/g, word => {
+    const normalized = normalizeWord(word);
+    const itemIndex = items.findIndex((item, index) => !used.has(index) && normalizeWord(item.portuguese) === normalized);
+    if (itemIndex < 0) return word;
+    used.add(itemIndex);
+    const item = items[itemIndex];
+    return itemIndex < solvedCount
+      ? `<span class="story-gap-solved">${escapeHtml(item.portuguese)}</span>`
+      : `<span class="story-gap-english" data-gap="${itemIndex}">${escapeHtml(item.english)}</span>`;
   });
-}
-
-function renderWordSpans(text) {
-  return String(text).split(/(\s+)/).map((part, index) => /^\s+$/.test(part)
-    ? part
-    : `<span class="story-spoken-word" data-word-index="${index}">${escapeHtml(part)}</span>`).join('');
 }
 
 export function renderStory(root, store) {
@@ -135,26 +178,52 @@ export function renderStory(root, store) {
   };
 
   const showGapExercise = async (english, portuguese, token) => {
-    const targets = chooseGapWords(english);
-    if (!targets.length || token !== runToken) return showCompletion(english, portuguese, token);
-    let solved = 0;
+    const items = findLearningItems(english, portuguese);
+    if (!items.length || token !== runToken) return showCompletion(english, portuguese, token);
 
+    items.forEach(item => recordWordExposure({
+      ...item,
+      source: 'story',
+      storyId: story.id,
+      pageIndex
+    }));
+
+    let solved = 0;
     const renderGap = () => {
-      shell(`<p class="story-phase-label">Complete the English text</p>
-        <p class="story-copy story-gap-copy">${buildGapHtml(english, targets, solved)}</p>
-        <div class="story-word-options">${targets.map((word, index) => `<button class="story-word-option" data-option="${index}" ${index < solved ? 'disabled' : ''}>${escapeHtml(word)}</button>`).join('')}</div>`);
+      shell(`<p class="story-phase-label">Replace the English verbs with Portuguese</p>
+        <p class="story-copy story-gap-copy">${buildPortugueseGapHtml(portuguese, items, solved)}</p>
+        <div class="story-word-options">${items.map((item, index) => `<button class="story-word-option" data-option="${index}" ${index < solved ? 'disabled' : ''}>${escapeHtml(item.portuguese)}</button>`).join('')}</div>`);
+
       root.querySelectorAll('[data-option]').forEach(button => {
         button.onclick = async () => {
           const index = Number(button.dataset.option);
-          if (index !== solved) {
+          const selected = items[index];
+          const expected = items[solved];
+          const correct = index === solved;
+
+          recordWordAnswer({
+            portuguese: selected.portuguese,
+            english: selected.english,
+            correct,
+            source: 'story',
+            storyId: story.id,
+            pageIndex
+          });
+
+          if (!correct) {
             button.classList.add('is-wrong');
             window.setTimeout(() => button.classList.remove('is-wrong'), 400);
             return;
           }
+
+          await speak(expected.portuguese, 'pt-PT', {
+            rate: 0.72,
+            enabled: store.getState().audioOn
+          });
           solved += 1;
           renderGap();
-          if (solved === targets.length) {
-            await sleep(850);
+          if (solved === items.length) {
+            await sleep(1000);
             showCompletion(english, portuguese, token);
           }
         };
