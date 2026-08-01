@@ -93,8 +93,9 @@
     try {
       if (!utterance) return originalSpeak(utterance);
 
+      const isFlowPreview = window.__speakUpFlowOwnSpeech === true;
       const override = window.__speakUpPortugueseOverride;
-      if (override && !override.consumed && override.expires > Date.now() && override.text) {
+      if (!isFlowPreview && override && !override.consumed && override.expires > Date.now() && override.text) {
         override.consumed = true;
         clearTimeout(portugueseTimer);
         originalCancel();
@@ -114,7 +115,7 @@
       const text = String(utterance.text || '').trim();
       let lang = normalizeLanguage(utterance.lang);
 
-      if (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock) {
+      if (!isFlowPreview && (completionPhaseVisible() || window.__speakUpSuppressCompletedBlock)) {
         finishSilently(utterance);
         return;
       }
@@ -122,7 +123,7 @@
       if (lang.startsWith('pt') && looksLikeEnglishNarration(text)) lang = 'en-GB';
       if (!lang && looksLikeEnglishNarration(text)) lang = 'en-GB';
 
-      if (duplicate(text, lang)) {
+      if (!isFlowPreview && duplicate(text, lang)) {
         finishSilently(utterance);
         return;
       }
@@ -134,9 +135,9 @@
       }
 
       if (lang.startsWith('pt')) {
-        utterance.rate = 0.86;
+        utterance.rate = isFlowPreview ? utterance.rate : 0.86;
       } else if (lang.startsWith('en')) {
-        utterance.rate = 1;
+        utterance.rate = isFlowPreview ? utterance.rate : 1;
       }
     } catch (error) {
       console.warn('SpeakUP audio engine fallback:', error);
