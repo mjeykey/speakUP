@@ -1,14 +1,14 @@
-import { createStore } from './state.js?v=24';
-import { renderWelcome } from '../modules/welcome.js?v=24';
-import { renderMenu } from '../modules/menu.js?v=24';
-import { renderWords } from '../modules/words.js?v=24';
-import { renderMemory } from '../modules/memory.js?v=24';
-import { renderFillGap } from '../modules/fill-gap.js?v=24';
-import { renderStory } from '../modules/story.js?v=24';
-import { stopSpeech } from '../audio/speech.js?v=24';
+import { createStore } from './state.js?v=25';
+import { renderWelcome } from '../modules/welcome.js?v=25';
+import { renderMenu } from '../modules/menu.js?v=25';
+import { renderWords } from '../modules/words.js?v=25';
+import { renderMemory } from '../modules/memory.js?v=25';
+import { renderFillGap } from '../modules/fill-gap.js?v=25';
+import { renderStory } from '../modules/story.js?v=25';
+import { stopSpeech } from '../audio/speech.js?v=25';
 
 const root = document.getElementById('app');
-const store = createStore();
+const store = createStore({ screen: 'welcome' });
 
 const routes = {
   welcome: renderWelcome,
