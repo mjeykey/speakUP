@@ -1,5 +1,5 @@
 export const initialState = Object.freeze({
-  screen: 'menu',
+  screen: 'welcome',
   mode: 'story',
   learningLanguage: 'pt-PT',
   nativeLanguage: 'en-GB',
