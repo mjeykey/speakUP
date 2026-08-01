@@ -6,64 +6,35 @@
   window.SpeakUPTransforms.improveStoryMode = function improveStoryMode(source) {
     let html = String(source || '');
 
-    if (html.includes('const [storyManuallyStarted, setStoryManuallyStarted]')) {
-      return html;
+    // Story Mode must always wait for an explicit learner action, exactly like
+    // the other learning modes. Audio settings must not skip the start screen.
+    const originalState = 'const [initialNarrationDone, setInitialNarrationDone] = (0, react_10.useState)(!Boolean(settings.audioOn && settings.sentenceAudioOn));';
+    const manualState = 'const [initialNarrationDone, setInitialNarrationDone] = (0, react_10.useState)(false);';
+
+    if (!html.includes(originalState)) {
+      throw new Error('Story start rewrite failed: original narration state not found.');
+    }
+    html = html.replace(originalState, manualState);
+
+    const optionsBlock = 'initialNarrationDone && !isStorySpeaking && !isResolvingAnswer && !isPageFinishing && !pageReadyToContinue && currentGap && (react_10.default.createElement("div", { className: "story-option-block" }, visibleOptions.map((option, optionIndex) => (react_10.default.createElement("button", { type: "button", key: `page-${currentPageIndex}-gap-${currentGapIndex}-option-${optionIndex}-${option}`, className: `choice story-choice ${wrongChoice === option ? \'story-choice-wrong\' : \'\'}`, onClick: () => choose(option), disabled: isResolvingAnswer }, option))))),';
+
+    if (!html.includes(optionsBlock)) {
+      throw new Error('Story start rewrite failed: Story option block not found.');
     }
 
-    const statePattern = /(const \[initialNarrationDone, setInitialNarrationDone\] = \(0, react_10\.useState\)\([^;]+;)/;
-    if (!statePattern.test(html)) {
-      throw new Error('Story start rewrite failed: narration state not found.');
-    }
+    const startButtonAndOptions = `!initialNarrationDone && !isStorySpeaking && !isPageFinishing && (react_10.default.createElement("button", {
+                        type: "button",
+                        className: "primary-button story-start-button",
+                        onClick: () => playFullCurrentPage({ markInitialComplete: true })
+                    }, "Start Story Mode")),
+                    ${optionsBlock}`;
 
+    html = html.replace(optionsBlock, startButtonAndOptions);
+
+    // Make the button visually unmistakable without depending on another file.
     html = html.replace(
-      statePattern,
-      `$1\n        const [storyManuallyStarted, setStoryManuallyStarted] = (0, react_10.useState)(false);`
-    );
-
-    const leavePattern = /(\n\s*function leaveStory\(\) \{\s*resetAllPlayback\(\);\s*onMenu\(\);\s*\})/;
-    if (!leavePattern.test(html)) {
-      throw new Error('Story start rewrite failed: leaveStory function not found.');
-    }
-
-    html = html.replace(
-      leavePattern,
-      `
-        function startStoryMode() {
-            if (storyManuallyStarted)
-                return;
-            setStoryManuallyStarted(true);
-            window.setTimeout(() => {
-                playFullCurrentPage({ markInitialComplete: true });
-            }, 120);
-        }
-$1`
-    );
-
-    const renderPattern = /(\n\s*return \(react_10\.default\.createElement\("main", \{ className: "screen story-screen" \},\s*react_10\.default\.createElement\("div", \{ className: "top-actions" \},\s*react_10\.default\.createElement\("button", \{ type: "button", onClick: leaveStory \}, "Menu"),\s*react_10\.default\.createElement\("button", \{ type: "button", onClick: readCurrentPage \})/;
-
-    if (!renderPattern.test(html)) {
-      throw new Error('Story start rewrite failed: normal Story Mode render not found.');
-    }
-
-    html = html.replace(
-      renderPattern,
-      `
-        if (!storyManuallyStarted) {
-            return (react_10.default.createElement("main", { className: "screen story-screen" },
-                react_10.default.createElement("div", { className: "top-actions" },
-                    react_10.default.createElement("button", { type: "button", onClick: leaveStory }, "Menu")),
-                react_10.default.createElement("section", { className: "center story-center" },
-                    react_10.default.createElement("div", { className: "story-title" }, story.title),
-                    story.subtitle && react_10.default.createElement("div", { className: "story-subtitle" }, story.subtitle),
-                    react_10.default.createElement("div", { className: "story-active-card" },
-                        react_10.default.createElement("div", { className: "story-prompt" }, "Ready when you are"),
-                        react_10.default.createElement("button", {
-                            type: "button",
-                            className: "primary-button story-start-button",
-                            onClick: startStoryMode
-                        }, "Start Story Mode")))));
-        }
-$1`
+      '.story-active-card{',
+      '.story-start-button{display:inline-flex;align-items:center;justify-content:center;margin:22px auto 4px;padding:16px 34px;border-radius:999px;border:1px solid rgba(101,232,255,.75);background:rgba(101,232,255,.14);color:white;font-size:21px;font-style:italic;box-shadow:0 0 24px rgba(101,232,255,.16)}.story-active-card{'
     );
 
     return html;
