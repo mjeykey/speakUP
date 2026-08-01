@@ -108,8 +108,8 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
     ? Math.min(adjustedRate(language, rate, 0.48), 0.48)
     : adjustedRate(language, rate, 0.48);
   const isSlowPortuguese = String(language || '').toLowerCase().startsWith('pt') && selectedRate <= 0.5;
-  const minimumLightTime = isSlowPortuguese ? 520 : Math.max(280, 300 / selectedRate);
-  const fallbackWordDelay = isSlowPortuguese ? 640 : Math.max(340, 470 / selectedRate);
+  const minimumLightTime = isSlowPortuguese ? 490 : Math.max(280, 300 / selectedRate);
+  const fallbackWordDelay = isSlowPortuguese ? 600 : Math.max(340, 470 / selectedRate);
   const segments = splitSpeechSegments(value);
 
   return (async () => {
