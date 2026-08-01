@@ -9,14 +9,14 @@ const escapeHtml = value => String(value ?? '')
   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
 const PHASES = ['english', 'portuguese', 'gap', 'review'];
-const VERB_PAIRS = [
+const LEARNING_PAIRS = [
   { english: ['leaves','leave'], portuguese: ['sai','saem'] },
   { english: ['walks','walk'], portuguese: ['caminha','caminham'] },
   { english: ['buys','buy'], portuguese: ['compra','compram'] },
-  { english: ['meets','meet'], portuguese: ['encontra','encontram'] },
+  { english: ['meets','meet'], portuguese: ['encontra','encontram','encontram-se'] },
   { english: ['smile','smiles'], portuguese: ['sorri','sorriem'] },
   { english: ['begin','begins'], portuguese: ['começa','começam'] },
-  { english: ['lives','live'], portuguese: ['vive','vivem'] },
+  { english: ['lives','live'], portuguese: ['vive','vivem','mora','moram'] },
   { english: ['carry','carries','carrying'], portuguese: ['leva','levam','carrega','carregam'] },
   { english: ['asks','ask'], portuguese: ['pergunta','perguntam'] },
   { english: ['wants','want'], portuguese: ['quer','querem'] },
@@ -38,9 +38,50 @@ const VERB_PAIRS = [
   { english: ['works','work'], portuguese: ['trabalha','trabalham'] },
   { english: ['checks','check'], portuguese: ['verifica','verificam'] },
   { english: ['speaks','speak'], portuguese: ['fala','falam'] },
-  { english: ['plan','plans'], portuguese: ['planeia','planeiam'] },
+  { english: ['plans','plan'], portuguese: ['planeia','planeiam'] },
   { english: ['jumps','jump'], portuguese: ['salta','saltam'] },
-  { english: ['laughs','laugh'], portuguese: ['ri','riem'] }
+  { english: ['laughs','laugh'], portuguese: ['ri','riem'] },
+  { english: ['calls','called'], portuguese: ['chama-se','chama','chamam'] },
+  { english: ['gets','gets up','wakes'], portuguese: ['acorda','levanta-se'] },
+  { english: ['prepares','prepare'], portuguese: ['prepara','preparam'] },
+  { english: ['goes','go'], portuguese: ['vai','vão'] },
+  { english: ['loves','love'], portuguese: ['adora','adoram','ama','amam'] },
+  { english: ['neighbor','neighbour'], portuguese: ['vizinha','vizinho'] },
+  { english: ['house','home'], portuguese: ['casa'] },
+  { english: ['street'], portuguese: ['rua'] },
+  { english: ['market'], portuguese: ['mercado'] },
+  { english: ['bread'], portuguese: ['pão'] },
+  { english: ['morning'], portuguese: ['manhã','manhãs'] },
+  { english: ['day'], portuguese: ['dia'] },
+  { english: ['building'], portuguese: ['prédio'] },
+  { english: ['floor'], portuguese: ['andar'] },
+  { english: ['different'], portuguese: ['diferente'] },
+  { english: ['same'], portuguese: ['mesmo','mesma'] },
+  { english: ['often'], portuguese: ['muitas','vezes'] },
+  { english: ['neighborhood','neighbourhood'], portuguese: ['bairro'] },
+  { english: ['coffee'], portuguese: ['café'] },
+  { english: ['balcony'], portuguese: ['varanda'] },
+  { english: ['quiet'], portuguese: ['tranquilidade','calma'] },
+  { english: ['early'], portuguese: ['cedo'] },
+  { english: ['friend'], portuguese: ['amiga','amigo'] },
+  { english: ['woman'], portuguese: ['mulher'] },
+  { english: ['man'], portuguese: ['homem'] },
+  { english: ['shop','store'], portuguese: ['loja'] },
+  { english: ['school'], portuguese: ['escola'] },
+  { english: ['work'], portuguese: ['trabalho'] },
+  { english: ['food'], portuguese: ['comida'] },
+  { english: ['water'], portuguese: ['água'] },
+  { english: ['door'], portuguese: ['porta'] },
+  { english: ['window'], portuguese: ['janela'] },
+  { english: ['car'], portuguese: ['carro'] },
+  { english: ['bus'], portuguese: ['autocarro'] },
+  { english: ['train'], portuguese: ['comboio'] },
+  { english: ['happy'], portuguese: ['feliz'] },
+  { english: ['tired'], portuguese: ['cansada','cansado'] },
+  { english: ['small'], portuguese: ['pequena','pequeno'] },
+  { english: ['big'], portuguese: ['grande'] },
+  { english: ['new'], portuguese: ['nova','novo'] },
+  { english: ['old'], portuguese: ['velha','velho'] }
 ];
 
 function normalizeWord(value) {
@@ -53,18 +94,43 @@ function getEnglish(page) {
 function getPortuguese(page) {
   return page && typeof page === 'object' ? String(page.portuguese ?? '') : '';
 }
-function findLearningItems(english, portuguese) {
-  const en = new Set((english.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord));
-  const pt = (portuguese.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord);
-  const items = [];
-  for (const pair of VERB_PAIRS) {
-    const englishMatch = pair.english.find(word => en.has(normalizeWord(word)));
-    const portugueseMatch = pair.portuguese.find(word => pt.includes(normalizeWord(word)));
-    if (!englishMatch || !portugueseMatch || items.some(item => normalizeWord(item.portuguese) === normalizeWord(portugueseMatch))) continue;
-    items.push({ english: englishMatch, portuguese: portugueseMatch });
-    if (items.length === 6) break;
+function splitSentences(text) {
+  return String(text || '').match(/[^.!?]+[.!?]?/g)?.map(sentence => sentence.trim()).filter(Boolean) || [];
+}
+function matchPair(englishSentence, portugueseSentence, usedPortuguese) {
+  const enWords = new Set((englishSentence.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord));
+  const ptWords = (portugueseSentence.match(/[A-Za-zÀ-ÿ’'-]+/g) || []).map(normalizeWord);
+  const matches = [];
+  for (const pair of LEARNING_PAIRS) {
+    const englishMatch = pair.english.find(word => enWords.has(normalizeWord(word)));
+    const portugueseMatch = pair.portuguese.find(word => ptWords.includes(normalizeWord(word)) && !usedPortuguese.has(normalizeWord(word)));
+    if (!englishMatch || !portugueseMatch) continue;
+    usedPortuguese.add(normalizeWord(portugueseMatch));
+    matches.push({ english: englishMatch, portuguese: portugueseMatch });
+    if (matches.length >= 3) break;
   }
-  return items;
+  return matches;
+}
+function findLearningItems(english, portuguese) {
+  const englishSentences = splitSentences(english);
+  const portugueseSentences = splitSentences(portuguese);
+  const usedPortuguese = new Set();
+  const items = [];
+  const sentenceCount = Math.max(englishSentences.length, portugueseSentences.length);
+
+  for (let index = 0; index < sentenceCount; index += 1) {
+    const enSentence = englishSentences[index] || englishSentences.at(-1) || english;
+    const ptSentence = portugueseSentences[index] || portugueseSentences.at(-1) || portuguese;
+    const sentenceItems = matchPair(enSentence, ptSentence, usedPortuguese);
+    items.push(...sentenceItems);
+  }
+
+  if (items.length < Math.min(4, sentenceCount * 2)) {
+    const extra = matchPair(english, portuguese, usedPortuguese);
+    items.push(...extra);
+  }
+
+  return items.slice(0, 8);
 }
 function buildPortugueseGapHtml(portuguese, items, solvedCount) {
   const used = new Set();
@@ -206,7 +272,7 @@ export function renderStory(root, store) {
     if (!items.length) return goToPhase(3);
 
     items.forEach(item => recordWordExposure({ ...item, source: 'story', storyId: story.id, pageIndex }));
-    shell(`<p class="story-phase-label">Replace the English verbs with Portuguese</p>
+    shell(`<p class="story-phase-label">Replace the English words with Portuguese</p>
       <p class="story-copy story-gap-copy">${buildPortugueseGapHtml(portuguese, items, solvedCount)}</p>
       <div class="story-word-options">${items.map((item, index) => `<button class="story-word-option" data-option="${index}" ${index < solvedCount ? 'disabled' : ''}>${escapeHtml(item.portuguese)}</button>`).join('')}</div>`);
 
