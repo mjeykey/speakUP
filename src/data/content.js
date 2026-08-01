@@ -1,11 +1,13 @@
 import { everydayStory } from './stories/everyday.js?v=3';
 import { romanceStory } from './stories/romance.js?v=1';
 import { travelStory } from './stories/travel.js?v=1';
+import { horrorStory } from './stories/horror.js?v=1';
 
 export const STORIES = [
   everydayStory,
   romanceStory,
-  travelStory
+  travelStory,
+  horrorStory
 ];
 
 export const WORDS = [
