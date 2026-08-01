@@ -31,18 +31,25 @@
     const displayed = clean(target.spans.map(span => span.textContent || '').join(' '));
     if (displayed.toLowerCase() !== spoken.toLowerCase()) return routedSpeak(utterance);
 
+    const lang = utterance.lang || 'pt-PT';
+    const isPortuguese = lang.toLowerCase().startsWith('pt');
+
+    // English is read once as a complete, natural sentence.
+    // No word-by-word highlighting or artificial pauses.
+    if (!isPortuguese) {
+      setActive(target.spans, -1);
+      utterance.rate = 1.15;
+      return routedSpeak(utterance);
+    }
+
     const words = spoken.split(/\s+/).filter(Boolean);
     if (!words.length) return routedSpeak(utterance);
 
-    const lang = utterance.lang || 'pt-PT';
-    const isPortuguese = lang.toLowerCase().startsWith('pt');
-    const rate = isPortuguese
-      ? Math.min(Number.isFinite(utterance.rate) ? utterance.rate : 0.64, 0.64)
-      : 1.0;
+    const rate = Math.min(Number.isFinite(utterance.rate) ? utterance.rate : 0.64, 0.64);
     const pitch = Number.isFinite(utterance.pitch) ? utterance.pitch : 1;
     const volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
     const voice = utterance.voice || null;
-    const gap = isPortuguese ? 95 : 20;
+    const gap = 95;
 
     synth.cancel();
     try { utterance.onstart?.({ type: 'start', utterance }); } catch (_) {}
