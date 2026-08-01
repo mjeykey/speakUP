@@ -5,6 +5,18 @@
   const processedBlocks = new WeakSet();
   let voices = [];
 
+  const TIMING = {
+    openingPause: 700,
+    englishRate: 0.92,
+    portugueseRate: 0.72,
+    englishMinimumVisible: 4800,
+    portugueseMinimumVisible: 6500,
+    afterEnglish: 1400,
+    betweenLanguages: 650,
+    afterPortuguese: 1900,
+    beforeExercise: 700
+  };
+
   function refreshVoices() {
     voices = synth?.getVoices?.() || [];
   }
@@ -70,12 +82,13 @@
     const style = document.createElement('style');
     style.id = 'speakup-story-flow-styles';
     style.textContent = `
-      .speakup-flow-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at 20% 20%,rgba(255,95,215,.14),transparent 36%),radial-gradient(circle at 80% 80%,rgba(101,232,255,.13),transparent 38%),#020205;color:#fff;}
+      .speakup-flow-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at 20% 20%,rgba(255,95,215,.14),transparent 36%),radial-gradient(circle at 80% 80%,rgba(101,232,255,.13),transparent 38%),#020205;color:#fff;opacity:1;transition:opacity .45s ease;}
+      .speakup-flow-overlay.leaving{opacity:0;}
       .speakup-flow-card{width:min(1080px,100%);text-align:center;}
       .speakup-flow-label{font-family:Arial,sans-serif;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#9daac7;margin-bottom:24px;}
       .speakup-flow-text{font-family:Georgia,'Times New Roman',serif;font-size:clamp(30px,5vw,64px);line-height:1.5;font-style:italic;text-wrap:balance;}
-      .speakup-flow-word{display:inline-block;padding:0 .08em;border-radius:.2em;transition:color .12s ease,background .12s ease,text-shadow .12s ease,transform .12s ease;}
-      .speakup-flow-word.active{color:#020205;background:#65e8ff;text-shadow:none;transform:translateY(-1px);}
+      .speakup-flow-word{display:inline-block;padding:0 .08em;border-radius:.2em;transition:color .16s ease,background .16s ease,text-shadow .16s ease,transform .16s ease;}
+      .speakup-flow-word.active{color:#020205;background:#65e8ff;text-shadow:none;transform:translateY(-1px) scale(1.035);}
       .speakup-flow-hidden{visibility:hidden!important;pointer-events:none!important;}
     `;
     document.head.appendChild(style);
@@ -126,6 +139,7 @@
 
       let activeIndex = -1;
       let fallbackTimer = null;
+      let boundaryReceived = false;
       const tokens = tokenize(value);
       const activate = index => {
         if (index < 0 || index >= wordElements.length || index === activeIndex) return;
@@ -136,16 +150,19 @@
 
       utterance.onboundary = event => {
         if (event.name && event.name !== 'word') return;
+        boundaryReceived = true;
         const before = value.slice(0, event.charIndex);
         const index = (before.match(/\S+/g) || []).length;
         activate(Math.min(index, wordElements.length - 1));
       };
 
-      const estimatedMs = Math.max(1100, tokens.length * (lang.startsWith('pt') ? 460 : 330) / Math.max(rate, .5));
+      const msPerWord = lang.startsWith('pt') ? 720 : 500;
+      const estimatedMs = Math.max(1800, tokens.length * msPerWord / Math.max(rate, .5));
       if (tokens.length) {
         let fallbackIndex = 0;
         activate(0);
         fallbackTimer = window.setInterval(() => {
+          if (boundaryReceived) return;
           fallbackIndex += 1;
           if (fallbackIndex < wordElements.length) activate(fallbackIndex);
         }, estimatedMs / tokens.length);
@@ -153,8 +170,11 @@
 
       const finish = () => {
         if (fallbackTimer) window.clearInterval(fallbackTimer);
-        if (activeIndex >= 0) wordElements[activeIndex]?.classList.remove('active');
-        resolve();
+        if (wordElements.length) activate(wordElements.length - 1);
+        window.setTimeout(() => {
+          if (activeIndex >= 0) wordElements[activeIndex]?.classList.remove('active');
+          resolve();
+        }, 320);
       };
       utterance.onend = finish;
       utterance.onerror = finish;
@@ -164,6 +184,17 @@
 
   function delay(ms) {
     return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+
+  async function keepVisibleFrom(startedAt, minimumMs) {
+    const remaining = minimumMs - (Date.now() - startedAt);
+    if (remaining > 0) await delay(remaining);
+  }
+
+  async function removeOverlaySmoothly(overlay) {
+    overlay.classList.add('leaving');
+    await delay(470);
+    overlay.remove();
   }
 
   function locateStoryContainer(storyText) {
@@ -185,17 +216,23 @@
     synth?.cancel?.();
 
     let preview = createOverlay('Listen in English', english);
-    await delay(250);
-    await speakHighlighted(english, 'en-GB', 1, preview.words);
-    await delay(350);
-    preview.overlay.remove();
+    let phaseStarted = Date.now();
+    await delay(TIMING.openingPause);
+    await speakHighlighted(english, 'en-GB', TIMING.englishRate, preview.words);
+    await keepVisibleFrom(phaseStarted, TIMING.englishMinimumVisible);
+    await delay(TIMING.afterEnglish);
+    await removeOverlaySmoothly(preview.overlay);
+    await delay(TIMING.betweenLanguages);
 
     const portuguese = await translateToPortuguese(english);
     preview = createOverlay('Ouve em português', portuguese);
-    await delay(250);
-    await speakHighlighted(portuguese, 'pt-PT', 0.82, preview.words);
-    await delay(450);
-    preview.overlay.remove();
+    phaseStarted = Date.now();
+    await delay(TIMING.openingPause);
+    await speakHighlighted(portuguese, 'pt-PT', TIMING.portugueseRate, preview.words);
+    await keepVisibleFrom(phaseStarted, TIMING.portugueseMinimumVisible);
+    await delay(TIMING.afterPortuguese);
+    await removeOverlaySmoothly(preview.overlay);
+    await delay(TIMING.beforeExercise);
 
     if (storyText.isConnected) container.classList.remove('speakup-flow-hidden');
     window.__speakUpSuppressCompletedBlock = false;
