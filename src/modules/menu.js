@@ -1,7 +1,7 @@
 import { STORIES } from '../data/content.js?v=4';
 
 const MODES = [
-  ['fill-gap', 'Fill Gap', 'Complete calm sentences in your learning language.'],
+  ['fill-gap', 'Sentences', 'Complete one Portuguese sentence with one missing word.'],
   ['memory', 'Memory', 'Find matching word cards.'],
   ['words', 'Words', 'One word after another.'],
   ['speak-practice', 'Speak & Grow', 'Repeat, retry gently, and always leave with a success.'],
