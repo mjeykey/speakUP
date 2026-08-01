@@ -1,9 +1,11 @@
 import { everydayStory } from './stories/everyday.js?v=3';
+import { romanceStory } from './stories/romance.js?v=1';
+import { travelStory } from './stories/travel.js?v=1';
 
 export const STORIES = [
   everydayStory,
-  { id: 'romance', emoji: '❤️', title: 'Romance', subtitle: 'The Café in the Rain', pages: ['They meet in a quiet café while rain touches the windows.'] },
-  { id: 'travel', emoji: '✈️', title: 'Travel', subtitle: 'One Hundred Euros in Portugal', pages: ['A small journey begins at the station with one light bag.'] }
+  romanceStory,
+  travelStory
 ];
 
 export const WORDS = [
