@@ -41,6 +41,48 @@ export function speak(textOrRequest, language, options = {}) {
   });
 }
 
+export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.72, enabled = true, onWord }) {
+  return new Promise(resolve => {
+    const value = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!value || !synth || enabled === false) {
+      resolve();
+      return;
+    }
+
+    stopSpeech();
+    const utterance = new SpeechSynthesisUtterance(value);
+    utterance.lang = language;
+    utterance.rate = rate;
+    const voice = pickVoice(language);
+    if (voice) utterance.voice = voice;
+
+    const starts = [];
+    value.replace(/\S+/g, (word, offset) => {
+      starts.push(offset);
+      return word;
+    });
+
+    utterance.onboundary = event => {
+      if (event.name !== 'word' && typeof event.charIndex !== 'number') return;
+      let index = 0;
+      for (let i = 0; i < starts.length; i += 1) {
+        if (starts[i] <= event.charIndex) index = i;
+        else break;
+      }
+      onWord?.(index);
+    };
+    utterance.onend = () => {
+      onWord?.(-1);
+      resolve();
+    };
+    utterance.onerror = () => {
+      onWord?.(-1);
+      resolve();
+    };
+    window.setTimeout(() => synth.speak(utterance), 40);
+  });
+}
+
 export async function speakPair(first, second, options = {}) {
   await speak({ ...first, enabled: first.enabled ?? options.enabled });
   await new Promise(resolve => window.setTimeout(resolve, options.pause ?? 320));
