@@ -23,10 +23,10 @@
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=story-flow-2', { cache: 'no-store' });
+      const response = await fetch('app.html?v=story-flow-3', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = await response.text();
-      const helpers = '<script src="voice-router.js?v=6"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=2"><\/script>';
+      const helpers = '<script src="voice-router.js?v=6"><\/script><script src="story-bilingual.js?v=5"><\/script><script src="story-language-quality.js?v=2"><\/script><script src="story-flow-controller.js?v=3"><\/script>';
       html = html.includes('</body>') ? html.replace('</body>', `${helpers}</body>`) : `${html}${helpers}`;
       document.open();
       document.write(html);
