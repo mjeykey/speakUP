@@ -12,23 +12,36 @@
       "const [storyCategory, setStoryCategory] = (0, react_11.useState)(null);"
     );
 
-    // The normal menu Start button is reused as the Story play button.
-    // It is hidden only while Story Mode has no selected story.
-    const originalStartButton = 'react_2.default.createElement("button", { className: "pill-button", onClick: onBegin }, "Start")';
-    const conditionalStartButton = `(mode !== 'story' || storyCategory) && react_2.default.createElement("button", {
+    // Replace the SpeakUP Map coming-soon card with the Story play button.
+    const mapCard = `mode === 'story' && (react_2.default.createElement("section", { className: "coming-soon-card" },
+                    react_2.default.createElement("strong", null, "\\uD83C\\uDF0D SpeakUP Map \\u2014 Coming Soon"),
+                    react_2.default.createElement("span", null, "Meet nearby learners with opt-in visibility, approximate location and privacy first.")))`;
+
+    const storyPlayButton = `mode === 'story' && storyCategory && (react_2.default.createElement("button", {
                     className: "pill-button story-menu-play-button",
                     onClick: onBegin
-                }, mode === 'story' ? "Play Story" : "Start")`;
+                }, "Play Story"))`;
+
+    if (!html.includes(mapCard)) {
+      throw new Error('Story menu rewrite failed: SpeakUP Map card not found.');
+    }
+    html = html.replace(mapCard, storyPlayButton);
+
+    // Keep the normal Start button for the other learning modes only.
+    const originalStartButton = 'react_2.default.createElement("button", { className: "pill-button", onClick: onBegin }, "Start")';
+    const nonStoryStartButton = `mode !== 'story' && react_2.default.createElement("button", {
+                    className: "pill-button",
+                    onClick: onBegin
+                }, "Start")`;
 
     if (!html.includes(originalStartButton)) {
-      throw new Error('Story menu rewrite failed: menu Start button not found.');
+      throw new Error('Story menu rewrite failed: normal Start button not found.');
     }
-    html = html.replace(originalStartButton, conditionalStartButton);
+    html = html.replace(originalStartButton, nonStoryStartButton);
 
-    // Keep the selected story visibly highlighted and place the play button below the cards.
     html = html.replace(
       '.story-category-grid{',
-      '.story-menu-play-button{display:flex;align-items:center;justify-content:center;margin:28px auto 0;min-width:190px}.story-category-grid{'
+      '.story-menu-play-button{display:flex;align-items:center;justify-content:center;width:min(360px,100%);margin:26px auto 0;padding:17px 34px}.story-category-grid{'
     );
 
     return html;
