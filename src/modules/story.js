@@ -1,5 +1,5 @@
 import { STORIES } from '../data/content.js?v=7';
-import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=9';
+import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=10';
 import { recordWordAnswer, recordWordExposure } from '../learning/progress.js?v=1';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -223,7 +223,7 @@ export function renderStory(root, store) {
     await speakWithWordHighlight({
       text: portuguese,
       language: 'pt-PT',
-      rate: 0.62,
+      rate: 0.48,
       enabled: store.getState().audioOn,
       onWord: index => {
         root.querySelectorAll('[data-spoken]').forEach((element, wordIndex) => {
