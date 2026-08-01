@@ -1,5 +1,5 @@
 import { STORIES } from '../data/content.js?v=7';
-import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=14';
+import { speak, speakWithWordHighlight, stopSpeech } from '../audio/speech.js?v=15';
 import { recordWordAnswer, recordWordExposure } from '../learning/progress.js?v=1';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
