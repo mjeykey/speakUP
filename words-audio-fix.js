@@ -26,7 +26,7 @@
     replayResetTimer = window.setTimeout(() => {
       waitingForEnglishReplay = false;
       activeLearningWord = '';
-    }, 4000);
+    }, 5000);
   }
 
   synth.speak = utterance => {
@@ -42,22 +42,31 @@
       activeLearningWord = '';
     }
 
-    // The app already provides the English replay. Let that second call pass through.
     if (waitingForEnglishReplay && activeLearningWord === learningWord) {
+      // The app's middle call repeats the Portuguese learning word.
+      // Skip it completely, but report completion so the built-in flow continues.
+      if (requestedText.toLowerCase() === learningWord.toLowerCase()) {
+        window.setTimeout(() => {
+          try { utterance?.onstart?.({ type: 'start', utterance }); } catch (_) {}
+          try { utterance?.onend?.({ type: 'end', utterance }); } catch (_) {}
+        }, 20);
+        return;
+      }
+
+      // The next different word is the existing English replay. Let it through once.
       waitingForEnglishReplay = false;
       activeLearningWord = '';
       if (replayResetTimer) window.clearTimeout(replayResetTimer);
       utterance.lang = 'en-GB';
-      utterance.rate = Number.isFinite(utterance.rate) ? utterance.rate : 1;
+      utterance.rate = 1;
       return previousSpeak(utterance);
     }
 
-    // If the app is already speaking the visible Portuguese word, keep it unchanged.
     if (requestedText.toLowerCase() === learningWord.toLowerCase()) {
       return previousSpeak(utterance);
     }
 
-    // Replace only the first Words-mode audio call with Portuguese.
+    // Replace only the first native-language call with the Portuguese learning word.
     const portuguese = new SpeechSynthesisUtterance(learningWord);
     portuguese.lang = 'pt-PT';
     portuguese.rate = 0.82;
