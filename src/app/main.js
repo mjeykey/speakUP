@@ -1,12 +1,13 @@
-import { createStore } from './state.js?v=37';
-import { renderWelcome } from '../modules/welcome.js?v=37';
-import { renderMenu } from '../modules/menu.js?v=37';
-import { renderWords } from '../modules/words.js?v=37';
-import { renderMemory } from '../modules/memory.js?v=37';
-import { renderFillGap } from '../modules/fill-gap.js?v=37';
-import { renderSpeakPractice } from '../modules/speak-practice.js?v=37';
-import { renderStory } from '../modules/story-loader.js?v=37';
-import { stopSpeech } from '../audio/speech.js?v=37';
+import { createStore } from './state.js?v=38';
+import { renderWelcome } from '../modules/welcome.js?v=38';
+import { renderMenu } from '../modules/menu.js?v=38';
+import { renderWords } from '../modules/words.js?v=38';
+import { renderMemory } from '../modules/memory.js?v=38';
+import { renderFillGap } from '../modules/fill-gap.js?v=38';
+import { renderSpeakPractice } from '../modules/speak-practice.js?v=38';
+import { renderStory } from '../modules/story-loader.js?v=38';
+import { renderEffectsSettings } from '../modules/effects-settings.js?v=38';
+import { stopSpeech } from '../audio/speech.js?v=38';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
@@ -18,6 +19,7 @@ const routes = {
   memory: renderMemory,
   'fill-gap': renderFillGap,
   'speak-practice': renderSpeakPractice,
+  'effects-settings': renderEffectsSettings,
   story: renderStory
 };
 
