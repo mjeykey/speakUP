@@ -7,6 +7,7 @@
     let html = String(source || '');
 
     const orderedTransforms = [
+      window.SpeakUPTransforms.improveMemoryMode,
       window.SpeakUPTransforms.improveWordsMode
     ];
 
