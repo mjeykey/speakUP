@@ -168,6 +168,9 @@ export function renderStory(root, store) {
     await speak(english, 'en-GB', { rate: .96, enabled: store.getState().audioOn });
     if (token !== runToken || phaseIndex !== 0) return;
     await dissolveElement(root.querySelector('.story-intro-text'));
+    if (token !== runToken || phaseIndex !== 0) return;
+    await sleep(300);
+    if (token === runToken && phaseIndex === 0) goToPhase(1);
   }
 
   async function showPortuguese(token) {
@@ -191,6 +194,9 @@ export function renderStory(root, store) {
     if (token !== runToken || phaseIndex !== 1) return;
     await sleep(900);
     await dissolveElement(root.querySelector('.story-portuguese-copy'));
+    if (token !== runToken || phaseIndex !== 1) return;
+    await sleep(300);
+    if (token === runToken && phaseIndex === 1) goToPhase(2);
   }
 
   function showGap() {
