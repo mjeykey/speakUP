@@ -20,35 +20,56 @@
 
   synth.speak = utterance => {
     const learningWord = visibleLearningWord();
-    const spoken = clean(utterance?.text);
+    const englishWord = clean(utterance?.text);
 
-    if (!learningWord || !spoken || spoken.toLowerCase() === learningWord.toLowerCase()) {
+    if (!learningWord || !englishWord || englishWord.toLowerCase() === learningWord.toLowerCase()) {
       return previousSpeak(utterance);
     }
 
-    const corrected = new SpeechSynthesisUtterance(learningWord);
-    corrected.lang = 'pt-PT';
-    corrected.rate = 0.82;
-    corrected.pitch = Number.isFinite(utterance?.pitch) ? utterance.pitch : 1;
-    corrected.volume = Number.isFinite(utterance?.volume) ? utterance.volume : 1;
+    const portuguese = new SpeechSynthesisUtterance(learningWord);
+    portuguese.lang = 'pt-PT';
+    portuguese.rate = 0.82;
+    portuguese.pitch = 1;
+    portuguese.volume = Number.isFinite(utterance?.volume) ? utterance.volume : 1;
 
     const portugueseVoice = synth.getVoices().find(voice =>
       String(voice.lang || '').toLowerCase().startsWith('pt-pt')
     ) || synth.getVoices().find(voice =>
       String(voice.lang || '').toLowerCase().startsWith('pt')
     );
-    if (portugueseVoice) corrected.voice = portugueseVoice;
+    if (portugueseVoice) portuguese.voice = portugueseVoice;
 
-    corrected.onstart = event => {
+    const english = new SpeechSynthesisUtterance(englishWord);
+    english.lang = 'en-GB';
+    english.rate = Number.isFinite(utterance?.rate) ? utterance.rate : 1;
+    english.pitch = Number.isFinite(utterance?.pitch) ? utterance.pitch : 1;
+    english.volume = Number.isFinite(utterance?.volume) ? utterance.volume : 1;
+
+    const englishVoice = synth.getVoices().find(voice =>
+      String(voice.lang || '').toLowerCase().startsWith('en-gb')
+    ) || synth.getVoices().find(voice =>
+      String(voice.lang || '').toLowerCase().startsWith('en')
+    );
+    if (englishVoice) english.voice = englishVoice;
+
+    portuguese.onstart = event => {
       try { utterance?.onstart?.(event); } catch (_) {}
     };
-    corrected.onend = event => {
-      try { utterance?.onend?.(event); } catch (_) {}
+    portuguese.onend = () => {
+      window.setTimeout(() => previousSpeak(english), 220);
     };
-    corrected.onerror = event => {
+    portuguese.onerror = event => {
       try { utterance?.onerror?.(event); } catch (_) {}
     };
 
-    return previousSpeak(corrected);
+    english.onend = event => {
+      try { utterance?.onend?.(event); } catch (_) {}
+    };
+    english.onerror = event => {
+      try { utterance?.onerror?.(event); } catch (_) {}
+    };
+
+    synth.cancel();
+    return previousSpeak(portuguese);
   };
 })();
