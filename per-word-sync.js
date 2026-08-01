@@ -35,11 +35,14 @@
     if (!words.length) return routedSpeak(utterance);
 
     const lang = utterance.lang || 'pt-PT';
-    const rate = Math.min(Number.isFinite(utterance.rate) ? utterance.rate : 0.7, lang.toLowerCase().startsWith('pt') ? 0.64 : 0.76);
+    const isPortuguese = lang.toLowerCase().startsWith('pt');
+    const rate = isPortuguese
+      ? Math.min(Number.isFinite(utterance.rate) ? utterance.rate : 0.64, 0.64)
+      : 1.0;
     const pitch = Number.isFinite(utterance.pitch) ? utterance.pitch : 1;
     const volume = Number.isFinite(utterance.volume) ? utterance.volume : 1;
     const voice = utterance.voice || null;
-    const gap = lang.toLowerCase().startsWith('pt') ? 95 : 80;
+    const gap = isPortuguese ? 95 : 20;
 
     synth.cancel();
     try { utterance.onstart?.({ type: 'start', utterance }); } catch (_) {}
