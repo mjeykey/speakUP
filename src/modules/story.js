@@ -14,8 +14,25 @@ export function renderStory(root, store) {
     : [story.english || ''];
   let pageIndex = 0;
 
+  const getPageText = page => {
+    if (typeof page === 'string') return page;
+    if (page && typeof page === 'object') {
+      return page.english || page.text || page.translation || '';
+    }
+    return '';
+  };
+
+  const play = page => speak(
+    getPageText(page),
+    'en-GB',
+    {
+      rate: 0.9,
+      enabled: store.getState().audioOn
+    }
+  );
+
   const renderPage = () => {
-    const text = pages[pageIndex] || '';
+    const text = getPageText(pages[pageIndex]);
     root.innerHTML = `
       <section class="screen story-screen">
         <button class="menu-button" data-menu>Menu</button>
@@ -37,7 +54,7 @@ export function renderStory(root, store) {
       stopSpeech();
       store.setState({ screen: 'menu' });
     };
-    root.querySelector('[data-replay]').onclick = () => play(text);
+    root.querySelector('[data-replay]').onclick = () => play(pages[pageIndex]);
     root.querySelector('[data-prev]').onclick = () => {
       if (pageIndex === 0) return;
       stopSpeech();
@@ -53,13 +70,6 @@ export function renderStory(root, store) {
       play(pages[pageIndex]);
     };
   };
-
-  const play = text => speak({
-    text,
-    language: 'en-GB',
-    rate: 0.9,
-    enabled: store.getState().audioOn
-  });
 
   renderPage();
   play(pages[pageIndex]);
