@@ -61,11 +61,10 @@
                     if (settings.translationAudioOn)
                         audioItems.push({ text: translation, language: settings.nativeLanguage });
                     await speakSequence(audioItems);`;
-    const newSequence = `                    const audioItems = [];
-                    if (settings.sentenceAudioOn)
-                        audioItems.push({ text: item.word, language: settings.language, afterPause: 320 });
-                    if (settings.translationAudioOn)
-                        audioItems.push({ text: translation, language: settings.nativeLanguage });
+    const newSequence = `                    const audioItems = settings.audioOn ? [
+                        { text: item.word, language: 'pt-PT', afterPause: 320 },
+                        { text: translation, language: 'en-GB' }
+                    ] : [];
                     await speakSequence(audioItems);`;
     html = html.replace(oldSequence, newSequence);
     return html;
@@ -225,7 +224,7 @@
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=words-native-two-step-1', { cache: 'no-store' });
+      const response = await fetch('app.html?v=words-native-two-step-2', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = await response.text();
       html = removeLegacyStoryNarration(html);
