@@ -10,26 +10,16 @@
   </style>
 </head>
 <body>
-  <iframe id="speakup-app" src="mobile-app.html?v=words-bilingual-exact-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
+  <iframe id="speakup-app" src="mobile-app.html?v=words-native-two-step-1" title="SpeakUP" allow="microphone; autoplay"></iframe>
   <script>
     const frame = document.getElementById('speakup-app');
     frame.addEventListener('load', () => {
       const doc = frame.contentDocument;
-      if (!doc) return;
-
-      if (!doc.getElementById('speakup-per-word-sync')) {
-        const syncScript = doc.createElement('script');
-        syncScript.id = 'speakup-per-word-sync';
-        syncScript.src = 'per-word-sync.js?v=3';
-        doc.body.appendChild(syncScript);
-      }
-
-      if (!doc.getElementById('speakup-words-audio-fix')) {
-        const wordsScript = doc.createElement('script');
-        wordsScript.id = 'speakup-words-audio-fix';
-        wordsScript.src = 'words-audio-fix.js?v=5';
-        doc.body.appendChild(wordsScript);
-      }
+      if (!doc || doc.getElementById('speakup-per-word-sync')) return;
+      const syncScript = doc.createElement('script');
+      syncScript.id = 'speakup-per-word-sync';
+      syncScript.src = 'per-word-sync.js?v=3';
+      doc.body.appendChild(syncScript);
     });
   </script>
 </body>
