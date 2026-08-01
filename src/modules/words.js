@@ -1,11 +1,10 @@
 import { WORDS } from '../data/content.js?v=6';
-import { speakPair, stopSpeech } from '../audio/speech.js?v=36';
-import { TEXT_EFFECTS, explodeText, getTextEffect, setTextEffect } from '../effects/text-effects.js?v=1';
+import { speakPair, stopSpeech } from '../audio/speech.js?v=38';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 export function renderWords(root, store) {
   const state = store.getState();
   const item = WORDS[state.currentIndex % WORDS.length];
-  let effect = getTextEffect();
   let moving = false;
 
   root.innerHTML = `<section class="screen words-screen">
@@ -16,12 +15,6 @@ export function renderWords(root, store) {
         <div class="single-word" data-effect-text>${item.pt}</div>
         <div class="translation" data-effect-text>${item.en}</div>
       </div>
-      <div class="word-effect-picker" aria-label="Word dissolve effect">
-        <span>Effect</span>
-        <div class="word-effect-options">
-          ${TEXT_EFFECTS.map(option => `<button class="word-effect-option ${option.id === effect ? 'selected' : ''}" data-effect="${option.id}">${option.label}</button>`).join('')}
-        </div>
-      </div>
       <button class="primary-button" data-next>Next</button>
     </div>
   </section>`;
@@ -31,19 +24,15 @@ export function renderWords(root, store) {
     store.setState({ screen: 'menu', currentIndex: 0 });
   };
 
-  root.querySelectorAll('[data-effect]').forEach(button => {
-    button.onclick = () => {
-      effect = button.dataset.effect;
-      setTextEffect(effect);
-      root.querySelectorAll('[data-effect]').forEach(itemButton => itemButton.classList.toggle('selected', itemButton === button));
-    };
-  });
-
   root.querySelector('[data-next]').onclick = async () => {
     if (moving) return;
     moving = true;
     stopSpeech();
-    await explodeText(Array.from(root.querySelectorAll('[data-effect-text]')), effect, { duration: 1500, stagger: 22 });
+    await explodeText(
+      Array.from(root.querySelectorAll('[data-effect-text]')),
+      getModeTextEffect('words'),
+      { duration: 1750, stagger: 24 }
+    );
     store.setState({ currentIndex: state.currentIndex + 1 });
   };
 
