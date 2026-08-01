@@ -13,20 +13,27 @@ export function stopSpeech() {
   synth?.cancel?.();
 }
 
-export function speak(text, language, options = {}) {
+export function speak(textOrRequest, language, options = {}) {
   return new Promise(resolve => {
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
-    if (!value || !synth || options.enabled === false) {
+    const request = textOrRequest && typeof textOrRequest === 'object'
+      ? textOrRequest
+      : { text: textOrRequest, language, ...options };
+
+    const value = String(request.text || '').replace(/\s+/g, ' ').trim();
+    const selectedLanguage = request.language || language || 'en-GB';
+    const enabled = request.enabled ?? options.enabled;
+
+    if (!value || !synth || enabled === false) {
       resolve();
       return;
     }
 
     stopSpeech();
     const utterance = new SpeechSynthesisUtterance(value);
-    utterance.lang = language;
-    utterance.rate = options.rate ?? 0.82;
-    utterance.pitch = options.pitch ?? 1;
-    const voice = pickVoice(language);
+    utterance.lang = selectedLanguage;
+    utterance.rate = request.rate ?? options.rate ?? 0.82;
+    utterance.pitch = request.pitch ?? options.pitch ?? 1;
+    const voice = pickVoice(selectedLanguage);
     if (voice) utterance.voice = voice;
     utterance.onend = resolve;
     utterance.onerror = resolve;
@@ -35,7 +42,7 @@ export function speak(text, language, options = {}) {
 }
 
 export async function speakPair(first, second, options = {}) {
-  await speak(first.text, first.language, { ...options, rate: first.rate ?? options.rate });
+  await speak({ ...first, enabled: first.enabled ?? options.enabled });
   await new Promise(resolve => window.setTimeout(resolve, options.pause ?? 320));
-  await speak(second.text, second.language, { ...options, rate: second.rate ?? options.rate });
+  await speak({ ...second, enabled: second.enabled ?? options.enabled });
 }
