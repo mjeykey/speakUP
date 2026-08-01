@@ -11,21 +11,53 @@
     .replace(/\s+/g, ' ')
     .trim();
 
+  let waitingForEnglishReplay = false;
+  let activeLearningWord = '';
+  let replayResetTimer = null;
+
   function visibleLearningWord() {
     const wordPair = document.querySelector('.word-pair');
     if (!wordPair || wordPair.offsetParent === null) return '';
-    const word = wordPair.querySelector('.single-word');
-    return clean(word?.textContent || '');
+    return clean(wordPair.querySelector('.single-word')?.textContent || '');
+  }
+
+  function resetReplayStateLater() {
+    if (replayResetTimer) window.clearTimeout(replayResetTimer);
+    replayResetTimer = window.setTimeout(() => {
+      waitingForEnglishReplay = false;
+      activeLearningWord = '';
+    }, 4000);
   }
 
   synth.speak = utterance => {
     const learningWord = visibleLearningWord();
-    const englishWord = clean(utterance?.text);
+    const requestedText = clean(utterance?.text);
 
-    if (!learningWord || !englishWord || englishWord.toLowerCase() === learningWord.toLowerCase()) {
+    if (!learningWord || !requestedText) {
       return previousSpeak(utterance);
     }
 
+    if (activeLearningWord && activeLearningWord !== learningWord) {
+      waitingForEnglishReplay = false;
+      activeLearningWord = '';
+    }
+
+    // The app already provides the English replay. Let that second call pass through.
+    if (waitingForEnglishReplay && activeLearningWord === learningWord) {
+      waitingForEnglishReplay = false;
+      activeLearningWord = '';
+      if (replayResetTimer) window.clearTimeout(replayResetTimer);
+      utterance.lang = 'en-GB';
+      utterance.rate = Number.isFinite(utterance.rate) ? utterance.rate : 1;
+      return previousSpeak(utterance);
+    }
+
+    // If the app is already speaking the visible Portuguese word, keep it unchanged.
+    if (requestedText.toLowerCase() === learningWord.toLowerCase()) {
+      return previousSpeak(utterance);
+    }
+
+    // Replace only the first Words-mode audio call with Portuguese.
     const portuguese = new SpeechSynthesisUtterance(learningWord);
     portuguese.lang = 'pt-PT';
     portuguese.rate = 0.82;
@@ -39,33 +71,18 @@
     );
     if (portugueseVoice) portuguese.voice = portugueseVoice;
 
-    const english = new SpeechSynthesisUtterance(englishWord);
-    english.lang = 'en-GB';
-    english.rate = Number.isFinite(utterance?.rate) ? utterance.rate : 1;
-    english.pitch = Number.isFinite(utterance?.pitch) ? utterance.pitch : 1;
-    english.volume = Number.isFinite(utterance?.volume) ? utterance.volume : 1;
-
-    const englishVoice = synth.getVoices().find(voice =>
-      String(voice.lang || '').toLowerCase().startsWith('en-gb')
-    ) || synth.getVoices().find(voice =>
-      String(voice.lang || '').toLowerCase().startsWith('en')
-    );
-    if (englishVoice) english.voice = englishVoice;
-
     portuguese.onstart = event => {
       try { utterance?.onstart?.(event); } catch (_) {}
     };
-    portuguese.onend = () => {
-      window.setTimeout(() => previousSpeak(english), 220);
-    };
-    portuguese.onerror = event => {
-      try { utterance?.onerror?.(event); } catch (_) {}
-    };
-
-    english.onend = event => {
+    portuguese.onend = event => {
+      waitingForEnglishReplay = true;
+      activeLearningWord = learningWord;
+      resetReplayStateLater();
       try { utterance?.onend?.(event); } catch (_) {}
     };
-    english.onerror = event => {
+    portuguese.onerror = event => {
+      waitingForEnglishReplay = false;
+      activeLearningWord = '';
       try { utterance?.onerror?.(event); } catch (_) {}
     };
 
