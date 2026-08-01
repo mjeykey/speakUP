@@ -9,6 +9,13 @@ function pickVoice(language) {
     || null;
 }
 
+function adjustedRate(language, requestedRate, fallbackRate = 0.82) {
+  const value = Number.isFinite(Number(requestedRate)) ? Number(requestedRate) : fallbackRate;
+  return String(language || '').toLowerCase().startsWith('pt')
+    ? Math.min(value, 0.62)
+    : value;
+}
+
 export function stopSpeech() {
   synth?.cancel?.();
 }
@@ -31,7 +38,7 @@ export function speak(textOrRequest, language, options = {}) {
     stopSpeech();
     const utterance = new SpeechSynthesisUtterance(value);
     utterance.lang = selectedLanguage;
-    utterance.rate = request.rate ?? options.rate ?? 0.82;
+    utterance.rate = adjustedRate(selectedLanguage, request.rate ?? options.rate);
     utterance.pitch = request.pitch ?? options.pitch ?? 1;
     const voice = pickVoice(selectedLanguage);
     if (voice) utterance.voice = voice;
@@ -41,7 +48,7 @@ export function speak(textOrRequest, language, options = {}) {
   });
 }
 
-export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.72, enabled = true, onWord }) {
+export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.62, enabled = true, onWord }) {
   return new Promise(resolve => {
     const value = String(text || '').replace(/\s+/g, ' ').trim();
     if (!value || !synth || enabled === false) {
@@ -52,33 +59,91 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.72, 
     stopSpeech();
     const utterance = new SpeechSynthesisUtterance(value);
     utterance.lang = language;
-    utterance.rate = rate;
+    utterance.rate = adjustedRate(language, rate, 0.62);
     const voice = pickVoice(language);
     if (voice) utterance.voice = voice;
 
     const starts = [];
+    const words = [];
     value.replace(/\S+/g, (word, offset) => {
       starts.push(offset);
+      words.push(word);
       return word;
     });
 
+    let activeIndex = -1;
+    let finished = false;
+    let lastBoundaryAt = performance.now();
+    const averageWordDelay = Math.max(310, 455 / utterance.rate);
+
+    const highlight = index => {
+      if (index < 0 || index >= words.length || index === activeIndex) return;
+      activeIndex = index;
+      lastBoundaryAt = performance.now();
+      onWord?.(index);
+    };
+
+    utterance.onstart = () => highlight(0);
     utterance.onboundary = event => {
-      if (event.name !== 'word' && typeof event.charIndex !== 'number') return;
+      if (typeof event.charIndex !== 'number') return;
       let index = 0;
       for (let i = 0; i < starts.length; i += 1) {
         if (starts[i] <= event.charIndex) index = i;
         else break;
       }
-      onWord?.(index);
+
+      // Some Android voices skip boundary events. Briefly surface every
+      // omitted word before moving to the boundary reported by the voice.
+      if (index > activeIndex + 1) {
+        let missing = activeIndex + 1;
+        const advanceMissing = () => {
+          if (finished || missing >= index) {
+            highlight(index);
+            return;
+          }
+          highlight(missing);
+          missing += 1;
+          window.setTimeout(advanceMissing, 90);
+        };
+        advanceMissing();
+      } else {
+        highlight(index);
+      }
     };
-    utterance.onend = () => {
+
+    // Fallback for voices that expose no useful word-boundary events.
+    const fallbackTimer = window.setInterval(() => {
+      if (finished || activeIndex >= words.length - 1) return;
+      if (performance.now() - lastBoundaryAt >= averageWordDelay) {
+        highlight(activeIndex + 1);
+      }
+    }, 90);
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearInterval(fallbackTimer);
+      if (activeIndex < words.length - 1) {
+        let index = activeIndex + 1;
+        const showRemaining = () => {
+          if (index >= words.length) {
+            onWord?.(-1);
+            resolve();
+            return;
+          }
+          onWord?.(index);
+          index += 1;
+          window.setTimeout(showRemaining, 80);
+        };
+        showRemaining();
+        return;
+      }
       onWord?.(-1);
       resolve();
     };
-    utterance.onerror = () => {
-      onWord?.(-1);
-      resolve();
-    };
+
+    utterance.onend = finish;
+    utterance.onerror = finish;
     window.setTimeout(() => synth.speak(utterance), 40);
   });
 }
