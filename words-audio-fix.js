@@ -5,97 +5,100 @@
   if (!synth || synth.__speakUpWordsAudioFixInstalled) return;
   synth.__speakUpWordsAudioFixInstalled = true;
 
-  const previousSpeak = synth.speak.bind(synth);
+  const originalSpeak = synth.speak.bind(synth);
   const clean = value => String(value || '')
     .replace(/[.,!?;:…“”„”()\[\]{}]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  let waitingForEnglishReplay = false;
-  let activeLearningWord = '';
-  let replayResetTimer = null;
+  let sequenceRunning = false;
+  let suppressUntil = 0;
 
-  function visibleLearningWord() {
-    const wordPair = document.querySelector('.word-pair');
-    if (!wordPair || wordPair.offsetParent === null) return '';
-    return clean(wordPair.querySelector('.single-word')?.textContent || '');
+  function visibleWordsPair() {
+    const pair = document.querySelector('.word-pair');
+    if (!pair || pair.offsetParent === null) return null;
+
+    const portuguese = clean(pair.querySelector('.single-word')?.textContent || '');
+    const english = clean(pair.querySelector('.word-translation')?.textContent || '');
+    if (!portuguese || !english) return null;
+
+    return { portuguese, english };
   }
 
-  function resetReplayStateLater() {
-    if (replayResetTimer) window.clearTimeout(replayResetTimer);
-    replayResetTimer = window.setTimeout(() => {
-      waitingForEnglishReplay = false;
-      activeLearningWord = '';
-    }, 5000);
+  function voiceFor(prefixes) {
+    const voices = synth.getVoices();
+    for (const prefix of prefixes) {
+      const voice = voices.find(item =>
+        String(item.lang || '').toLowerCase().startsWith(prefix)
+      );
+      if (voice) return voice;
+    }
+    return null;
+  }
+
+  function completeSilently(utterance) {
+    window.setTimeout(() => {
+      try { utterance?.onstart?.({ type: 'start', utterance }); } catch (_) {}
+      try { utterance?.onend?.({ type: 'end', utterance }); } catch (_) {}
+    }, 15);
   }
 
   synth.speak = utterance => {
-    const learningWord = visibleLearningWord();
-    const requestedText = clean(utterance?.text);
+    const pair = visibleWordsPair();
+    const now = Date.now();
 
-    if (!learningWord || !requestedText) {
-      return previousSpeak(utterance);
+    if (!pair) return originalSpeak(utterance);
+
+    // The original Words mode queues three utterances. Once our exact bilingual
+    // sequence has started, finish the remaining old queue items silently.
+    if (sequenceRunning || now < suppressUntil) {
+      completeSilently(utterance);
+      return;
     }
 
-    if (activeLearningWord && activeLearningWord !== learningWord) {
-      waitingForEnglishReplay = false;
-      activeLearningWord = '';
-    }
+    sequenceRunning = true;
+    suppressUntil = now + 8000;
+    synth.cancel();
 
-    if (waitingForEnglishReplay && activeLearningWord === learningWord) {
-      // The app's middle call repeats the Portuguese learning word.
-      // Skip it completely, but report completion so the built-in flow continues.
-      if (requestedText.toLowerCase() === learningWord.toLowerCase()) {
-        window.setTimeout(() => {
-          try { utterance?.onstart?.({ type: 'start', utterance }); } catch (_) {}
-          try { utterance?.onend?.({ type: 'end', utterance }); } catch (_) {}
-        }, 20);
-        return;
-      }
-
-      // The next different word is the existing English replay. Let it through once.
-      waitingForEnglishReplay = false;
-      activeLearningWord = '';
-      if (replayResetTimer) window.clearTimeout(replayResetTimer);
-      utterance.lang = 'en-GB';
-      utterance.rate = 1;
-      return previousSpeak(utterance);
-    }
-
-    if (requestedText.toLowerCase() === learningWord.toLowerCase()) {
-      return previousSpeak(utterance);
-    }
-
-    // Replace only the first native-language call with the Portuguese learning word.
-    const portuguese = new SpeechSynthesisUtterance(learningWord);
+    const portuguese = new SpeechSynthesisUtterance(pair.portuguese);
     portuguese.lang = 'pt-PT';
     portuguese.rate = 0.82;
     portuguese.pitch = 1;
-    portuguese.volume = Number.isFinite(utterance?.volume) ? utterance.volume : 1;
+    portuguese.volume = 1;
+    const ptVoice = voiceFor(['pt-pt', 'pt']);
+    if (ptVoice) portuguese.voice = ptVoice;
 
-    const portugueseVoice = synth.getVoices().find(voice =>
-      String(voice.lang || '').toLowerCase().startsWith('pt-pt')
-    ) || synth.getVoices().find(voice =>
-      String(voice.lang || '').toLowerCase().startsWith('pt')
-    );
-    if (portugueseVoice) portuguese.voice = portugueseVoice;
+    const english = new SpeechSynthesisUtterance(pair.english);
+    english.lang = 'en-GB';
+    english.rate = 1;
+    english.pitch = 1;
+    english.volume = 1;
+    const enVoice = voiceFor(['en-gb', 'en']);
+    if (enVoice) english.voice = enVoice;
 
-    portuguese.onstart = event => {
-      try { utterance?.onstart?.(event); } catch (_) {}
-    };
-    portuguese.onend = event => {
-      waitingForEnglishReplay = true;
-      activeLearningWord = learningWord;
-      resetReplayStateLater();
-      try { utterance?.onend?.(event); } catch (_) {}
+    try { utterance?.onstart?.({ type: 'start', utterance }); } catch (_) {}
+
+    portuguese.onend = () => {
+      window.setTimeout(() => originalSpeak(english), 260);
     };
     portuguese.onerror = event => {
-      waitingForEnglishReplay = false;
-      activeLearningWord = '';
+      sequenceRunning = false;
+      suppressUntil = 0;
       try { utterance?.onerror?.(event); } catch (_) {}
     };
 
-    synth.cancel();
-    return previousSpeak(portuguese);
+    english.onend = event => {
+      sequenceRunning = false;
+      // Keep a short suppression window for the two remaining legacy calls.
+      suppressUntil = Date.now() + 1400;
+      try { utterance?.onend?.(event); } catch (_) {}
+    };
+    english.onerror = event => {
+      sequenceRunning = false;
+      suppressUntil = 0;
+      try { utterance?.onerror?.(event); } catch (_) {}
+    };
+
+    originalSpeak(portuguese);
   };
 })();
