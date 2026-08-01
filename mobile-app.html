@@ -54,39 +54,142 @@
   function improveFillGapMode(source) {
     let html = String(source || '');
 
-    const oldChoose = `        function choose(option) {
-            if (option !== sentence.gap)
+    const replacement = `    function FillGapMode({ sentence, settings, onSolved, onMenu }) {
+        const [phase, setPhase] = (0, react_6.useState)('exercise');
+        const [activeWord, setActiveWord] = (0, react_6.useState)(-1);
+        const clue = (0, react_6.useMemo)(() => (0, translations_js_4.translateWordById)(sentence.gapId, settings.nativeLanguage, sentence.gap), [sentence, settings.nativeLanguage]);
+        const timersRef = (0, react_6.useRef)([]);
+
+        function clearPhaseTimers() {
+            timersRef.current.forEach(timer => window.clearTimeout(timer));
+            timersRef.current = [];
+        }
+
+        function cleanSpeech(value) {
+            return String(value || '').replace(/[.,!?;:…“”„”()\[\]{}]+/g, ' ').replace(/\\s+/g, ' ').trim();
+        }
+
+        function wordIndexAt(text, charIndex) {
+            return (text.slice(0, charIndex).match(/\\S+/g) || []).length;
+        }
+
+        function speakMarked(text, lang, rate, nextPhase, holdAfter = 1500) {
+            const spoken = cleanSpeech(text);
+            const words = spoken.match(/\\S+/g) || [];
+            if (!settings.audioOn || !settings.sentenceAudioOn || !window.speechSynthesis || !spoken) {
+                setActiveWord(words.length - 1);
+                const timer = window.setTimeout(() => { setActiveWord(-1); setPhase(nextPhase); }, holdAfter);
+                timersRef.current.push(timer);
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(spoken);
+            utterance.lang = lang;
+            utterance.rate = rate;
+            utterance.pitch = 1.02;
+            utterance.volume = 1;
+            let boundarySeen = false;
+            let fallbackIndex = 0;
+            let fallbackTimer = null;
+            utterance.onstart = () => {
+                setActiveWord(0);
+                const estimated = Math.max(360, (lang.startsWith('pt') ? 690 : 520) / Math.max(rate, .5));
+                fallbackTimer = window.setInterval(() => {
+                    if (boundarySeen) return;
+                    fallbackIndex += 1;
+                    if (fallbackIndex < words.length) setActiveWord(fallbackIndex);
+                }, estimated);
+            };
+            utterance.onboundary = event => {
+                if (event.name && event.name !== 'word') return;
+                boundarySeen = true;
+                setActiveWord(Math.min(wordIndexAt(spoken, event.charIndex), words.length - 1));
+            };
+            const finish = () => {
+                if (fallbackTimer) window.clearInterval(fallbackTimer);
+                setActiveWord(words.length - 1);
+                const timer = window.setTimeout(() => {
+                    setActiveWord(-1);
+                    setPhase(nextPhase);
+                }, holdAfter);
+                timersRef.current.push(timer);
+            };
+            utterance.onend = finish;
+            utterance.onerror = finish;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        (0, react_6.useEffect)(() => {
+            clearPhaseTimers();
+            window.speechSynthesis?.cancel?.();
+            setPhase('exercise');
+            setActiveWord(-1);
+            (0, speech_js_3.speakGapText)(createGapSpeechText(sentence), settings.language, settings.audioOn && settings.sentenceAudioOn, {
+                rate: 0.76,
+                pitch: 1.02,
+                gapPauseMs: 950,
+                ...(0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.76, pitch: 1.02 })
+            });
+            return () => {
+                clearPhaseTimers();
+                window.speechSynthesis?.cancel?.();
+            };
+        }, [sentence, settings.language, settings.audioOn, settings.sentenceAudioOn, settings.gapAudioStyle]);
+
+        (0, react_6.useEffect)(() => {
+            if (phase === 'portuguese') {
+                speakMarked(sentence.sentence, settings.language === 'pt' ? 'pt-PT' : settings.language, 0.72, 'english', 1900);
+            }
+            else if (phase === 'english') {
+                speakMarked(sentence.translation || sentence.sentence, 'en-GB', 0.86, 'dissolve', 2100);
+            }
+        }, [phase]);
+
+        function choose(option) {
+            if (option !== sentence.gap || phase !== 'exercise')
                 return;
             (0, speech_js_3.speak)(option, settings.language, settings.audioOn && settings.sentenceAudioOn, (0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.72, pitch: 1.05 }));
-            setSolved(true);
-        }`;
+            const timer = window.setTimeout(() => setPhase('portuguese'), settings.audioOn && settings.sentenceAudioOn ? 650 : 120);
+            timersRef.current.push(timer);
+        }
 
-    const newChoose = `        function choose(option) {
-            if (option !== sentence.gap)
-                return;
-            const audioEnabled = settings.audioOn && settings.sentenceAudioOn;
-            (0, speech_js_3.speak)(option, settings.language, audioEnabled, (0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.72, pitch: 1.05 }));
-            window.setTimeout(() => {
-                (0, speech_js_3.speak)(sentence.sentence, settings.language, audioEnabled, {
-                    chunk: false,
-                    ...(0, speech_js_3.getGlobalVoiceOptions)(settings.narratorVoice, settings.narratorTone, { rate: 0.76, pitch: 1.02 })
-                });
-            }, audioEnabled ? 650 : 0);
-            setSolved(true);
-        }`;
+        function renderMarkedText(text) {
+            const words = String(text || '').match(/\\S+/g) || [];
+            return react_6.default.createElement('div', { className: 'learning-sentence fill-gap-review' }, words.map((word, index) => react_6.default.createElement('span', {
+                key: index,
+                className: 'fill-gap-review-word' + (index === activeWord ? ' active' : '')
+            }, word, index < words.length - 1 ? ' ' : '')));
+        }
 
-    html = html.replace(oldChoose, newChoose);
+        return (react_6.default.createElement("main", { className: "screen" },
+            react_6.default.createElement("div", { className: "top-actions" },
+                react_6.default.createElement("button", { onClick: onMenu }, "Menu")),
+            react_6.default.createElement("section", { className: "center" }, phase === 'exercise'
+                ? react_6.default.createElement(react_6.default.Fragment, null,
+                    react_6.default.createElement("div", { className: "learning-sentence fill-gap-sentence", dangerouslySetInnerHTML: createGapMarkup(sentence.sentence, sentence.gap, clue) }),
+                    react_6.default.createElement("div", { className: "choice-row" }, sentence.options.map(option => react_6.default.createElement("button", { key: option, className: "choice", onClick: () => choose(option) }, option))))
+                : phase === 'portuguese'
+                    ? renderMarkedText(sentence.sentence)
+                    : phase === 'english'
+                        ? renderMarkedText(sentence.translation || sentence.sentence)
+                        : react_6.default.createElement(SentenceDissolve_jsx_1.default, { text: sentence.translation || sentence.sentence, effect: settings.effect, customSound: settings.customSound, startDelay: 900, onComplete: () => onSolved(sentence) }))));
+    }
+`;
 
-    const oldDissolve = `react_6.default.createElement(SentenceDissolve_jsx_1.default, { text: sentence.sentence, effect: settings.effect, customSound: settings.customSound, onComplete: () => onSolved(sentence) })`;
-    const newDissolve = `react_6.default.createElement(SentenceDissolve_jsx_1.default, { text: sentence.sentence, effect: settings.effect, customSound: settings.customSound, startDelay: settings.audioOn && settings.sentenceAudioOn ? Math.max(3200, sentence.sentence.split(/\\s+/).length * 620) : 350, onComplete: () => onSolved(sentence) })`;
-    html = html.replace(oldDissolve, newDissolve);
+    html = html.replace(/    function FillGapMode\(\{ sentence, settings, onSolved, onMenu \}\) \{[\s\S]*?\n    \}\n    function createGapSpeechText/, replacement + '    function createGapSpeechText');
 
+    html = html.replace(
+      '.fill-gap-sentence{',
+      `.fill-gap-review{display:block;text-align:center;min-height:250px;line-height:1.45}.fill-gap-review-word{display:inline-block;padding:.03em .08em;border-radius:.22em;transition:background .16s ease,color .16s ease,transform .16s ease,text-shadow .16s ease}.fill-gap-review-word.active{background:#65e8ff;color:#020205;transform:translateY(-2px) scale(1.055);text-shadow:none}.fill-gap-sentence{`
+    );
+
+    html = html.replace('startDelay + 6800', 'startDelay + 9800');
     return html;
   }
 
   (async () => {
     try {
-      const response = await fetch('app.html?v=fill-gap-native-repeat-2', { cache: 'no-store' });
+      const response = await fetch('app.html?v=fill-gap-rhythm-1', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Could not load SpeakUP (${response.status})`);
       let html = await response.text();
       html = removeLegacyStoryNarration(html);
