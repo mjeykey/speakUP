@@ -1,18 +1,19 @@
-import { speak, stopSpeech } from '../audio/speech.js?v=52';
-import { VOICE_CATEGORIES } from '../voice/index.js?v=52';
+import { speak, stopSpeech } from '../audio/speech.js?v=53';
+import { getVoiceCategories } from '../voice/multilingual-library.js?v=1';
+import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
-function normalize(text) {
-  return String(text || '').toLocaleLowerCase('pt-PT').normalize('NFD')
+function normalize(text, locale = 'en-GB') {
+  return String(text || '').toLocaleLowerCase(locale).normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ').trim();
 }
 
-function similarity(expected, heard) {
-  const a = normalize(expected).split(' ').filter(Boolean);
-  const b = normalize(heard).split(' ').filter(Boolean);
+function similarity(expected, heard, locale) {
+  const a = normalize(expected, locale).split(' ').filter(Boolean);
+  const b = normalize(heard, locale).split(' ').filter(Boolean);
   if (!a.length || !b.length) return 0;
   const counts = new Map();
   b.forEach(word => counts.set(word, (counts.get(word) || 0) + 1));
@@ -24,16 +25,21 @@ function similarity(expected, heard) {
   return (matches / a.length * .72) + (matches / b.length * .28);
 }
 
-function rememberForLater(sentence, categoryId) {
+function rememberForLater(sentence, categoryId, language) {
   try {
     const key = 'speakup-practice-later';
     const saved = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!saved.some(item => item.sentence === sentence)) saved.push({ sentence, categoryId });
+    if (!saved.some(item => item.sentence === sentence && item.language === language)) saved.push({ sentence, categoryId, language });
     localStorage.setItem(key, JSON.stringify(saved.slice(-40)));
   } catch (_) {}
 }
 
 export function renderSpeakPractice(root, store) {
+  const initialState = store.getState();
+  const learningLanguage = initialState.learningLanguage;
+  const nativeLanguage = initialState.nativeLanguage;
+  const speechLanguage = getSpeechLanguage(learningLanguage);
+  const categories = getVoiceCategories(learningLanguage, nativeLanguage);
   let category = null;
   let index = 0;
   let attempts = 0;
@@ -45,7 +51,7 @@ export function renderSpeakPractice(root, store) {
   const exercises = () => category?.exercises || [];
   const current = () => exercises()[index % Math.max(1, exercises().length)];
   const activeSentence = () => usingAlternative ? current().alternative : current().sentence;
-  const activeEnglish = () => usingAlternative ? current().alternativeEnglish : current().english;
+  const activeTranslation = () => usingAlternative ? current().alternativeEnglish : current().english;
 
   function leave() {
     recognition?.abort?.();
@@ -56,15 +62,15 @@ export function renderSpeakPractice(root, store) {
   function showCategories() {
     stopSpeech();
     root.innerHTML = `<section class="screen speak-screen"><button class="menu-button" data-menu>Menu</button>
-      <div class="center speak-view"><p class="kicker">Speak & Grow</p><h1>What do you need today?</h1>
-      <p class="muted">Choose one feeling or learning path. Every category now contains 50 voice exercises.</p>
+      <div class="center speak-view"><p class="kicker">Speak & Grow · ${languageName(learningLanguage)}</p><h1>What do you need today?</h1>
+      <p class="muted">Choose one feeling or learning path. Every category contains 50 exercises in your selected learning language.</p>
       <div class="voice-category-grid" data-categories></div></div></section>`;
     root.querySelector('[data-menu]').onclick = leave;
     const grid = root.querySelector('[data-categories]');
-    VOICE_CATEGORIES.forEach(item => {
+    categories.forEach(item => {
       const button = document.createElement('button');
       button.className = 'voice-category-card';
-      button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small><small>${item.exercises.length} sentences</small>`;
+      button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small><small>${item.exercises.length} sentences · ${languageName(learningLanguage)}</small>`;
       button.onclick = () => {
         category = item; index = 0; attempts = 0; streak = 0; usingAlternative = false;
         renderPractice();
@@ -80,8 +86,8 @@ export function renderSpeakPractice(root, store) {
       <button class="secondary-button speak-back" data-back>← Categories</button>
       <div class="center speak-view"><p class="kicker">${category.emoji} ${category.title}</p><h1>Say it your way</h1>
       <p class="speak-progress">Sentence ${index + 1} / ${exercises().length} · Streak ${streak}</p>
-      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}"><p class="speak-label">Português</p>
-      <p class="speak-sentence">${activeSentence()}</p><p class="speak-translation">${activeEnglish()}</p></div>
+      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}"><p class="speak-label">${languageName(learningLanguage)}</p>
+      <p class="speak-sentence">${activeSentence()}</p><p class="speak-label">${languageName(nativeLanguage)}</p><p class="speak-translation">${activeTranslation()}</p></div>
       <p class="speak-feedback is-${tone}" data-feedback>${message}</p><p class="speak-heard" data-heard></p>
       <div class="speak-actions"><button class="secondary-button" data-listen>🔊 Listen</button>
       <button class="primary-button speak-mic" data-speak ${supported ? '' : 'disabled'}>${listening ? 'Listening…' : '🎙 Speak'}</button></div>
@@ -95,7 +101,7 @@ export function renderSpeakPractice(root, store) {
 
   async function playSentence(slower) {
     stopSpeech();
-    await speak(activeSentence(), 'pt-PT', { enabled: store.getState().audioOn, rate: slower ? .48 : .58 });
+    await speak(activeSentence(), speechLanguage, { enabled: store.getState().audioOn, rate: slower ? .48 : .58 });
   }
 
   async function celebrate() {
@@ -116,7 +122,7 @@ export function renderSpeakPractice(root, store) {
       if (node && heard) node.textContent = `I heard: “${heard}”`;
       await sleep(450); await playSentence(true); return;
     }
-    rememberForLater(activeSentence(), category.id);
+    rememberForLater(activeSentence(), category.id, learningLanguage);
     usingAlternative = true; attempts = 0;
     renderPractice('Let us try the same idea in an easier way. You can do this.', 'gentle');
     await sleep(550); await playSentence(true);
@@ -126,13 +132,13 @@ export function renderSpeakPractice(root, store) {
     if (listening || !Recognition) return;
     stopSpeech();
     recognition = new Recognition();
-    recognition.lang = 'pt-PT'; recognition.interimResults = false;
+    recognition.lang = speechLanguage; recognition.interimResults = false;
     recognition.maxAlternatives = 3; recognition.continuous = false;
     listening = true; renderPractice('I am listening. Take your time.', 'listening');
     recognition.onresult = async event => {
       const alternatives = Array.from(event.results?.[0] || []).map(result => result.transcript);
       const best = alternatives.reduce((winner, text) => {
-        const score = similarity(activeSentence(), text);
+        const score = similarity(activeSentence(), text, speechLanguage);
         return score > winner.score ? { text, score } : winner;
       }, { text: '', score: 0 });
       listening = false;
