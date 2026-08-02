@@ -49,7 +49,7 @@ export function renderFillGap(root, store) {
   function renderLevelSelection() {
     stopSpeech();
     root.innerHTML = `<section class="screen sentence-mode-screen">
-      <button class="menu-button" data-menu>Menu</button>
+      <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
       <div class="center sentence-level-view">
         <p class="kicker">Sentences · ${learningName}</p>
         <h1>Choose your level</h1>
@@ -81,7 +81,7 @@ export function renderFillGap(root, store) {
     const visibleSentence = fillAnswers(item.sentence, item.answers, solvedCount);
 
     root.innerHTML = `<section class="screen sentence-mode-screen">
-      <button class="menu-button" data-menu>Menu</button>
+      <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
       <button class="sentence-level-back" data-levels>Levels</button>
       <div class="center sentence-mode-view">
         <p class="kicker">Sentences · ${learningName} · ${level.title}</p>
