@@ -1,4 +1,4 @@
-import { speak, stopSpeech } from '../audio/speech.js?v=53';
+import { speak, stopSpeech } from '../audio/speech.js?v=54';
 import { getVoiceCategories } from '../voice/multilingual-library.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 
@@ -29,7 +29,9 @@ function rememberForLater(sentence, categoryId, language) {
   try {
     const key = 'speakup-practice-later';
     const saved = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!saved.some(item => item.sentence === sentence && item.language === language)) saved.push({ sentence, categoryId, language });
+    if (!saved.some(item => item.sentence === sentence && item.language === language)) {
+      saved.push({ sentence, categoryId, language });
+    }
     localStorage.setItem(key, JSON.stringify(saved.slice(-40)));
   } catch (_) {}
 }
@@ -52,6 +54,7 @@ export function renderSpeakPractice(root, store) {
   const current = () => exercises()[index % Math.max(1, exercises().length)];
   const activeSentence = () => usingAlternative ? current().alternative : current().sentence;
   const activeTranslation = () => usingAlternative ? current().alternativeEnglish : current().english;
+  const successThreshold = () => usingAlternative ? .52 : .64;
 
   function leave() {
     recognition?.abort?.();
@@ -72,7 +75,11 @@ export function renderSpeakPractice(root, store) {
       button.className = 'voice-category-card';
       button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small><small>${item.exercises.length} sentences · ${languageName(learningLanguage)}</small>`;
       button.onclick = () => {
-        category = item; index = 0; attempts = 0; streak = 0; usingAlternative = false;
+        category = item;
+        index = 0;
+        attempts = 0;
+        streak = 0;
+        usingAlternative = false;
         renderPractice();
         window.setTimeout(() => playSentence(false), 350);
       };
@@ -86,7 +93,7 @@ export function renderSpeakPractice(root, store) {
       <button class="secondary-button speak-back" data-back>← Categories</button>
       <div class="center speak-view"><p class="kicker">${category.emoji} ${category.title}</p><h1>Say it your way</h1>
       <p class="speak-progress">Sentence ${index + 1} / ${exercises().length} · Streak ${streak}</p>
-      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}"><p class="speak-label">${languageName(learningLanguage)}</p>
+      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}"><p class="speak-label">${languageName(learningLanguage)}${usingAlternative ? ' · easier version' : ''}</p>
       <p class="speak-sentence">${activeSentence()}</p><p class="speak-label">${languageName(nativeLanguage)}</p><p class="speak-translation">${activeTranslation()}</p></div>
       <p class="speak-feedback is-${tone}" data-feedback>${message}</p><p class="speak-heard" data-heard></p>
       <div class="speak-actions"><button class="secondary-button" data-listen>🔊 Listen</button>
@@ -101,13 +108,24 @@ export function renderSpeakPractice(root, store) {
 
   async function playSentence(slower) {
     stopSpeech();
-    await speak(activeSentence(), speechLanguage, { enabled: store.getState().audioOn, rate: slower ? .48 : .58 });
+    await speak(activeSentence(), speechLanguage, {
+      enabled: store.getState().audioOn,
+      rate: slower ? .46 : .58
+    });
   }
 
   async function celebrate() {
-    streak += 1; attempts = 0;
-    renderPractice(streak >= 3 ? 'Beautiful — your voice is getting stronger! ✨' : 'That was good. You did it! ✨', 'success');
-    await sleep(1250);
+    streak += 1;
+    attempts = 0;
+    renderPractice(
+      usingAlternative
+        ? 'Yes — that worked. You expressed the same idea in a clearer way. ✨'
+        : streak >= 3
+          ? 'Beautiful — your voice is getting stronger! ✨'
+          : 'That was good. You did it! ✨',
+      'success'
+    );
+    await sleep(1350);
     index = (index + 1) % exercises().length;
     usingAlternative = false;
     renderPractice('Ready for the next small step.', 'calm');
@@ -115,26 +133,51 @@ export function renderSpeakPractice(root, store) {
   }
 
   async function softenAfterMiss(heard) {
-    attempts += 1; streak = 0;
-    if (attempts === 1) {
-      renderPractice('Almost. Let us hear it once more, a little slower.', 'gentle');
+    attempts += 1;
+    streak = 0;
+
+    if (!usingAlternative && attempts === 1) {
+      renderPractice('Let us hear the same sentence once more, a little slower.', 'gentle');
       const node = root.querySelector('[data-heard]');
       if (node && heard) node.textContent = `I heard: “${heard}”`;
-      await sleep(450); await playSentence(true); return;
+      await sleep(450);
+      await playSentence(true);
+      return;
     }
-    rememberForLater(activeSentence(), category.id, learningLanguage);
-    usingAlternative = true; attempts = 0;
-    renderPractice('Let us try the same idea in an easier way. You can do this.', 'gentle');
-    await sleep(550); await playSentence(true);
+
+    if (!usingAlternative) {
+      rememberForLater(activeSentence(), category.id, learningLanguage);
+      usingAlternative = true;
+      attempts = 0;
+      renderPractice('Same meaning, easier sentence. We stay here until it feels good.', 'gentle');
+      await sleep(550);
+      await playSentence(true);
+      return;
+    }
+
+    renderPractice(
+      attempts === 1
+        ? 'Stay with this easier sentence. Listen once more and take your time.'
+        : 'No rush. We keep the easy sentence and try it together again.',
+      'gentle'
+    );
+    const node = root.querySelector('[data-heard]');
+    if (node && heard) node.textContent = `I heard: “${heard}”`;
+    await sleep(500);
+    await playSentence(true);
   }
 
   function startListening() {
     if (listening || !Recognition) return;
     stopSpeech();
     recognition = new Recognition();
-    recognition.lang = speechLanguage; recognition.interimResults = false;
-    recognition.maxAlternatives = 3; recognition.continuous = false;
-    listening = true; renderPractice('I am listening. Take your time.', 'listening');
+    recognition.lang = speechLanguage;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+    recognition.continuous = false;
+    listening = true;
+    renderPractice('I am listening. Take your time.', 'listening');
+
     recognition.onresult = async event => {
       const alternatives = Array.from(event.results?.[0] || []).map(result => result.transcript);
       const best = alternatives.reduce((winner, text) => {
@@ -142,18 +185,23 @@ export function renderSpeakPractice(root, store) {
         return score > winner.score ? { text, score } : winner;
       }, { text: '', score: 0 });
       listening = false;
-      if (best.score >= .64) await celebrate(); else await softenAfterMiss(best.text);
+      if (best.score >= successThreshold()) await celebrate();
+      else await softenAfterMiss(best.text);
     };
+
     recognition.onerror = event => {
       listening = false;
       const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
         ? 'Microphone access is needed. Nothing was marked wrong.'
-        : 'I could not hear that clearly. Let us simply try once more.';
+        : 'I could not hear that clearly. We can simply try the same sentence again.';
       renderPractice(message, 'gentle');
     };
     recognition.onend = () => { listening = false; };
     try { recognition.start(); }
-    catch (_) { listening = false; renderPractice('The microphone needs a short moment. Please tap Speak again.', 'gentle'); }
+    catch (_) {
+      listening = false;
+      renderPractice('The microphone needs a short moment. Please tap Speak again.', 'gentle');
+    }
   }
 
   showCategories();
