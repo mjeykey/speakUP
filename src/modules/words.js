@@ -1,4 +1,4 @@
-import { getWords, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=1';
+import { getWords, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speakPair, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
@@ -33,7 +33,16 @@ export function renderWords(root, store) {
     store.setState({ currentIndex: state.currentIndex + 1 });
   };
 
-  const learningRate = state.learningLanguage === 'de-DE' ? 0.72 : state.learningLanguage.startsWith('es-') ? 0.74 : state.learningLanguage.startsWith('hr-') ? 0.72 : 0.76;
+  const learningRate = state.learningLanguage === 'de-DE'
+    ? 0.72
+    : state.learningLanguage.startsWith('es-')
+      ? 0.74
+      : state.learningLanguage.startsWith('hr-')
+        ? 0.72
+        : state.learningLanguage === 'fr-FR'
+          ? 0.7
+          : 0.76;
+
   speakPair(
     { text: item.target, language: getSpeechLanguage(state.learningLanguage), rate: learningRate },
     { text: item.translation, language: getSpeechLanguage(state.nativeLanguage), rate: 0.88 },
