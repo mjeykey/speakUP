@@ -1,4 +1,5 @@
-import { EMOTIONS, PHRASE_TRANSLATIONS } from '../data/emotions/index.js?v=1';
+import { EMOTIONS, PHRASE_TRANSLATIONS } from '../data/emotions/index.js?v=2';
+import { getEmotionPickerCopy } from '../data/emotions/picker-copy.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=44';
 
@@ -23,18 +24,21 @@ export function renderEmotions(root, store) {
 
   function renderPicker() {
     stopSpeech();
+    const copy = getEmotionPickerCopy();
     root.innerHTML = `<section class="screen emotions-screen">
       <button class="menu-button" data-menu>Menu</button>
       <div class="emotions-shell">
-        <p class="kicker">Emotions</p>
-        <h1>How are you feeling right now?</h1>
-        <p class="muted">Choose what feels closest. You can skip any step.</p>
+        <p class="kicker">${escapeHtml(copy.kicker)}</p>
+        <h1>${escapeHtml(copy.title)}</h1>
+        <p class="muted">${escapeHtml(copy.subtitle)}</p>
         <div class="emotion-grid">
-          ${EMOTIONS.map(item => `<button class="emotion-card" data-emotion="${item.id}"><span>${item.emoji}</span><strong>${item.title}</strong></button>`).join('')}
+          ${EMOTIONS.map(item => `<button class="emotion-card" data-emotion="${item.id}" aria-label="Choose ${item.title}"><span>${item.emoji}</span><strong>${item.title}</strong></button>`).join('')}
         </div>
+        <button class="emotion-refresh" data-refresh type="button">Show me another welcome</button>
       </div>
     </section>`;
     root.querySelector('[data-menu]').onclick = leave;
+    root.querySelector('[data-refresh]').onclick = renderPicker;
     root.querySelectorAll('[data-emotion]').forEach(button => {
       button.onclick = () => {
         selected = EMOTIONS.find(item => item.id === button.dataset.emotion);
