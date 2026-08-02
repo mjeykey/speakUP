@@ -14,13 +14,11 @@ export function renderMenu(root, store) {
   const state = store.getState();
   const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
-  const storyAvailable = state.learningLanguage === 'pt-PT';
 
   root.innerHTML = `<section class="screen menu-screen"><div class="menu-panel">
     <h1>Choose your path</h1><p class="muted">Everything runs calmly, one step at a time.</p>
     <h2>Learning Mode</h2><div class="card-grid" data-modes></div>
-    ${state.mode === 'story' && storyAvailable ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
-    ${state.mode === 'story' && !storyAvailable ? '<p class="muted">More story languages are being prepared. Words and Sentences already work in every direction.</p>' : ''}
+    ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
     <h2>Personalise</h2>
     <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
     <button class="menu-card future-menu-card" data-future><span>✦ Future SpeakUP</span><small>See what is planned next.</small></button>
@@ -34,11 +32,9 @@ export function renderMenu(root, store) {
   const modes = root.querySelector('[data-modes]');
   MODES.forEach(([id, title, description]) => {
     const button = document.createElement('button');
-    const disabled = id === 'story' && !storyAvailable;
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
-    button.disabled = disabled;
-    button.innerHTML = `<span>${title}</span><small>${disabled ? 'Available for Portuguese in this prototype.' : description}</small>`;
-    button.onclick = () => store.setState({ mode: id, selectedStory: id === 'story' ? null : state.selectedStory, currentIndex: 0 });
+    button.innerHTML = `<span>${title}</span><small>${description}</small>`;
+    button.onclick = () => store.setState({ mode: id, selectedStory: id === 'story' ? state.selectedStory : state.selectedStory, currentIndex: 0 });
     modes.appendChild(button);
   });
 
@@ -47,12 +43,12 @@ export function renderMenu(root, store) {
   root.querySelector('[data-learning]').onchange = event => {
     const learningLanguage = event.target.value;
     const nativeLanguage = learningLanguage === state.nativeLanguage ? state.learningLanguage : state.nativeLanguage;
-    store.setState({ learningLanguage, nativeLanguage, selectedStory: null, currentIndex: 0, mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode) });
+    store.setState({ learningLanguage, nativeLanguage, currentIndex: 0 });
   };
   root.querySelector('[data-native]').onchange = event => {
     const nativeLanguage = event.target.value;
     const learningLanguage = nativeLanguage === state.learningLanguage ? state.nativeLanguage : state.learningLanguage;
-    store.setState({ learningLanguage, nativeLanguage, selectedStory: null, currentIndex: 0, mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode) });
+    store.setState({ learningLanguage, nativeLanguage, currentIndex: 0 });
   };
 
   const stories = root.querySelector('[data-stories]');
