@@ -1,6 +1,7 @@
 import { EMOTIONS } from '../data/emotions/index.js?v=2';
 import { getEmotionPickerCopy } from '../data/emotions/picker-copy.js?v=1';
 import { EMOTION_TIPS, getEmotionPhrases } from '../data/emotions/emotion-support.js?v=1';
+import { getEmotionClosing } from '../data/emotions/emotion-closings.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=44';
 
@@ -69,6 +70,7 @@ export function renderEmotions(root, store) {
   let phraseIndex = 0;
   let validationTitle = '';
   let selectedTipIndex = 0;
+  let closing = null;
 
   const leave = () => {
     stopSpeech();
@@ -96,6 +98,7 @@ export function renderEmotions(root, store) {
       button.onclick = () => {
         selected = EMOTIONS.find(item => item.id === button.dataset.emotion);
         validationTitle = pickTitle(VALIDATION_TITLES[selected.id], 'Your feeling deserves attention');
+        closing = getEmotionClosing(selected.id);
         stepIndex = 0;
         phraseIndex = 0;
         selectedTipIndex = 0;
@@ -137,9 +140,10 @@ export function renderEmotions(root, store) {
           <button class="secondary-button" data-next-phrase>Another sentence</button>
         </div>`;
     } else {
-      title = selected.id === 'excited' ? 'Give the feeling a direction' : 'Leave this moment gently';
-      body = selected.closing;
-      extra = '<p class="emotion-language-hint">You do not have to feel completely different. You chose one response that fits this feeling.</p>';
+      title = closing.title;
+      body = closing.body;
+      extra = `<div class="emotion-spark"><span aria-hidden="true">✦</span><p>${escapeHtml(closing.spark)}</p></div>
+        <p class="emotion-language-hint">Nothing has to be solved before you leave this page.</p>`;
     }
 
     root.innerHTML = `<section class="screen emotions-screen">
