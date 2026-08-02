@@ -1,0 +1,29 @@
+:root{--violet:#a875ff;--accent-gradient:linear-gradient(100deg,#65e8ff,#a875ff,#ff5fd7)}
+
+/* Keep every surface dark; use colour only as light, borders and active states. */
+.primary-button,.menu-card.selected,.choice:focus-visible,.emotion-card:hover,.emotion-card:focus-visible,.sentence-level-card:hover,.sentence-level-card:active,.memory-card.open,.positive-memory-card.open{box-shadow:0 0 24px rgba(101,232,255,.14),0 0 28px rgba(168,117,255,.09),0 0 22px rgba(255,95,215,.08)}
+.primary-button{border-color:transparent;background:linear-gradient(#091017,#091017) padding-box,var(--accent-gradient) border-box}
+.secondary-button:hover,.secondary-button:focus-visible,.menu-button:hover,.menu-button:focus-visible,.choice:hover,.choice:focus-visible{border-color:transparent;background:linear-gradient(#090a0f,#090a0f) padding-box,var(--accent-gradient) border-box;box-shadow:0 0 20px rgba(101,232,255,.11),0 0 18px rgba(255,95,215,.08)}
+.menu-card.selected,.emotion-card:hover,.emotion-card:focus-visible,.sentence-level-card:hover,.sentence-level-card:active{border-color:transparent;background:linear-gradient(#090b10,#090b10) padding-box,var(--accent-gradient) border-box}
+.emotion-progress span.active{background:var(--accent-gradient);box-shadow:0 0 12px rgba(101,232,255,.28),0 0 12px rgba(255,95,215,.22)}
+.emotion-panel,.sentence-mode-stage,.memory-message-card{border-color:transparent;background:linear-gradient(#070910,#070910) padding-box,linear-gradient(115deg,rgba(101,232,255,.48),rgba(168,117,255,.34),rgba(255,95,215,.42)) border-box}
+.emotion-breath{border-color:rgba(168,117,255,.48);box-shadow:0 0 24px rgba(101,232,255,.10),0 0 28px rgba(255,95,215,.08)}
+.emotion-breath span{background:radial-gradient(circle at 35% 30%,#dffbff,#65e8ff 35%,#a875ff 66%,#ff5fd7);box-shadow:0 0 28px rgba(101,232,255,.28),0 0 34px rgba(255,95,215,.20)}
+.story-arrow,.sentence-level-back{border-color:transparent;background:linear-gradient(#05080d,#05080d) padding-box,var(--accent-gradient) border-box}
+.story-spoken-word.is-speaking{background:linear-gradient(90deg,#65e8ff,#a875ff,#ff5fd7);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 18px rgba(101,232,255,.40)}
+.memory-card-back,.memory-message-topic{background:var(--accent-gradient);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 18px rgba(168,117,255,.25)}
+.text-effect-character{backface-visibility:hidden}
+
+/* Place lesson content around the visual centre instead of pinning it to the top. */
+.emotions-screen{align-items:center;padding-top:70px;padding-bottom:34px}
+.emotion-journey{margin:auto}
+.sentence-mode-screen{align-items:center;padding-top:70px;padding-bottom:34px}
+.sentence-mode-view,.sentence-level-view{margin:auto}
+.words-screen,.speak-practice-screen{align-items:center}
+
+@media(max-width:760px){
+  .screen:not(.menu-screen):not(.memory-screen):not(.story-screen){align-items:center;padding-top:70px;padding-bottom:28px}
+  .sentence-mode-screen{align-items:center!important;padding-top:72px!important}
+  .emotions-screen{align-items:center;padding-top:72px}
+  .emotion-journey{transform:translateY(-1.5vh)}
+}
