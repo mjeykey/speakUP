@@ -5,10 +5,40 @@ import { speak, stopSpeech } from '../audio/speech.js?v=44';
 
 const STEPS = ['validation','reflection','exercise','language','closing'];
 
+const VALIDATION_TITLES = {
+  jealousy: ['This feeling says something matters', 'You are not bad for feeling this'],
+  anger: ['Something in you is asking for a boundary', 'Your anger did not appear from nowhere'],
+  anxiety: ['Your mind is trying to protect you', 'Uncertainty can feel heavy'],
+  stress: ['There is a lot asking for your attention', 'Your mind may be carrying too much at once'],
+  sadness: ['You do not have to rush through this', 'Sadness deserves a little room'],
+  insecure: ['New things can shake our confidence', 'Uncertainty does not mean incapability'],
+  overwhelmed: ['You were never meant to hold everything at once', 'This moment may simply be too full'],
+  excited: ['This energy is allowed to be here', 'Excitement can feel big in the body'],
+  lonely: ['Wanting connection is deeply human', 'Loneliness can hurt quietly'],
+  disappointed: ['This hurts because it mattered', 'You were hoping for something real'],
+  selflove: ['You can begin with simple kindness', 'You do not have to earn your own care'],
+  spiral: ['A repeated thought is still only a thought', 'Your mind may be stuck, not broken']
+};
+
+const REFLECTION_TITLES = {
+  anger: 'What is underneath the anger?',
+  anxiety: 'What feels uncertain?',
+  stress: 'What needs less pressure?',
+  sadness: 'What would feel gentle?',
+  lonely: 'What kind of connection do you need?',
+  disappointed: 'What were you hoping for?',
+  spiral: 'Is there an action, or only a loop?'
+};
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
     .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+
+function pickTitle(options, fallback) {
+  if (!Array.isArray(options) || options.length === 0) return fallback;
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 export function renderEmotions(root, store) {
@@ -16,6 +46,7 @@ export function renderEmotions(root, store) {
   let selected = null;
   let stepIndex = 0;
   let phraseIndex = 0;
+  let validationTitle = '';
 
   const leave = () => {
     stopSpeech();
@@ -42,6 +73,7 @@ export function renderEmotions(root, store) {
     root.querySelectorAll('[data-emotion]').forEach(button => {
       button.onclick = () => {
         selected = EMOTIONS.find(item => item.id === button.dataset.emotion);
+        validationTitle = pickTitle(VALIDATION_TITLES[selected.id], 'Your feeling deserves attention');
         stepIndex = 0;
         phraseIndex = 0;
         renderStep();
@@ -57,18 +89,18 @@ export function renderEmotions(root, store) {
     let extra = '';
 
     if (step === 'validation') {
-      title = 'Your feeling makes sense';
+      title = validationTitle;
       body = selected.validation;
     } else if (step === 'reflection') {
-      title = 'A gentle question';
+      title = REFLECTION_TITLES[selected.id] || 'A question to understand the feeling';
       body = selected.reflection;
       extra = '<textarea class="emotion-note" data-note rows="3" placeholder="You can write something, or leave this empty."></textarea>';
     } else if (step === 'exercise') {
-      title = 'A small reset';
+      title = 'Let us make a little space';
       body = selected.exercise;
       extra = '<div class="emotion-breath" aria-hidden="true"><span></span></div>';
     } else if (step === 'language') {
-      title = `Speak in ${languageName(state.learningLanguage)}`;
+      title = `Put this moment into ${languageName(state.learningLanguage)}`;
       body = phrases[phraseIndex % phrases.length];
       extra = `<p class="emotion-language-hint">Read it, listen, then say it in your own voice.</p>
         <div class="emotion-language-actions">
@@ -76,7 +108,7 @@ export function renderEmotions(root, store) {
           <button class="secondary-button" data-next-phrase>Another sentence</button>
         </div>`;
     } else {
-      title = 'A quiet finish';
+      title = selected.id === 'excited' ? 'Give the feeling a direction' : 'Leave this moment gently';
       body = selected.closing;
       extra = '<p class="emotion-language-hint">You do not have to feel completely different. You took one caring step.</p>';
     }
