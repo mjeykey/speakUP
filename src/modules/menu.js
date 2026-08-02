@@ -1,5 +1,5 @@
 import { STORIES } from '../data/content.js?v=4';
-import { LANGUAGE_OPTIONS } from '../data/language-content.js?v=4';
+import { LANGUAGE_OPTIONS } from '../data/language-content-extended.js?v=1';
 
 const MODES = [
   ['fill-gap', 'Sentences', 'Complete sentences in your selected learning language.'],
