@@ -1,4 +1,4 @@
-import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=1';
+import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
@@ -29,7 +29,13 @@ export function renderFillGap(root, store) {
   const learningName = languageName(state.learningLanguage);
   const supportName = languageName(state.nativeLanguage);
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
-  const speechRate = state.learningLanguage.startsWith('hr-') ? 0.56 : speechLanguage === 'es-ES' ? 0.6 : 0.58;
+  const speechRate = state.learningLanguage.startsWith('hr-')
+    ? 0.56
+    : speechLanguage === 'es-ES'
+      ? 0.6
+      : speechLanguage === 'fr-FR'
+        ? 0.56
+        : 0.58;
   let selectedLevelId = null;
   let sentenceIndex = 0;
   let solvedCount = 0;
