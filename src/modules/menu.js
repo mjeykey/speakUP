@@ -1,5 +1,5 @@
 import { STORIES } from '../data/content.js?v=4';
-import { LANGUAGE_OPTIONS } from '../data/language-content.js?v=3';
+import { LANGUAGE_OPTIONS } from '../data/language-content.js?v=4';
 
 const MODES = [
   ['fill-gap', 'Sentences', 'Complete sentences in your selected learning language.'],
@@ -44,24 +44,12 @@ export function renderMenu(root, store) {
   root.querySelector('[data-learning]').onchange = event => {
     const learningLanguage = event.target.value;
     const nativeLanguage = learningLanguage === state.nativeLanguage ? state.learningLanguage : state.nativeLanguage;
-    store.setState({
-      learningLanguage,
-      nativeLanguage,
-      selectedStory: null,
-      currentIndex: 0,
-      mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode)
-    });
+    store.setState({ learningLanguage, nativeLanguage, selectedStory: null, currentIndex: 0, mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode) });
   };
   root.querySelector('[data-native]').onchange = event => {
     const nativeLanguage = event.target.value;
     const learningLanguage = nativeLanguage === state.learningLanguage ? state.nativeLanguage : state.learningLanguage;
-    store.setState({
-      learningLanguage,
-      nativeLanguage,
-      selectedStory: null,
-      currentIndex: 0,
-      mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode)
-    });
+    store.setState({ learningLanguage, nativeLanguage, selectedStory: null, currentIndex: 0, mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode) });
   };
 
   const stories = root.querySelector('[data-stories]');
