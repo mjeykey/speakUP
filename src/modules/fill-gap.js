@@ -1,5 +1,5 @@
-import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=38';
+import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content.js?v=2';
+import { speak, stopSpeech } from '../audio/speech.js?v=39';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -25,7 +25,10 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
 
 export function renderFillGap(root, store) {
   const state = store.getState();
-  const levels = getSentenceLevels(state.learningLanguage);
+  const levels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
+  const learningName = languageName(state.learningLanguage);
+  const supportName = languageName(state.nativeLanguage);
+  const speechLanguage = getSpeechLanguage(state.learningLanguage);
   let selectedLevelId = null;
   let sentenceIndex = 0;
   let solvedCount = 0;
@@ -36,18 +39,14 @@ export function renderFillGap(root, store) {
     store.setState({ screen: 'menu', currentIndex: 0 });
   };
 
-  function getLevel(id) {
-    return levels.find(level => level.id === id) || levels[0];
-  }
-
   function renderLevelSelection() {
     stopSpeech();
     root.innerHTML = `<section class="screen sentence-mode-screen">
       <button class="menu-button" data-menu>Menu</button>
       <div class="center sentence-level-view">
-        <p class="kicker">Sentences · ${languageName(state.learningLanguage)}</p>
+        <p class="kicker">Sentences · ${learningName}</p>
         <h1>Choose your level</h1>
-        <p class="muted">Feel how the support changes as you grow.</p>
+        <p class="muted">Support language: ${supportName}</p>
         <div class="sentence-level-grid">
           ${levels.map(level => `<button class="sentence-level-card" data-level="${level.id}">
             <span class="sentence-level-emoji">${level.emoji}</span>
@@ -69,7 +68,7 @@ export function renderFillGap(root, store) {
   }
 
   function renderSentence() {
-    const level = getLevel(selectedLevelId);
+    const level = levels.find(item => item.id === selectedLevelId) || levels[0];
     const item = level.items[sentenceIndex % level.items.length];
     solved = false;
     const visibleSentence = fillAnswers(item.sentence, item.answers, solvedCount);
@@ -78,13 +77,13 @@ export function renderFillGap(root, store) {
       <button class="menu-button" data-menu>Menu</button>
       <button class="sentence-level-back" data-levels>Levels</button>
       <div class="center sentence-mode-view">
-        <p class="kicker">Sentences · ${languageName(state.learningLanguage)} · ${level.title}</p>
+        <p class="kicker">Sentences · ${learningName} · ${level.title}</p>
         <p class="sentence-mode-progress">Sentence ${sentenceIndex + 1} / ${level.items.length} · Gap ${Math.min(solvedCount + 1, item.answers.length)} / ${item.answers.length}</p>
         <div class="sentence-mode-stage" data-stage>
-          <p class="sentence-mode-label">${languageName(state.learningLanguage)}</p>
-          <p class="sentence sentence-mode-portuguese" data-target>${escapeHtml(visibleSentence)}</p>
-          <p class="sentence-mode-label sentence-mode-english-label">${languageName(state.nativeLanguage)}</p>
-          <p class="sentence-mode-english ${level.englishClass}" data-translation>${escapeHtml(item.translation)}</p>
+          <p class="sentence-mode-label">${learningName}</p>
+          <p class="sentence sentence-mode-portuguese" data-learning-text>${escapeHtml(visibleSentence)}</p>
+          <p class="sentence-mode-label sentence-mode-english-label">${supportName}</p>
+          <p class="sentence-mode-english ${level.englishClass}" data-support-text>${escapeHtml(item.translation)}</p>
         </div>
         <div class="choices" data-choices></div>
         <p class="feedback sentence-mode-feedback" data-feedback></p>
@@ -113,8 +112,8 @@ export function renderFillGap(root, store) {
         }
 
         solvedCount += 1;
-        root.querySelector('[data-target]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
-        await speak(option, getSpeechLanguage(state.learningLanguage), { enabled: state.audioOn, rate: state.learningLanguage === 'de-DE' ? 0.66 : 0.58 });
+        root.querySelector('[data-learning-text]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
+        await speak(option, speechLanguage, { enabled: state.audioOn, rate: 0.58 });
 
         if (solvedCount < item.answers.length) {
           root.querySelector('[data-feedback]').textContent = 'Good — one more step.';
@@ -127,11 +126,11 @@ export function renderFillGap(root, store) {
         choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
         const completeSentence = fillAnswers(item.sentence, item.answers);
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
-        await speak(completeSentence, getSpeechLanguage(state.learningLanguage), { enabled: state.audioOn, rate: state.learningLanguage === 'de-DE' ? 0.66 : 0.58 });
+        await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: 0.58 });
         await sleep(500);
         await explodeText([
-          root.querySelector('[data-target]'),
-          root.querySelector('[data-translation]')
+          root.querySelector('[data-learning-text]'),
+          root.querySelector('[data-support-text]')
         ], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
         await sleep(180);
         sentenceIndex = (sentenceIndex + 1) % level.items.length;
@@ -143,7 +142,7 @@ export function renderFillGap(root, store) {
 
     const spokenSentence = fillAnswers(item.sentence, item.answers.map(() => '...'));
     window.setTimeout(() => {
-      if (!solved) speak(spokenSentence, getSpeechLanguage(state.learningLanguage), { enabled: state.audioOn, rate: state.learningLanguage === 'de-DE' ? 0.64 : 0.56 });
+      if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: 0.56 });
     }, 350);
   }
 
