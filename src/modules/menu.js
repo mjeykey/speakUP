@@ -1,5 +1,5 @@
 import { STORIES } from '../data/content.js?v=4';
-import { LANGUAGE_OPTIONS } from '../data/language-content.js?v=1';
+import { LANGUAGE_OPTIONS } from '../data/language-content.js?v=2';
 
 const MODES = [
   ['fill-gap', 'Sentences', 'Complete sentences in your selected learning language.'],
@@ -19,7 +19,7 @@ export function renderMenu(root, store) {
     <h1>Choose your path</h1><p class="muted">Everything runs calmly, one step at a time.</p>
     <h2>Learning Mode</h2><div class="card-grid" data-modes></div>
     ${state.mode === 'story' && storyAvailable ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
-    ${state.mode === 'story' && !storyAvailable ? '<p class="muted">German and English stories are being prepared. Words and Sentences are already available.</p>' : ''}
+    ${state.mode === 'story' && !storyAvailable ? '<p class="muted">German and English stories are being prepared. Words and Sentences are already available in every direction.</p>' : ''}
     <h2>Personalise</h2>
     <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
     <div class="settings-row">
@@ -43,15 +43,25 @@ export function renderMenu(root, store) {
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
   root.querySelector('[data-learning]').onchange = event => {
     const learningLanguage = event.target.value;
-    const nativeLanguage = learningLanguage === state.nativeLanguage
-      ? (learningLanguage === 'en-GB' ? 'de-DE' : 'en-GB')
-      : state.nativeLanguage;
-    store.setState({ learningLanguage, nativeLanguage, selectedStory: null, currentIndex: 0, mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode) });
+    const nativeLanguage = learningLanguage === state.nativeLanguage ? state.learningLanguage : state.nativeLanguage;
+    store.setState({
+      learningLanguage,
+      nativeLanguage,
+      selectedStory: null,
+      currentIndex: 0,
+      mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode)
+    });
   };
   root.querySelector('[data-native]').onchange = event => {
     const nativeLanguage = event.target.value;
-    if (nativeLanguage === state.learningLanguage) return;
-    store.setState({ nativeLanguage, currentIndex: 0 });
+    const learningLanguage = nativeLanguage === state.learningLanguage ? state.nativeLanguage : state.learningLanguage;
+    store.setState({
+      learningLanguage,
+      nativeLanguage,
+      selectedStory: null,
+      currentIndex: 0,
+      mode: learningLanguage === 'pt-PT' ? state.mode : (state.mode === 'story' ? 'words' : state.mode)
+    });
   };
 
   const stories = root.querySelector('[data-stories]');
