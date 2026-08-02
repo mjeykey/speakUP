@@ -1,8 +1,8 @@
 import { EMOTIONS } from '../data/emotions/index.js?v=2';
 import { getEmotionPickerCopy } from '../data/emotions/picker-copy.js?v=1';
-import { EMOTION_TIPS, getEmotionPhrases } from '../data/emotions/emotion-support.js?v=1';
+import { EMOTION_TIPS } from '../data/emotions/emotion-support.js?v=1';
 import { getEmotionClosing } from '../data/emotions/emotion-closings.js?v=1';
-import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
+import { getPortugueseEmotionPractice } from '../data/emotions/portuguese-voice.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=44';
 
 const STEPS = ['validation','reflection','exercise','language','closing'];
@@ -89,11 +89,9 @@ export function renderEmotions(root, store) {
         <div class="emotion-grid">
           ${EMOTIONS.map(item => `<button class="emotion-card" data-emotion="${item.id}" aria-label="Choose ${item.title}"><span>${item.emoji}</span><strong>${item.title}</strong></button>`).join('')}
         </div>
-        <button class="emotion-refresh" data-refresh type="button">Show me another welcome</button>
       </div>
     </section>`;
     root.querySelector('[data-menu]').onclick = leave;
-    root.querySelector('[data-refresh]').onclick = renderPicker;
     root.querySelectorAll('[data-emotion]').forEach(button => {
       button.onclick = () => {
         selected = EMOTIONS.find(item => item.id === button.dataset.emotion);
@@ -109,8 +107,9 @@ export function renderEmotions(root, store) {
 
   function renderStep() {
     const step = STEPS[stepIndex];
-    const phrases = getEmotionPhrases(selected.id, state.learningLanguage);
     const tips = EMOTION_TIPS[selected.id] || [selected.exercise];
+    const portuguese = getPortugueseEmotionPractice(selected.id);
+    const portugueseSentence = portuguese.sentences[phraseIndex % portuguese.sentences.length];
     let title = '';
     let body = '';
     let extra = '';
@@ -132,12 +131,19 @@ export function renderEmotions(root, store) {
         </div>
         <div class="emotion-breath" aria-hidden="true"><span></span></div>`;
     } else if (step === 'language') {
-      title = `Put this feeling into ${languageName(state.learningLanguage)}`;
-      body = phrases[phraseIndex % phrases.length];
-      extra = `<p class="emotion-language-hint">This sentence belongs to the feeling you selected. Read it, listen, then say it in your own voice.</p>
-        <div class="emotion-language-actions">
-          <button class="secondary-button" data-listen>Listen</button>
-          <button class="secondary-button" data-next-phrase>Another sentence</button>
+      title = 'Come, speak Portuguese with me';
+      body = portuguese.intro;
+      extra = `<div class="emotion-portuguese-practice">
+          <p class="emotion-portuguese-label">Português (Portugal)</p>
+          <p class="emotion-portuguese-sentence" data-portuguese-sentence>${escapeHtml(portugueseSentence)}</p>
+          <div class="emotion-verb-list" aria-label="Useful verbs">
+            ${portuguese.verbs.map(verb => `<span>${escapeHtml(verb)}</span>`).join('')}
+          </div>
+          <p class="emotion-language-hint">The sentence recognises the feeling first. Say it slowly; you do not have to sound perfect.</p>
+          <div class="emotion-language-actions">
+            <button class="secondary-button" data-listen>Listen</button>
+            <button class="secondary-button" data-next-phrase>Another sentence</button>
+          </div>
         </div>`;
     } else {
       title = closing.title;
@@ -195,9 +201,9 @@ export function renderEmotions(root, store) {
     };
 
     const listen = root.querySelector('[data-listen]');
-    if (listen) listen.onclick = () => speak(body, getSpeechLanguage(state.learningLanguage), { enabled:state.audioOn, rate:0.62 });
+    if (listen) listen.onclick = () => speak(portugueseSentence, 'pt-PT', { enabled:state.audioOn, rate:0.58 });
     const nextPhrase = root.querySelector('[data-next-phrase]');
-    if (nextPhrase) nextPhrase.onclick = () => { phraseIndex = (phraseIndex + 1) % phrases.length; renderStep(); };
+    if (nextPhrase) nextPhrase.onclick = () => { phraseIndex = (phraseIndex + 1) % portuguese.sentences.length; renderStep(); };
   }
 
   renderPicker();
