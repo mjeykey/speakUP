@@ -1,14 +1,14 @@
-import { createStore } from './state.js?v=49';
-import { renderWelcome } from '../modules/welcome.js?v=49';
-import { renderMenu } from '../modules/menu.js?v=49';
-import { renderWords } from '../modules/words.js?v=49';
-import { renderMemory } from '../modules/memory.js?v=49';
-import { renderFillGap } from '../modules/fill-gap.js?v=49';
-import { renderSpeakPractice } from '../modules/speak-practice.js?v=49';
-import { renderStory } from '../modules/story-loader.js?v=49';
-import { renderEffectsSettings } from '../modules/effects-settings.js?v=49';
-import { renderEmotions } from '../modules/emotions.js?v=49';
-import { stopSpeech } from '../audio/speech.js?v=49';
+import { createStore } from './state.js?v=50';
+import { renderWelcome } from '../modules/welcome.js?v=50';
+import { renderMenu } from '../modules/menu.js?v=50';
+import { renderWords } from '../modules/words.js?v=50';
+import { renderMemory } from '../modules/memory.js?v=50';
+import { renderFillGap } from '../modules/fill-gap.js?v=50';
+import { renderSpeakPractice } from '../modules/speak-practice.js?v=50';
+import { renderStory } from '../modules/story-loader.js?v=50';
+import { renderEffectsSettings } from '../modules/effects-settings.js?v=50';
+import { renderEmotions } from '../modules/emotions.js?v=50';
+import { stopSpeech } from '../audio/speech.js?v=50';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
