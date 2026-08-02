@@ -4,12 +4,12 @@ import { renderMenu } from '../modules/menu.js?v=53';
 import { renderWords } from '../modules/words.js?v=52';
 import { renderMemory } from '../modules/memory.js?v=52';
 import { renderFillGap } from '../modules/fill-gap.js?v=53';
-import { renderSpeakPractice } from '../modules/speak-practice.js?v=53';
+import { renderSpeakPractice } from '../modules/speak-practice.js?v=54';
 import { renderStory } from '../modules/story-loader.js?v=52';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=52';
 import { renderEmotions } from '../modules/emotions.js?v=52';
 import { renderFuture } from '../modules/future.js?v=1';
-import { stopSpeech } from '../audio/speech.js?v=53';
+import { stopSpeech } from '../audio/speech.js?v=54';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
