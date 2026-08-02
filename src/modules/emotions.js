@@ -1,5 +1,6 @@
-import { EMOTIONS, PHRASE_TRANSLATIONS } from '../data/emotions/index.js?v=2';
+import { EMOTIONS } from '../data/emotions/index.js?v=2';
 import { getEmotionPickerCopy } from '../data/emotions/picker-copy.js?v=1';
+import { EMOTION_TIPS, getEmotionPhrases } from '../data/emotions/emotion-support.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=44';
 
@@ -21,13 +22,33 @@ const VALIDATION_TITLES = {
 };
 
 const REFLECTION_TITLES = {
+  jealousy: 'What is the fear underneath comparison?',
   anger: 'What is underneath the anger?',
   anxiety: 'What feels uncertain?',
   stress: 'What needs less pressure?',
   sadness: 'What would feel gentle?',
+  insecure: 'What would you allow a beginner to do?',
+  overwhelmed: 'What can become smaller?',
+  excited: 'Where would you like this energy to go?',
   lonely: 'What kind of connection do you need?',
   disappointed: 'What were you hoping for?',
+  selflove: 'What would basic kindness look like today?',
   spiral: 'Is there an action, or only a loop?'
+};
+
+const EXERCISE_TITLES = {
+  jealousy: 'Return to your own value',
+  anger: 'Create space before action',
+  anxiety: 'Come back to what is here',
+  stress: 'Reduce the load for one moment',
+  sadness: 'Choose something gentle',
+  insecure: 'Make room for being a beginner',
+  overwhelmed: 'Make the moment smaller',
+  excited: 'Give the energy a direction',
+  lonely: 'Move one step toward connection',
+  disappointed: 'Separate the loss from what remains',
+  selflove: 'Practise believable kindness',
+  spiral: 'Create distance from the loop'
 };
 
 function escapeHtml(value) {
@@ -47,6 +68,7 @@ export function renderEmotions(root, store) {
   let stepIndex = 0;
   let phraseIndex = 0;
   let validationTitle = '';
+  let selectedTipIndex = 0;
 
   const leave = () => {
     stopSpeech();
@@ -76,6 +98,7 @@ export function renderEmotions(root, store) {
         validationTitle = pickTitle(VALIDATION_TITLES[selected.id], 'Your feeling deserves attention');
         stepIndex = 0;
         phraseIndex = 0;
+        selectedTipIndex = 0;
         renderStep();
       };
     });
@@ -83,7 +106,8 @@ export function renderEmotions(root, store) {
 
   function renderStep() {
     const step = STEPS[stepIndex];
-    const phrases = PHRASE_TRANSLATIONS[state.learningLanguage] || PHRASE_TRANSLATIONS['en-GB'];
+    const phrases = getEmotionPhrases(selected.id, state.learningLanguage);
+    const tips = EMOTION_TIPS[selected.id] || [selected.exercise];
     let title = '';
     let body = '';
     let extra = '';
@@ -96,13 +120,18 @@ export function renderEmotions(root, store) {
       body = selected.reflection;
       extra = '<textarea class="emotion-note" data-note rows="3" placeholder="You can write something, or leave this empty."></textarea>';
     } else if (step === 'exercise') {
-      title = 'Let us make a little space';
-      body = selected.exercise;
-      extra = '<div class="emotion-breath" aria-hidden="true"><span></span></div>';
+      title = EXERCISE_TITLES[selected.id] || 'Let us make a little space';
+      body = tips[selectedTipIndex % tips.length];
+      extra = `<div class="emotion-tip-picker">
+          <p class="emotion-language-hint">Choose the option that feels easiest. You do not need to do all of them.</p>
+          <div class="emotion-tip-dots">${tips.map((_, index) => `<button class="${index === selectedTipIndex ? 'active' : ''}" data-tip="${index}" aria-label="Tip ${index + 1}"></button>`).join('')}</div>
+          <button class="secondary-button emotion-another-tip" data-another-tip>Another option</button>
+        </div>
+        <div class="emotion-breath" aria-hidden="true"><span></span></div>`;
     } else if (step === 'language') {
-      title = `Put this moment into ${languageName(state.learningLanguage)}`;
+      title = `Put this feeling into ${languageName(state.learningLanguage)}`;
       body = phrases[phraseIndex % phrases.length];
-      extra = `<p class="emotion-language-hint">Read it, listen, then say it in your own voice.</p>
+      extra = `<p class="emotion-language-hint">This sentence belongs to the feeling you selected. Read it, listen, then say it in your own voice.</p>
         <div class="emotion-language-actions">
           <button class="secondary-button" data-listen>Listen</button>
           <button class="secondary-button" data-next-phrase>Another sentence</button>
@@ -110,7 +139,7 @@ export function renderEmotions(root, store) {
     } else {
       title = selected.id === 'excited' ? 'Give the feeling a direction' : 'Leave this moment gently';
       body = selected.closing;
-      extra = '<p class="emotion-language-hint">You do not have to feel completely different. You took one caring step.</p>';
+      extra = '<p class="emotion-language-hint">You do not have to feel completely different. You chose one response that fits this feeling.</p>';
     }
 
     root.innerHTML = `<section class="screen emotions-screen">
@@ -147,6 +176,18 @@ export function renderEmotions(root, store) {
       stopSpeech();
       if (stepIndex < STEPS.length - 1) { stepIndex += 1; renderStep(); }
       else renderPicker();
+    };
+
+    root.querySelectorAll('[data-tip]').forEach(button => {
+      button.onclick = () => {
+        selectedTipIndex = Number(button.dataset.tip) || 0;
+        renderStep();
+      };
+    });
+    const anotherTip = root.querySelector('[data-another-tip]');
+    if (anotherTip) anotherTip.onclick = () => {
+      selectedTipIndex = (selectedTipIndex + 1) % tips.length;
+      renderStep();
     };
 
     const listen = root.querySelector('[data-listen]');
