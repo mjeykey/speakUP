@@ -1,5 +1,5 @@
-import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content.js?v=2';
-import { speak, stopSpeech } from '../audio/speech.js?v=39';
+import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content.js?v=3';
+import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -113,7 +113,7 @@ export function renderFillGap(root, store) {
 
         solvedCount += 1;
         root.querySelector('[data-learning-text]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
-        await speak(option, speechLanguage, { enabled: state.audioOn, rate: 0.58 });
+        await speak(option, speechLanguage, { enabled: state.audioOn, rate: speechLanguage === 'es-ES' ? 0.6 : 0.58 });
 
         if (solvedCount < item.answers.length) {
           root.querySelector('[data-feedback]').textContent = 'Good — one more step.';
@@ -126,7 +126,7 @@ export function renderFillGap(root, store) {
         choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
         const completeSentence = fillAnswers(item.sentence, item.answers);
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
-        await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: 0.58 });
+        await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: speechLanguage === 'es-ES' ? 0.6 : 0.58 });
         await sleep(500);
         await explodeText([
           root.querySelector('[data-learning-text]'),
@@ -142,7 +142,7 @@ export function renderFillGap(root, store) {
 
     const spokenSentence = fillAnswers(item.sentence, item.answers.map(() => '...'));
     window.setTimeout(() => {
-      if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: 0.56 });
+      if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: speechLanguage === 'es-ES' ? 0.58 : 0.56 });
     }, 350);
   }
 
