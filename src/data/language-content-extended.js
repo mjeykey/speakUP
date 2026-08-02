@@ -4,7 +4,7 @@ import {
   getSpeechLanguage as baseGetSpeechLanguage,
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
-} from './language-content.js?v=4';
+} from './language-registry.js?v=1';
 
 export const LANGUAGE_OPTIONS = [
   ...BASE_LANGUAGE_OPTIONS,
@@ -19,21 +19,9 @@ const ANDALUSIAN_WORDS = [
 ];
 
 const ANDALUSIAN_COMPLETE = [
-  'Me tomo un café todas las mañanas.',
-  'Hoy vamos en bus.',
-  'Está leyendo un libro nuevo.',
-  'Vive en Sevilla.',
-  'Estoy aprendiendo a hablar como se habla por aquí.',
-  'Por la mañana me tomo un café y leo las noticias.',
-  'Vamos a la estación y pillamos el tren.',
-  'Abre la ventana y disfruta del aire fresquito.',
-  'Se queda en casa y curra con el ordenador.',
-  'Preparo la cena y luego dejo la cocina recogida.',
-  'Antes de irme a currar, me tomo un café y abro la ventana.',
-  'Cuando llegamos a la estación, miramos el panel y buscamos el andén.',
-  'Aunque está cansada, tira para adelante y mantiene la calma.',
-  'Después de preparar la cena, pone la mesa y escucha música.',
-  'Me imagino mi objetivo, doy un pasito y tengo paciencia.'
+  'Me tomo un café todas las mañanas.','Hoy vamos en bus.','Está leyendo un libro nuevo.','Vive en Sevilla.','Estoy aprendiendo a hablar como se habla por aquí.',
+  'Por la mañana me tomo un café y leo las noticias.','Vamos a la estación y pillamos el tren.','Abre la ventana y disfruta del aire fresquito.','Se queda en casa y curra con el ordenador.','Preparo la cena y luego dejo la cocina recogida.',
+  'Antes de irme a currar, me tomo un café y abro la ventana.','Cuando llegamos a la estación, miramos el panel y buscamos el andén.','Aunque está cansada, tira para adelante y mantiene la calma.','Después de preparar la cena, pone la mesa y escucha música.','Me imagino mi objetivo, doy un pasito y tengo paciencia.'
 ];
 
 const ANDALUSIAN_EXERCISES = [
@@ -55,10 +43,7 @@ const ANDALUSIAN_EXERCISES = [
 ];
 
 function replaceWordSide(items, side) {
-  return items.map((item, index) => ({
-    ...item,
-    [side]: ANDALUSIAN_WORDS[index] || item[side]
-  }));
+  return items.map((item, index) => ({ ...item, [side]: ANDALUSIAN_WORDS[index] || item[side] }));
 }
 
 export function languageName(code) {
@@ -86,14 +71,8 @@ export function getSentenceLevels(learningLanguage, nativeLanguage) {
     return baseLevels.map((level, levelIndex) => ({
       ...level,
       items: level.items.map((item, itemIndex) => {
-        const absolute = levelIndex * 5 + itemIndex;
-        const exercise = ANDALUSIAN_EXERCISES[absolute];
-        return {
-          ...item,
-          sentence: exercise[0],
-          answers: exercise[1],
-          options: exercise[2]
-        };
+        const exercise = ANDALUSIAN_EXERCISES[levelIndex * 5 + itemIndex];
+        return { ...item, sentence: exercise[0], answers: exercise[1], options: exercise[2] };
       })
     }));
   }
@@ -102,10 +81,7 @@ export function getSentenceLevels(learningLanguage, nativeLanguage) {
     const baseLevels = baseGetSentenceLevels(learningLanguage, 'es-ES');
     return baseLevels.map((level, levelIndex) => ({
       ...level,
-      items: level.items.map((item, itemIndex) => ({
-        ...item,
-        translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex]
-      }))
+      items: level.items.map((item, itemIndex) => ({ ...item, translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex] }))
     }));
   }
 
