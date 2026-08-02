@@ -23,6 +23,7 @@ export function renderMenu(root, store) {
     ${state.mode === 'story' && !storyAvailable ? '<p class="muted">More story languages are being prepared. Words and Sentences already work in every direction.</p>' : ''}
     <h2>Personalise</h2>
     <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
+    <button class="menu-card future-menu-card" data-future><span>✦ Future SpeakUP</span><small>See what is planned next.</small></button>
     <div class="settings-row">
       <label>Learning Language<select data-learning>${languageOptions}</select></label>
       <label>Support Language<select data-native>${nativeOptions}</select></label>
@@ -42,6 +43,7 @@ export function renderMenu(root, store) {
   });
 
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
+  root.querySelector('[data-future]').onclick = () => store.setState({ screen: 'future' });
   root.querySelector('[data-learning]').onchange = event => {
     const learningLanguage = event.target.value;
     const nativeLanguage = learningLanguage === state.nativeLanguage ? state.learningLanguage : state.nativeLanguage;
