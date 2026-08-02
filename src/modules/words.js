@@ -1,5 +1,5 @@
-import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=1';
-import { speakPair, stopSpeech } from '../audio/speech.js?v=38';
+import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=2';
+import { speakPair, stopSpeech } from '../audio/speech.js?v=39';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 export function renderWords(root, store) {
