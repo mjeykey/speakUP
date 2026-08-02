@@ -1,5 +1,5 @@
-import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=2';
-import { speakPair, stopSpeech } from '../audio/speech.js?v=39';
+import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=3';
+import { speakPair, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
 export function renderWords(root, store) {
@@ -37,8 +37,9 @@ export function renderWords(root, store) {
     store.setState({ currentIndex: state.currentIndex + 1 });
   };
 
+  const learningRate = state.learningLanguage === 'de-DE' ? 0.72 : state.learningLanguage === 'es-ES' ? 0.74 : 0.76;
   speakPair(
-    { text: item.target, language: getSpeechLanguage(state.learningLanguage), rate: state.learningLanguage === 'de-DE' ? 0.72 : 0.76 },
+    { text: item.target, language: getSpeechLanguage(state.learningLanguage), rate: learningRate },
     { text: item.translation, language: getSpeechLanguage(state.nativeLanguage), rate: 0.88 },
     { enabled: state.audioOn, pause: 320 }
   );
