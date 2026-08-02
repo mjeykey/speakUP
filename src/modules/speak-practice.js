@@ -1,5 +1,5 @@
-import { speak, stopSpeech } from '../audio/speech.js?v=32';
-import { VOICE_CATEGORIES } from '../voice/index.js?v=32';
+import { speak, stopSpeech } from '../audio/speech.js?v=52';
+import { VOICE_CATEGORIES } from '../voice/index.js?v=52';
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -57,14 +57,14 @@ export function renderSpeakPractice(root, store) {
     stopSpeech();
     root.innerHTML = `<section class="screen speak-screen"><button class="menu-button" data-menu>Menu</button>
       <div class="center speak-view"><p class="kicker">Speak & Grow</p><h1>What do you need today?</h1>
-      <p class="muted">Choose one feeling or learning path. Every category has its own voice practice.</p>
+      <p class="muted">Choose one feeling or learning path. Every category now contains 50 voice exercises.</p>
       <div class="voice-category-grid" data-categories></div></div></section>`;
     root.querySelector('[data-menu]').onclick = leave;
     const grid = root.querySelector('[data-categories]');
     VOICE_CATEGORIES.forEach(item => {
       const button = document.createElement('button');
       button.className = 'voice-category-card';
-      button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small>`;
+      button.innerHTML = `<span class="voice-category-emoji">${item.emoji}</span><span>${item.title}</span><small>${item.description}</small><small>${item.exercises.length} sentences</small>`;
       button.onclick = () => {
         category = item; index = 0; attempts = 0; streak = 0; usingAlternative = false;
         renderPractice();
