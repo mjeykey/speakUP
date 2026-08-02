@@ -1,4 +1,4 @@
-import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=3';
+import { getWords, getSpeechLanguage, languageName } from '../data/language-content.js?v=4';
 import { speakPair, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
@@ -29,15 +29,11 @@ export function renderWords(root, store) {
     if (moving) return;
     moving = true;
     stopSpeech();
-    await explodeText(
-      Array.from(root.querySelectorAll('[data-effect-text]')),
-      getModeTextEffect('words'),
-      { duration: 1750, stagger: 24 }
-    );
+    await explodeText(Array.from(root.querySelectorAll('[data-effect-text]')), getModeTextEffect('words'), { duration: 1750, stagger: 24 });
     store.setState({ currentIndex: state.currentIndex + 1 });
   };
 
-  const learningRate = state.learningLanguage === 'de-DE' ? 0.72 : state.learningLanguage === 'es-ES' ? 0.74 : 0.76;
+  const learningRate = state.learningLanguage === 'de-DE' ? 0.72 : state.learningLanguage === 'es-ES' ? 0.74 : state.learningLanguage.startsWith('hr-') ? 0.72 : 0.76;
   speakPair(
     { text: item.target, language: getSpeechLanguage(state.learningLanguage), rate: learningRate },
     { text: item.translation, language: getSpeechLanguage(state.nativeLanguage), rate: 0.88 },
