@@ -1,4 +1,4 @@
-import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content.js?v=4';
+import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
