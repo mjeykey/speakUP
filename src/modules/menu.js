@@ -14,6 +14,8 @@ export function renderMenu(root, store) {
   const state = store.getState();
   const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
+  const waitingForStory = state.mode === 'story' && !state.selectedStory;
+  const startLabel = state.mode === 'story' ? (waitingForStory ? 'Choose a story first' : '▶ Play Story') : 'Start';
 
   root.innerHTML = `<section class="screen menu-screen"><div class="menu-panel">
     <h1>Choose your path</h1><p class="muted">Everything runs calmly, one step at a time.</p>
@@ -26,7 +28,9 @@ export function renderMenu(root, store) {
       <label>Learning Language<select data-learning>${languageOptions}</select></label>
       <label>Support Language<select data-native>${nativeOptions}</select></label>
     </div>
-    <div class="menu-action" data-action></div>
+    <div class="menu-action">
+      <button class="primary-button menu-start-button" data-start ${waitingForStory ? 'disabled' : ''}>${startLabel}</button>
+    </div>
   </div></section>`;
 
   const modes = root.querySelector('[data-modes]');
@@ -60,13 +64,7 @@ export function renderMenu(root, store) {
     stories.appendChild(button);
   });
 
-  const start = document.createElement('button');
-  start.className = 'primary-button';
-  const waitingForStory = state.mode === 'story' && !state.selectedStory;
-  start.textContent = state.mode === 'story' ? (waitingForStory ? 'Choose a story first' : '▶ Play Story') : 'Start';
-  start.disabled = waitingForStory;
-  start.onclick = () => {
+  root.querySelector('[data-start]').onclick = () => {
     if (!waitingForStory) store.setState({ screen: state.mode });
   };
-  root.querySelector('[data-action]').appendChild(start);
 }
