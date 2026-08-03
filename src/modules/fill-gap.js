@@ -135,7 +135,6 @@ export function renderFillGap(root, store) {
 
         solvedCount += 1;
         root.querySelector('[data-learning-text]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
-        await speak(option, speechLanguage, { enabled: state.audioOn, rate: speechRate });
 
         if (solvedCount < item.answers.length) {
           saveProgress();
@@ -143,9 +142,15 @@ export function renderFillGap(root, store) {
         }
 
         solved = true;
+        const completedSentenceIndex = sentenceIndex;
+        sentenceIndex = (sentenceIndex + 1) % level.items.length;
+        solvedCount = 0;
+        saveProgress();
+
         choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
         const completeSentence = fillAnswers(item.sentence, item.answers);
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
+        await speak(option, speechLanguage, { enabled: state.audioOn, rate: speechRate });
         await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: speechRate });
         await sleep(500);
         await explodeText([
@@ -153,9 +158,8 @@ export function renderFillGap(root, store) {
           root.querySelector('[data-support-text]')
         ], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
         await sleep(180);
-        sentenceIndex = (sentenceIndex + 1) % level.items.length;
-        solvedCount = 0;
-        saveProgress();
+
+        if (completedSentenceIndex !== sentenceIndex) renderSentence();
       };
       choices.appendChild(button);
     });
