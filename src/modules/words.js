@@ -5,7 +5,10 @@ import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 export function renderWords(root, store) {
   const state = store.getState();
   const words = getWords(state.learningLanguage, state.nativeLanguage);
-  const item = words[state.currentIndex % words.length];
+  const progressKey = [state.learningLanguage, state.nativeLanguage].join('|');
+  const saved = state.progress?.words?.[progressKey] || {};
+  const currentIndex = Math.max(Number(saved.currentIndex) || 0, 0);
+  const item = words[currentIndex % words.length];
   let moving = false;
 
   root.innerHTML = `<section class="screen words-screen">
@@ -22,7 +25,7 @@ export function renderWords(root, store) {
 
   root.querySelector('[data-menu]').onclick = () => {
     stopSpeech();
-    store.setState({ screen: 'menu', currentIndex: 0 });
+    store.setState({ screen: 'menu' });
   };
 
   root.querySelector('[data-next]').onclick = async () => {
@@ -30,7 +33,13 @@ export function renderWords(root, store) {
     moving = true;
     stopSpeech();
     await explodeText(Array.from(root.querySelectorAll('[data-effect-text]')), getModeTextEffect('words'), { duration: 1750, stagger: 24 });
-    store.setState({ currentIndex: state.currentIndex + 1 });
+    store.updateProgress('words', progressKey, {
+      currentIndex: currentIndex + 1,
+      viewed: Math.min(currentIndex + 1, words.length),
+      total: words.length,
+      learningLanguage: state.learningLanguage,
+      nativeLanguage: state.nativeLanguage
+    });
   };
 
   const learningRate = state.learningLanguage === 'de-DE'
