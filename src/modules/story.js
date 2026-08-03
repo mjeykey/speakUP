@@ -17,12 +17,19 @@ function gapHtml(page,solved){
 
 export function renderStory(root,store){
  const state=store.getState();
- const story=getMultilingualStory(state.selectedStory||'everyday',state.learningLanguage,state.nativeLanguage);
+ const storyId=state.selectedStory||'everyday';
+ const story=getMultilingualStory(storyId,state.learningLanguage,state.nativeLanguage);
  const learningVoice=getSpeechLanguage(state.learningLanguage);
  const nativeVoice=getSpeechLanguage(state.nativeLanguage);
- let pageIndex=0,phaseIndex=0,solved=0,locked=false;
+ const saved=state.storyProgress;
+ const canResume=saved&&saved.storyId===storyId&&saved.learningLanguage===state.learningLanguage&&saved.nativeLanguage===state.nativeLanguage;
+ let pageIndex=canResume?Math.min(Math.max(Number(saved.pageIndex)||0,0),story.pages.length-1):0;
+ let phaseIndex=canResume?Math.min(Math.max(Number(saved.phaseIndex)||0,0),PHASES.length-1):0;
+ let solved=canResume?Math.max(Number(saved.solved)||0,0):0;
+ let locked=false;
  const page=()=>story.pages[pageIndex];
  const leave=()=>{stopSpeech();store.setState({screen:'menu'});};
+ const saveProgress=()=>store.setState({storyProgress:{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved}});
 
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
@@ -53,6 +60,7 @@ export function renderStory(root,store){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
    await speak(current.learning,learningVoice,{enabled:store.getState().audioOn,rate:.62});
   }else if(phaseIndex===2){
+   solved=Math.min(solved,current.items.length);
    const item=current.items[solved];
    const options=shuffle(current.items.map(entry=>entry.answer));
    shell(`<p class="story-phase-label">Complete the story</p><p class="story-copy story-gap-copy">${gapHtml(current,solved)}</p>
@@ -60,7 +68,9 @@ export function renderStory(root,store){
    root.querySelectorAll('[data-option]').forEach(button=>button.onclick=async()=>{
     if(locked)return;
     if(button.dataset.option.toLocaleLowerCase()===item.answer.toLocaleLowerCase()){
-     locked=true;solved+=1;await speak(item.answer,learningVoice,{enabled:store.getState().audioOn,rate:.58});locked=false;renderPhase();
+     locked=true;
+     solved+=1;
+     store.setState({storyProgress:{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved}});
     }else{
      button.classList.add('is-wrong');setTimeout(()=>button.classList.remove('is-wrong'),420);
     }
@@ -74,11 +84,11 @@ export function renderStory(root,store){
  function navigate(direction){
   if(direction>0){
    if(phaseIndex===2&&solved<page().items.length)return;
-   if(phaseIndex<3){phaseIndex+=1;if(phaseIndex===2)solved=0;return renderPhase();}
-   if(pageIndex<story.pages.length-1){pageIndex+=1;phaseIndex=0;solved=0;return renderPhase();}
+   if(phaseIndex<3){phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
+   if(pageIndex<story.pages.length-1){pageIndex+=1;phaseIndex=0;solved=0;return saveProgress();}
   }else{
-   if(phaseIndex>0){phaseIndex-=1;if(phaseIndex===2)solved=0;return renderPhase();}
-   if(pageIndex>0){pageIndex-=1;phaseIndex=3;solved=0;return renderPhase();}
+   if(phaseIndex>0){phaseIndex-=1;if(phaseIndex===2)solved=0;return saveProgress();}
+   if(pageIndex>0){pageIndex-=1;phaseIndex=3;solved=0;return saveProgress();}
   }
  }
  renderPhase();
