@@ -54,13 +54,14 @@ function playUtterance(utterance, runId, onBoundary) {
     if (onBoundary) utterance.onboundary = onBoundary;
     utterance.onend = () => resolve(runId === speechRunId);
     utterance.onerror = () => resolve(runId === speechRunId);
-    window.setTimeout(() => {
-      if (runId !== speechRunId) {
-        resolve(false);
-        return;
-      }
-      synth.speak(utterance);
-    }, 40);
+
+    if (runId !== speechRunId) {
+      resolve(false);
+      return;
+    }
+
+    synth.resume?.();
+    synth.speak(utterance);
   });
 }
 
