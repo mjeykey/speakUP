@@ -4,6 +4,7 @@ export const initialState = Object.freeze({
   learningLanguage: 'pt-PT',
   nativeLanguage: 'en-GB',
   selectedStory: null,
+  sentenceLevel: 'beginner',
   audioOn: true,
   sentenceAudioOn: true,
   translationAudioOn: true,
@@ -25,6 +26,7 @@ const persistedKeys = new Set([
   'learningLanguage',
   'nativeLanguage',
   'selectedStory',
+  'sentenceLevel',
   'audioOn',
   'sentenceAudioOn',
   'translationAudioOn',
@@ -44,7 +46,6 @@ const emptyProgress = () => ({
 function normalizeProgress(parsed) {
   const progress = { ...emptyProgress(), ...(parsed.progress || {}) };
 
-  // Preserve progress saved by the first local-storage version.
   if (parsed.storyProgress && typeof parsed.storyProgress === 'object') {
     const old = parsed.storyProgress;
     const key = [old.storyId || 'everyday', old.learningLanguage || parsed.learningLanguage || 'pt-PT', old.nativeLanguage || parsed.nativeLanguage || 'en-GB'].join('|');
@@ -107,6 +108,18 @@ export function createStore(seed = {}) {
   };
   const listeners = new Set();
 
+  const writeProgress = (section, key, value, notify) => {
+    const sectionProgress = { ...(state.progress?.[section] || {}) };
+    if (value === null) delete sectionProgress[key];
+    else sectionProgress[key] = value;
+    state = {
+      ...state,
+      progress: { ...state.progress, [section]: sectionProgress }
+    };
+    saveState(state);
+    if (notify) listeners.forEach(listener => listener(state));
+  };
+
   return {
     getState: () => state,
     setState(patch) {
@@ -115,15 +128,10 @@ export function createStore(seed = {}) {
       listeners.forEach(listener => listener(state));
     },
     updateProgress(section, key, value) {
-      const sectionProgress = { ...(state.progress?.[section] || {}) };
-      if (value === null) delete sectionProgress[key];
-      else sectionProgress[key] = value;
-      state = {
-        ...state,
-        progress: { ...state.progress, [section]: sectionProgress }
-      };
-      saveState(state);
-      listeners.forEach(listener => listener(state));
+      writeProgress(section, key, value, true);
+    },
+    saveProgress(section, key, value) {
+      writeProgress(section, key, value, false);
     },
     subscribe(listener) {
       listeners.add(listener);
