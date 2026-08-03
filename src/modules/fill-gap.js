@@ -29,6 +29,9 @@ export function renderFillGap(root, store) {
   const learningName = languageName(state.learningLanguage);
   const supportName = languageName(state.nativeLanguage);
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
+  const progressKey = `${state.learningLanguage}|${state.nativeLanguage}`;
+  const saved = state.progress?.fillGap?.[progressKey] || {};
+  const savedLevelExists = levels.some(level => level.id === saved.levelId);
   const speechRate = state.learningLanguage.startsWith('hr-')
     ? 0.56
     : speechLanguage === 'es-ES'
@@ -36,14 +39,24 @@ export function renderFillGap(root, store) {
       : speechLanguage === 'fr-FR'
         ? 0.56
         : 0.58;
-  let selectedLevelId = null;
-  let sentenceIndex = 0;
-  let solvedCount = 0;
+
+  let selectedLevelId = savedLevelExists ? saved.levelId : null;
+  let sentenceIndex = Math.max(0, Number(saved.sentenceIndex) || 0);
+  let solvedCount = Math.max(0, Number(saved.solvedCount) || 0);
   let solved = false;
+
+  const saveProgress = (patch = {}) => {
+    store.updateProgress('fillGap', progressKey, {
+      levelId: selectedLevelId,
+      sentenceIndex,
+      solvedCount,
+      ...patch
+    });
+  };
 
   const leave = () => {
     stopSpeech();
-    store.setState({ screen: 'menu', currentIndex: 0 });
+    store.setState({ screen: 'menu' });
   };
 
   function renderLevelSelection() {
@@ -69,14 +82,16 @@ export function renderFillGap(root, store) {
         selectedLevelId = button.dataset.level;
         sentenceIndex = 0;
         solvedCount = 0;
-        renderSentence();
+        saveProgress();
       };
     });
   }
 
   function renderSentence() {
     const level = levels.find(item => item.id === selectedLevelId) || levels[0];
-    const item = level.items[sentenceIndex % level.items.length];
+    sentenceIndex %= level.items.length;
+    const item = level.items[sentenceIndex];
+    solvedCount = Math.min(solvedCount, item.answers.length);
     solved = false;
     const visibleSentence = fillAnswers(item.sentence, item.answers, solvedCount);
 
@@ -123,9 +138,7 @@ export function renderFillGap(root, store) {
         await speak(option, speechLanguage, { enabled: state.audioOn, rate: speechRate });
 
         if (solvedCount < item.answers.length) {
-          root.querySelector('[data-feedback]').textContent = 'Good — one more step.';
-          await sleep(250);
-          renderSentence();
+          saveProgress();
           return;
         }
 
@@ -142,7 +155,7 @@ export function renderFillGap(root, store) {
         await sleep(180);
         sentenceIndex = (sentenceIndex + 1) % level.items.length;
         solvedCount = 0;
-        renderSentence();
+        saveProgress();
       };
       choices.appendChild(button);
     });
@@ -153,5 +166,6 @@ export function renderFillGap(root, store) {
     }, 350);
   }
 
-  renderLevelSelection();
+  if (selectedLevelId) renderSentence();
+  else renderLevelSelection();
 }
