@@ -1,4 +1,4 @@
-import { createStore } from './state.js?v=52';
+import { createStore } from './state.js?v=53';
 import { renderWelcome } from '../modules/welcome.js?v=52';
 import { renderMenu } from '../modules/menu.js?v=63';
 import { renderWords } from '../modules/words.js?v=52';
