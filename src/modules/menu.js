@@ -34,7 +34,7 @@ export function renderMenu(root, store) {
     const button = document.createElement('button');
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
-    button.onclick = () => store.setState({ mode: id, selectedStory: id === 'story' ? state.selectedStory : state.selectedStory, currentIndex: 0 });
+    button.onclick = () => store.setState({ mode: id, selectedStory: state.selectedStory, currentIndex: 0 });
     modes.appendChild(button);
   });
 
@@ -60,12 +60,13 @@ export function renderMenu(root, store) {
     stories.appendChild(button);
   });
 
-  const canStart = state.mode !== 'story' || Boolean(state.selectedStory);
-  if (canStart) {
-    const start = document.createElement('button');
-    start.className = 'primary-button';
-    start.textContent = state.mode === 'story' ? '▶ Play Story' : 'Start';
-    start.onclick = () => store.setState({ screen: state.mode });
-    root.querySelector('[data-action]').appendChild(start);
-  }
+  const start = document.createElement('button');
+  start.className = 'primary-button';
+  const waitingForStory = state.mode === 'story' && !state.selectedStory;
+  start.textContent = state.mode === 'story' ? (waitingForStory ? 'Choose a story first' : '▶ Play Story') : 'Start';
+  start.disabled = waitingForStory;
+  start.onclick = () => {
+    if (!waitingForStory) store.setState({ screen: state.mode });
+  };
+  root.querySelector('[data-action]').appendChild(start);
 }
