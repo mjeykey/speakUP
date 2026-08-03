@@ -3,7 +3,9 @@ import { getEmotionPickerCopy } from '../data/emotions/picker-copy.js?v=1';
 import { EMOTION_TIPS } from '../data/emotions/emotion-support.js?v=1';
 import { getEmotionClosing } from '../data/emotions/emotion-closings.js?v=1';
 import { getPortugueseEmotionPractice } from '../data/emotions/portuguese-voice.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=44';
+import { getFrenchEmotionPractice } from '../data/emotions/french-voice.js?v=1';
+import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
+import { speak, stopSpeech } from '../audio/speech.js?v=58';
 
 const STEPS = ['validation','reflection','exercise','language','closing'];
 
@@ -63,8 +65,16 @@ function pickTitle(options, fallback) {
   return options[Math.floor(Math.random() * options.length)];
 }
 
+function getSelectedEmotionPractice(language, emotionId) {
+  if (language === 'fr-FR') return getFrenchEmotionPractice(emotionId);
+  return getPortugueseEmotionPractice(emotionId);
+}
+
 export function renderEmotions(root, store) {
   const state = store.getState();
+  const learningLanguage = state.learningLanguage === 'fr-FR' ? 'fr-FR' : 'pt-PT';
+  const learningLabel = languageName(learningLanguage);
+  const learningVoice = getSpeechLanguage(learningLanguage);
   let selected = null;
   let stepIndex = 0;
   let phraseIndex = 0;
@@ -108,8 +118,8 @@ export function renderEmotions(root, store) {
   function renderStep() {
     const step = STEPS[stepIndex];
     const tips = EMOTION_TIPS[selected.id] || [selected.exercise];
-    const portuguese = getPortugueseEmotionPractice(selected.id);
-    const portugueseSentence = portuguese.sentences[phraseIndex % portuguese.sentences.length];
+    const practice = getSelectedEmotionPractice(learningLanguage, selected.id);
+    const practiceSentence = practice.sentences[phraseIndex % practice.sentences.length];
     let title = '';
     let body = '';
     let extra = '';
@@ -131,13 +141,13 @@ export function renderEmotions(root, store) {
         </div>
         <div class="emotion-breath" aria-hidden="true"><span></span></div>`;
     } else if (step === 'language') {
-      title = 'Come, speak Portuguese with me';
-      body = portuguese.intro;
+      title = `Come, speak ${learningLabel} with me`;
+      body = practice.intro;
       extra = `<div class="emotion-portuguese-practice">
-          <p class="emotion-portuguese-label">Português (Portugal)</p>
-          <p class="emotion-portuguese-sentence" data-portuguese-sentence>${escapeHtml(portugueseSentence)}</p>
+          <p class="emotion-portuguese-label">${escapeHtml(learningLabel)}</p>
+          <p class="emotion-portuguese-sentence" data-portuguese-sentence>${escapeHtml(practiceSentence)}</p>
           <div class="emotion-verb-list" aria-label="Useful verbs">
-            ${portuguese.verbs.map(verb => `<span>${escapeHtml(verb)}</span>`).join('')}
+            ${practice.verbs.map(verb => `<span>${escapeHtml(verb)}</span>`).join('')}
           </div>
           <p class="emotion-language-hint">The sentence recognises the feeling first. Say it slowly; you do not have to sound perfect.</p>
           <div class="emotion-language-actions">
@@ -201,9 +211,9 @@ export function renderEmotions(root, store) {
     };
 
     const listen = root.querySelector('[data-listen]');
-    if (listen) listen.onclick = () => speak(portugueseSentence, 'pt-PT', { enabled:state.audioOn, rate:0.58 });
+    if (listen) listen.onclick = () => speak(practiceSentence, learningVoice, { enabled:state.audioOn, rate:0.58 });
     const nextPhrase = root.querySelector('[data-next-phrase]');
-    if (nextPhrase) nextPhrase.onclick = () => { phraseIndex = (phraseIndex + 1) % portuguese.sentences.length; renderStep(); };
+    if (nextPhrase) nextPhrase.onclick = () => { phraseIndex = (phraseIndex + 1) % practice.sentences.length; renderStep(); };
   }
 
   renderPicker();
