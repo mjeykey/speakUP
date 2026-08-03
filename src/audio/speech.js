@@ -1,13 +1,50 @@
 const synth = window.speechSynthesis;
 let speechRunId = 0;
+let voicesReadyPromise = null;
+
+function availableVoices() {
+  return synth?.getVoices?.() || [];
+}
+
+function waitForVoices(timeout = 1500) {
+  const currentVoices = availableVoices();
+  if (currentVoices.length || !synth) return Promise.resolve(currentVoices);
+  if (voicesReadyPromise) return voicesReadyPromise;
+
+  voicesReadyPromise = new Promise(resolve => {
+    let finished = false;
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      synth.removeEventListener?.('voiceschanged', handleVoicesChanged);
+      resolve(availableVoices());
+    };
+
+    const handleVoicesChanged = () => {
+      if (availableVoices().length) finish();
+    };
+
+    synth.addEventListener?.('voiceschanged', handleVoicesChanged);
+    window.setTimeout(finish, timeout);
+  }).finally(() => {
+    voicesReadyPromise = null;
+  });
+
+  return voicesReadyPromise;
+}
 
 function pickVoice(language) {
   const requested = String(language || '').toLowerCase();
   const base = requested.split('-')[0];
-  const voices = synth?.getVoices?.() || [];
-  return voices.find(voice => String(voice.lang || '').toLowerCase() === requested)
-    || voices.find(voice => String(voice.lang || '').toLowerCase().startsWith(base))
-    || null;
+  const voices = availableVoices();
+  const sameLanguageVoices = voices.filter(
+    voice => String(voice.lang || '').toLowerCase().split('-')[0] === base
+  );
+
+  return sameLanguageVoices.find(
+    voice => String(voice.lang || '').toLowerCase() === requested
+  ) || sameLanguageVoices[0] || null;
 }
 
 function adjustedRate(language, requestedRate, fallbackRate = 0.82) {
@@ -36,18 +73,24 @@ function splitSpeechSegments(text) {
 }
 
 function createUtterance(text, language, rate, pitch = 1) {
+  const requestedLanguage = String(language || 'en-GB');
+  const voice = pickVoice(requestedLanguage);
+  const isFrench = requestedLanguage.toLowerCase().startsWith('fr');
+
+  // Never let the browser pronounce French with a Portuguese or generic default voice.
+  if (isFrench && !voice) return null;
+
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = language;
+  utterance.lang = voice?.lang || requestedLanguage;
   utterance.rate = rate;
   utterance.pitch = pitch;
-  const voice = pickVoice(language);
   if (voice) utterance.voice = voice;
   return utterance;
 }
 
 function playUtterance(utterance, runId, onBoundary) {
   return new Promise(resolve => {
-    if (!synth || runId !== speechRunId) {
+    if (!synth || !utterance || runId !== speechRunId) {
       resolve(false);
       return;
     }
@@ -87,9 +130,13 @@ export function speak(textOrRequest, language, options = {}) {
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    await waitForVoices();
+    if (runId !== speechRunId) return;
+
     for (const segment of segments) {
       if (runId !== speechRunId) return;
       const utterance = createUtterance(segment, selectedLanguage, rate, pitch);
+      if (!utterance) return;
       const completed = await playUtterance(utterance, runId);
       if (!completed || runId !== speechRunId) return;
       const pause = punctuationPause(segment);
@@ -113,6 +160,9 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    await waitForVoices();
+    if (runId !== speechRunId) return;
+
     let globalWordIndex = 0;
 
     for (const segment of segments) {
@@ -146,6 +196,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
       };
 
       const utterance = createUtterance(segment, language, selectedRate);
+      if (!utterance) return;
       utterance.onstart = () => showLocalWord(0);
 
       const fallbackTimer = window.setInterval(() => {
