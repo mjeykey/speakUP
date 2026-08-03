@@ -9,7 +9,7 @@ import { renderStory } from '../modules/story-loader.js?v=60';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=52';
 import { renderEmotions } from '../modules/emotions.js?v=52';
 import { renderFuture } from '../modules/future.js?v=1';
-import { stopSpeech } from '../audio/speech.js?v=56';
+import { stopSpeech } from '../audio/speech.js?v=57';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
