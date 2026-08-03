@@ -26,9 +26,12 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
 export function renderFillGap(root, store) {
   const state = store.getState();
   const levels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
+  const level = levels.find(item => item.id === state.sentenceLevel) || levels[0];
   const learningName = languageName(state.learningLanguage);
   const supportName = languageName(state.nativeLanguage);
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
+  const progressKey = `${state.learningLanguage}|${state.nativeLanguage}|${level.id}`;
+  const saved = state.progress?.fillGap?.[progressKey] || {};
   const speechRate = state.learningLanguage.startsWith('hr-')
     ? 0.56
     : speechLanguage === 'es-ES'
@@ -36,53 +39,28 @@ export function renderFillGap(root, store) {
       : speechLanguage === 'fr-FR'
         ? 0.56
         : 0.58;
-  let selectedLevelId = null;
-  let sentenceIndex = 0;
-  let solvedCount = 0;
+
+  let sentenceIndex = Math.max(0, Number(saved.sentenceIndex) || 0) % level.items.length;
+  let solvedCount = Math.max(0, Number(saved.solvedCount) || 0);
   let solved = false;
+
+  const saveProgress = () => {
+    store.saveProgress('fillGap', progressKey, { sentenceIndex, solvedCount });
+  };
 
   const leave = () => {
     stopSpeech();
-    store.setState({ screen: 'menu', currentIndex: 0 });
+    store.setState({ screen: 'menu' });
   };
 
-  function renderLevelSelection() {
-    stopSpeech();
-    root.innerHTML = `<section class="screen sentence-mode-screen">
-      <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
-      <div class="center sentence-level-view">
-        <p class="kicker">Sentences · ${learningName}</p>
-        <h1>Choose your level</h1>
-        <p class="muted">Support language: ${supportName}</p>
-        <div class="sentence-level-grid">
-          ${levels.map(level => `<button class="sentence-level-card" data-level="${level.id}">
-            <span class="sentence-level-emoji">${level.emoji}</span>
-            <span class="sentence-level-title">${level.title}</span>
-            <small>${level.description}</small>
-          </button>`).join('')}
-        </div>
-      </div>
-    </section>`;
-    root.querySelector('[data-menu]').onclick = leave;
-    root.querySelectorAll('[data-level]').forEach(button => {
-      button.onclick = () => {
-        selectedLevelId = button.dataset.level;
-        sentenceIndex = 0;
-        solvedCount = 0;
-        renderSentence();
-      };
-    });
-  }
-
   function renderSentence() {
-    const level = levels.find(item => item.id === selectedLevelId) || levels[0];
-    const item = level.items[sentenceIndex % level.items.length];
+    const item = level.items[sentenceIndex];
+    solvedCount = Math.min(solvedCount, item.answers.length);
     solved = false;
     const visibleSentence = fillAnswers(item.sentence, item.answers, solvedCount);
 
     root.innerHTML = `<section class="screen sentence-mode-screen">
       <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
-      <button class="sentence-level-back" data-levels>Levels</button>
       <div class="center sentence-mode-view">
         <p class="kicker">Sentences · ${learningName} · ${level.title}</p>
         <p class="sentence-mode-progress">Sentence ${sentenceIndex + 1} / ${level.items.length} · Gap ${Math.min(solvedCount + 1, item.answers.length)} / ${item.answers.length}</p>
@@ -98,7 +76,6 @@ export function renderFillGap(root, store) {
     </section>`;
 
     root.querySelector('[data-menu]').onclick = leave;
-    root.querySelector('[data-levels]').onclick = renderLevelSelection;
     const choices = root.querySelector('[data-choices]');
     const expected = item.answers[solvedCount];
 
@@ -120,6 +97,7 @@ export function renderFillGap(root, store) {
 
         solvedCount += 1;
         root.querySelector('[data-learning-text]').textContent = fillAnswers(item.sentence, item.answers, solvedCount);
+        saveProgress();
         await speak(option, speechLanguage, { enabled: state.audioOn, rate: speechRate });
 
         if (solvedCount < item.answers.length) {
@@ -133,6 +111,11 @@ export function renderFillGap(root, store) {
         choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
         const completeSentence = fillAnswers(item.sentence, item.answers);
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
+
+        sentenceIndex = (sentenceIndex + 1) % level.items.length;
+        solvedCount = 0;
+        saveProgress();
+
         await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: speechRate });
         await sleep(500);
         await explodeText([
@@ -140,8 +123,6 @@ export function renderFillGap(root, store) {
           root.querySelector('[data-support-text]')
         ], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
         await sleep(180);
-        sentenceIndex = (sentenceIndex + 1) % level.items.length;
-        solvedCount = 0;
         renderSentence();
       };
       choices.appendChild(button);
@@ -153,5 +134,5 @@ export function renderFillGap(root, store) {
     }, 350);
   }
 
-  renderLevelSelection();
+  renderSentence();
 }
