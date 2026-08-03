@@ -18,18 +18,18 @@ function gapHtml(page,solved){
 export function renderStory(root,store){
  const state=store.getState();
  const storyId=state.selectedStory||'everyday';
+ const progressKey=[storyId,state.learningLanguage,state.nativeLanguage].join('|');
  const story=getMultilingualStory(storyId,state.learningLanguage,state.nativeLanguage);
  const learningVoice=getSpeechLanguage(state.learningLanguage);
  const nativeVoice=getSpeechLanguage(state.nativeLanguage);
- const saved=state.storyProgress;
- const canResume=saved&&saved.storyId===storyId&&saved.learningLanguage===state.learningLanguage&&saved.nativeLanguage===state.nativeLanguage;
- let pageIndex=canResume?Math.min(Math.max(Number(saved.pageIndex)||0,0),story.pages.length-1):0;
- let phaseIndex=canResume?Math.min(Math.max(Number(saved.phaseIndex)||0,0),PHASES.length-1):0;
- let solved=canResume?Math.max(Number(saved.solved)||0,0):0;
+ const saved=state.progress?.story?.[progressKey];
+ let pageIndex=Math.min(Math.max(Number(saved?.pageIndex)||0,0),story.pages.length-1);
+ let phaseIndex=Math.min(Math.max(Number(saved?.phaseIndex)||0,0),PHASES.length-1);
+ let solved=Math.max(Number(saved?.solved)||0,0);
  let locked=false;
  const page=()=>story.pages[pageIndex];
  const leave=()=>{stopSpeech();store.setState({screen:'menu'});};
- const saveProgress=()=>store.setState({storyProgress:{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved}});
+ const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
 
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
@@ -70,7 +70,7 @@ export function renderStory(root,store){
     if(button.dataset.option.toLocaleLowerCase()===item.answer.toLocaleLowerCase()){
      locked=true;
      solved+=1;
-     store.setState({storyProgress:{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved}});
+     saveProgress();
     }else{
      button.classList.add('is-wrong');setTimeout(()=>button.classList.remove('is-wrong'),420);
     }
