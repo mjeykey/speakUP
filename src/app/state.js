@@ -7,7 +7,8 @@ export const initialState = Object.freeze({
   audioOn: true,
   sentenceAudioOn: true,
   translationAudioOn: true,
-  currentIndex: 0
+  currentIndex: 0,
+  storyProgress: null
 });
 
 const STORAGE_KEY = 'speakup-progress-v1';
@@ -20,7 +21,8 @@ const persistedKeys = new Set([
   'audioOn',
   'sentenceAudioOn',
   'translationAudioOn',
-  'currentIndex'
+  'currentIndex',
+  'storyProgress'
 ]);
 
 function loadSavedState() {
