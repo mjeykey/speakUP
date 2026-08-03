@@ -10,6 +10,12 @@ const MODES = [
   ['story', 'Story Mode', 'Tiny stories with mother-language clues.']
 ];
 
+const SENTENCE_LEVELS = [
+  ['beginner', '🌱 Beginner', 'One gap with full support.'],
+  ['survivor', '🔥 Survivor', 'Two gaps with full support.'],
+  ['explorer', '🧭 Explorer', 'Three gaps with softer support.']
+];
+
 export function renderMenu(root, store) {
   const state = store.getState();
   const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
@@ -22,6 +28,11 @@ export function renderMenu(root, store) {
     <h2>Learning Mode</h2><div class="card-grid" data-modes></div>
     ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
     <h2>Personalise</h2>
+    ${state.mode === 'fill-gap' ? `<div class="sentence-level-grid" data-sentence-levels>
+      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button class="sentence-level-card ${state.sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}">
+        <span class="sentence-level-title">${title}</span><small>${description}</small>
+      </button>`).join('')}
+    </div>` : ''}
     <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
     <button class="menu-card future-menu-card" data-future><span>✦ Future SpeakUP</span><small>See what is planned next.</small></button>
     <div class="settings-row">
@@ -40,6 +51,10 @@ export function renderMenu(root, store) {
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
     button.onclick = () => store.setState({ mode: id, selectedStory: state.selectedStory, currentIndex: 0 });
     modes.appendChild(button);
+  });
+
+  root.querySelectorAll('[data-sentence-level]').forEach(button => {
+    button.onclick = () => store.setState({ sentenceLevel: button.dataset.sentenceLevel });
   });
 
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
