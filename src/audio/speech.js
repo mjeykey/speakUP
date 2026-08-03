@@ -1,13 +1,51 @@
 const synth = window.speechSynthesis;
 let speechRunId = 0;
 
-function pickVoice(language) {
+const isMobileSpeechDevice = (() => {
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
+  const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+  return Boolean(coarsePointer || mobileUserAgent);
+})();
+
+let desktopVoices = [];
+
+function refreshDesktopVoices() {
+  desktopVoices = synth?.getVoices?.() || [];
+  return desktopVoices;
+}
+
+if (synth) {
+  refreshDesktopVoices();
+  synth.addEventListener?.('voiceschanged', refreshDesktopVoices);
+}
+
+function pickMobileVoice(language) {
   const requested = String(language || '').toLowerCase();
   const base = requested.split('-')[0];
   const voices = synth?.getVoices?.() || [];
+
   return voices.find(voice => String(voice.lang || '').toLowerCase() === requested)
     || voices.find(voice => String(voice.lang || '').toLowerCase().startsWith(base))
     || null;
+}
+
+function pickDesktopVoice(language) {
+  const requested = String(language || '').toLowerCase();
+  const base = requested.split('-')[0];
+  const voices = desktopVoices.length ? desktopVoices : refreshDesktopVoices();
+
+  return voices.find(voice => String(voice.lang || '').toLowerCase() === requested)
+    || voices.find(voice => {
+      const voiceLanguage = String(voice.lang || '').toLowerCase();
+      return voiceLanguage === base || voiceLanguage.startsWith(`${base}-`);
+    })
+    || null;
+}
+
+function pickVoice(language) {
+  return isMobileSpeechDevice
+    ? pickMobileVoice(language)
+    : pickDesktopVoice(language);
 }
 
 function adjustedRate(language, requestedRate, fallbackRate = 0.82) {
@@ -36,18 +74,24 @@ function splitSpeechSegments(text) {
 }
 
 function createUtterance(text, language, rate, pitch = 1) {
+  const voice = pickVoice(language);
+  const isFrench = String(language || '').toLowerCase().startsWith('fr');
+
+  // Desktop French must never fall back to an unrelated system voice.
+  // Mobile keeps its own working system fallback and direct playback path.
+  if (!isMobileSpeechDevice && isFrench && !voice) return null;
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = language;
   utterance.rate = rate;
   utterance.pitch = pitch;
-  const voice = pickVoice(language);
   if (voice) utterance.voice = voice;
   return utterance;
 }
 
 function playUtterance(utterance, runId, onBoundary) {
   return new Promise(resolve => {
-    if (!synth || runId !== speechRunId) {
+    if (!synth || !utterance || runId !== speechRunId) {
       resolve(false);
       return;
     }
@@ -147,6 +191,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
       };
 
       const utterance = createUtterance(segment, language, selectedRate);
+      if (!utterance) return;
       utterance.onstart = () => showLocalWord(0);
 
       const fallbackTimer = window.setInterval(() => {
