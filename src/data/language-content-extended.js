@@ -5,7 +5,8 @@ import {
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
 } from './language-registry.js?v=1';
-import { getEveryday50Level, correctedDalmatianLevels } from './sentence-pack-everyday-50.js?v=1';
+import { getEveryday50Level } from './sentence-pack-everyday-50.js?v=1';
+import { fixDalmatianSentence } from './dalmatian-sentence-fix.js?v=1';
 
 export const LANGUAGE_OPTIONS = [
   ...BASE_LANGUAGE_OPTIONS,
@@ -90,10 +91,10 @@ export function getSentenceLevels(learningLanguage, nativeLanguage) {
       ...level,
       items: level.items.map((item, itemIndex) => ({ ...item, translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex] }))
     }));
-    return appendEveryday(learningLanguage === 'hr-DAL' ? correctedDalmatianLevels(levels) : levels, learningLanguage, nativeLanguage);
+    return appendEveryday(learningLanguage === 'hr-DAL' ? fixDalmatianSentence(levels) : levels, learningLanguage, nativeLanguage);
   }
 
   let levels = baseGetSentenceLevels(learningLanguage, nativeLanguage);
-  if (learningLanguage === 'hr-DAL') levels = correctedDalmatianLevels(levels);
+  if (learningLanguage === 'hr-DAL') levels = fixDalmatianSentence(levels);
   return appendEveryday(levels, learningLanguage, nativeLanguage);
 }
