@@ -1,7 +1,7 @@
 import { EMOTIONS } from '../data/emotions/index.js?v=2';
 import { getPortugueseEmotionPractice } from '../data/emotions/portuguese-voice.js?v=1';
 import { getFrenchEmotionPractice } from '../data/emotions/french-voice.js?v=1';
-import { getEmotionFlow } from '../data/emotions/emotion-flow.js?v=1';
+import { getEmotionFlow } from '../data/emotions/emotion-flow.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=58';
 
