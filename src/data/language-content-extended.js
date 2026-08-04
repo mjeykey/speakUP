@@ -5,6 +5,7 @@ import {
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
 } from './language-registry.js?v=1';
+import { getEveryday50Level, correctedDalmatianLevels } from './sentence-pack-everyday-50.js?v=1';
 
 export const LANGUAGE_OPTIONS = [
   ...BASE_LANGUAGE_OPTIONS,
@@ -46,6 +47,11 @@ function replaceWordSide(items, side) {
   return items.map((item, index) => ({ ...item, [side]: ANDALUSIAN_WORDS[index] || item[side] }));
 }
 
+function appendEveryday(levels, learningLanguage, nativeLanguage) {
+  const extra = getEveryday50Level(learningLanguage, nativeLanguage);
+  return extra ? [...levels, extra] : levels;
+}
+
 export function languageName(code) {
   return code === 'es-AN' ? 'Andalucía' : baseLanguageName(code);
 }
@@ -68,22 +74,26 @@ export function getSentenceLevels(learningLanguage, nativeLanguage) {
   if (learningLanguage === 'es-AN') {
     const supportLanguage = nativeLanguage === 'es-AN' ? 'es-ES' : nativeLanguage;
     const baseLevels = baseGetSentenceLevels('es-ES', supportLanguage);
-    return baseLevels.map((level, levelIndex) => ({
+    const levels = baseLevels.map((level, levelIndex) => ({
       ...level,
       items: level.items.map((item, itemIndex) => {
         const exercise = ANDALUSIAN_EXERCISES[levelIndex * 5 + itemIndex];
         return { ...item, sentence: exercise[0], answers: exercise[1], options: exercise[2] };
       })
     }));
+    return appendEveryday(levels, learningLanguage, nativeLanguage);
   }
 
   if (nativeLanguage === 'es-AN') {
     const baseLevels = baseGetSentenceLevels(learningLanguage, 'es-ES');
-    return baseLevels.map((level, levelIndex) => ({
+    const levels = baseLevels.map((level, levelIndex) => ({
       ...level,
       items: level.items.map((item, itemIndex) => ({ ...item, translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex] }))
     }));
+    return appendEveryday(learningLanguage === 'hr-DAL' ? correctedDalmatianLevels(levels) : levels, learningLanguage, nativeLanguage);
   }
 
-  return baseGetSentenceLevels(learningLanguage, nativeLanguage);
+  let levels = baseGetSentenceLevels(learningLanguage, nativeLanguage);
+  if (learningLanguage === 'hr-DAL') levels = correctedDalmatianLevels(levels);
+  return appendEveryday(levels, learningLanguage, nativeLanguage);
 }
