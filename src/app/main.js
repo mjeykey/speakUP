@@ -7,7 +7,7 @@ import { renderFillGap } from '../modules/fill-gap.js?v=60';
 import { renderSpeakPractice } from '../modules/speak-practice.js?v=54';
 import { renderStory } from '../modules/story-loader.js?v=62';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=52';
-import { renderEmotions } from '../modules/emotions.js?v=55';
+import { renderEmotions } from '../modules/emotions.js?v=56';
 import { renderFuture } from '../modules/future.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=58';
 
