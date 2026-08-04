@@ -1,4 +1,5 @@
 import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=4';
+import { repairSentenceLevels } from '../data/sentence-integrity.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
 
@@ -25,7 +26,8 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
 
 export function renderFillGap(root, store) {
   const state = store.getState();
-  const levels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
+  const rawLevels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
+  const levels = repairSentenceLevels(rawLevels, state.learningLanguage, state.nativeLanguage);
   const level = levels.find(item => item.id === state.sentenceLevel) || levels[0];
   const learningName = languageName(state.learningLanguage);
   const supportName = languageName(state.nativeLanguage);
