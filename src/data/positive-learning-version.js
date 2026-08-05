@@ -1,1 +1,0 @@
-export const POSITIVE_LEARNING_VERSION = '1.2.0';
