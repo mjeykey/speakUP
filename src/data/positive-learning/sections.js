@@ -1,6 +1,7 @@
 export const POSITIVE_SECTIONS = [
   ['sentences','Sätze'],
   ['words','Wörter'],
+  ['stories','Geschichten'],
   ['dialogues','Dialoge'],
   ['pronunciation','Aussprache'],
   ['writing','Schreiben'],
@@ -8,12 +9,18 @@ export const POSITIVE_SECTIONS = [
   ['memory','Memory']
 ];
 
-export function getPositiveItem(section, index, data) {
-  const sentence = data.sentences[index % data.sentences.length];
-  const word = data.words[index % data.words.length];
+export function getPositiveCollection(section, data) {
+  if (section === 'words') return data.words || [];
+  if (section === 'stories') return data.stories || [];
+  if (section === 'memory') return data.memory || [];
+  return data.sentences || [];
+}
 
-  if (section === 'words' || section === 'memory') return word;
-  if (section === 'dialogues') return `${sentence} — Ja, ich mache weiter.`;
-  if (section === 'writing') return `Schreibe weiter: ${sentence}`;
-  return sentence;
+export function getPositiveItem(section, index, data) {
+  const collection = getPositiveCollection(section, data);
+  const item = collection[index % Math.max(collection.length, 1)] || '';
+
+  if (section === 'dialogues') return `${item} — Ja, ich mache weiter.`;
+  if (section === 'writing') return `Schreibe weiter: ${item}`;
+  return item;
 }
