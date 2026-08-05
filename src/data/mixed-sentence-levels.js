@@ -1,4 +1,6 @@
-import { getSentenceLevels as getLevelsWithMotivation } from './extended-motivational-sentence-pack.js?v=1';
+import { getSentenceLevels as getLevelsWithMotivation } from './extended-motivational-sentence-pack.js?v=2';
+
+const TARGET_TOTAL = 50;
 
 function interleave(existingItems, addedItems) {
   if (!addedItems.length) return existingItems;
@@ -23,13 +25,17 @@ export function getSentenceLevels(learningLanguage, nativeLanguage) {
   const motivation = levels.find(level => level.id === 'motivation');
   const visibleLevels = levels.filter(level => level.id !== 'motivation');
 
-  if (!motivation?.items?.length || !visibleLevels.length) return visibleLevels;
+  if (!visibleLevels.length) return [];
+
+  const existingTotal = visibleLevels.reduce((sum, level) => sum + level.items.length, 0);
+  const needed = Math.max(0, TARGET_TOTAL - existingTotal);
+  const additions = (motivation?.items || []).slice(0, needed);
 
   return visibleLevels.map((level, levelIndex) => {
-    const additions = motivation.items.filter((_, itemIndex) => itemIndex % visibleLevels.length === levelIndex);
+    const levelAdditions = additions.filter((_, itemIndex) => itemIndex % visibleLevels.length === levelIndex);
     return {
       ...level,
-      items: interleave(level.items, additions)
+      items: interleave(level.items, levelAdditions)
     };
   });
 }
