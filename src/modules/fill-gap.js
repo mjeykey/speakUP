@@ -1,4 +1,4 @@
-import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=1';
+import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=4';
 import { repairSentenceLevels } from '../data/sentence-integrity.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
