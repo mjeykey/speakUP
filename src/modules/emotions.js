@@ -1,37 +1,21 @@
 import { EMOTIONS } from '../data/emotions/index.js?v=2';
-import { getPortugueseEmotionPractice } from '../data/emotions/portuguese-voice.js?v=1';
-import { getFrenchEmotionPractice } from '../data/emotions/french-voice.js?v=1';
-import { getEmotionFlow } from '../data/emotions/emotion-flow.js?v=2';
+import { getEmotionLabels, getEmotionPractice, resolveEmotionLanguage } from '../data/emotions/language-packs.js?v=1';
+import { getEmotionFlow } from '../data/emotions/emotion-flow.js?v=3';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=58';
-
-const LABELS = {
-  'pt-PT': {
-    title: 'Como te sentes agora?', subtitle: 'Escolhe uma emoção.', listen: 'Ouvir', back: 'Voltar', another: 'Escolher outra emoção',
-    choose: 'Completa a instrução para continuar.', correct: 'Certo! Agora faz o movimento.', tryAgain: 'Quase. Escolhe outra palavra.', continue: 'Continuar', finish: 'Terminar', seconds: 'segundos',
-    emotions: { jealousy:'Ciúme', anger:'Raiva', anxiety:'Ansiedade', stress:'Stress', sadness:'Tristeza', insecure:'Insegurança', overwhelmed:'Sobrecarregada', excited:'Entusiasmo', lonely:'Solidão', disappointed:'Desilusão', selflove:'Amor-próprio', spiral:'Pensamentos repetitivos' }
-  },
-  'fr-FR': {
-    title: 'Comment te sens-tu maintenant ?', subtitle: 'Choisis une émotion.', listen: 'Écouter', back: 'Retour', another: 'Choisir une autre émotion',
-    choose: 'Complète l’instruction pour continuer.', correct: 'Exact ! Maintenant, fais le mouvement.', tryAgain: 'Presque. Choisis un autre mot.', continue: 'Continuer', finish: 'Terminer', seconds: 'secondes',
-    emotions: { jealousy:'Jalousie', anger:'Colère', anxiety:'Anxiété', stress:'Stress', sadness:'Tristesse', insecure:'Insécurité', overwhelmed:'Débordée', excited:'Enthousiasme', lonely:'Solitude', disappointed:'Déception', selflove:'Amour de soi', spiral:'Pensées répétitives' }
-  }
-};
 
 function escapeHtml(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 }
 
-function selectedLanguage(language) { return language === 'fr-FR' ? 'fr-FR' : 'pt-PT'; }
-function getPractice(language, emotionId) { return language === 'fr-FR' ? getFrenchEmotionPractice(emotionId) : getPortugueseEmotionPractice(emotionId); }
 function shuffled(items) { return [...items].sort(() => Math.random() - .5); }
 
 export function renderEmotions(root, store) {
   const state = store.getState();
-  const learningLanguage = selectedLanguage(state.learningLanguage);
-  const copy = LABELS[learningLanguage];
+  const learningLanguage = resolveEmotionLanguage(state.learningLanguage);
+  const copy = getEmotionLabels(learningLanguage);
   const voice = getSpeechLanguage(learningLanguage);
-  const languageLabel = languageName(learningLanguage);
+  const languageLabel = languageName(state.learningLanguage);
   let selected = null;
   let stepIndex = 0;
   let phase = 'question';
@@ -52,7 +36,7 @@ export function renderEmotions(root, store) {
   }
 
   function getSteps() {
-    const practice = getPractice(learningLanguage, selected.id);
+    const practice = getEmotionPractice(learningLanguage, selected.id);
     return getEmotionFlow(learningLanguage, selected.id, practice);
   }
 
@@ -112,6 +96,7 @@ export function renderEmotions(root, store) {
     clearTimer(); stopSpeech();
     const steps = getSteps();
     const step = steps[stepIndex];
+    if (!step) { renderPicker(); return; }
     if (phase === 'action') renderAction(step, steps); else if (phase === 'calm') renderCalm(step, steps); else renderQuestion(step, steps);
   }
 
