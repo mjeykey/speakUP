@@ -1,6 +1,6 @@
-import { getSentenceLevels as getLevelsWithMotivation } from './extended-motivational-sentence-pack.js?v=2';
+import { getSentenceLevels as getLevelsWithMotivation } from './extended-motivational-sentence-pack.js?v=3';
 
-const TARGET_TOTAL = 50;
+const TARGET_PER_LEVEL = 50;
 
 function interleave(existingItems, addedItems) {
   if (!addedItems.length) return existingItems;
@@ -20,22 +20,22 @@ function interleave(existingItems, addedItems) {
   return [...result, ...addedItems.slice(addedIndex)];
 }
 
+function fillToTarget(items, source, target) {
+  const needed = Math.max(0, target - items.length);
+  if (!needed || !source.length) return items.slice(0, target);
+
+  const additions = Array.from({ length: needed }, (_, index) => source[index % source.length]);
+  return interleave(items, additions).slice(0, target);
+}
+
 export function getSentenceLevels(learningLanguage, nativeLanguage) {
   const levels = getLevelsWithMotivation(learningLanguage, nativeLanguage);
   const motivation = levels.find(level => level.id === 'motivation');
-  const visibleLevels = levels.filter(level => level.id !== 'motivation');
+  const visibleLevels = levels.filter(level => ['beginner', 'survivor', 'explorer'].includes(level.id));
+  const motivationalItems = motivation?.items || [];
 
-  if (!visibleLevels.length) return [];
-
-  const existingTotal = visibleLevels.reduce((sum, level) => sum + level.items.length, 0);
-  const needed = Math.max(0, TARGET_TOTAL - existingTotal);
-  const additions = (motivation?.items || []).slice(0, needed);
-
-  return visibleLevels.map((level, levelIndex) => {
-    const levelAdditions = additions.filter((_, itemIndex) => itemIndex % visibleLevels.length === levelIndex);
-    return {
-      ...level,
-      items: interleave(level.items, levelAdditions)
-    };
-  });
+  return visibleLevels.map(level => ({
+    ...level,
+    items: fillToTarget(level.items || [], motivationalItems, TARGET_PER_LEVEL)
+  }));
 }

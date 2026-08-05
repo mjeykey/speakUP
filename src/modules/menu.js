@@ -16,8 +16,11 @@ const SENTENCE_LEVELS = [
   ['explorer', '🧭 Explorer', 'Three gaps with softer support.']
 ];
 
+const VALID_SENTENCE_LEVELS = new Set(SENTENCE_LEVELS.map(([id]) => id));
+
 export function renderMenu(root, store) {
   const state = store.getState();
+  const sentenceLevel = VALID_SENTENCE_LEVELS.has(state.sentenceLevel) ? state.sentenceLevel : 'beginner';
   const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const waitingForStory = state.mode === 'story' && !state.selectedStory;
@@ -29,7 +32,7 @@ export function renderMenu(root, store) {
     ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
     <h2>Personalise</h2>
     ${state.mode === 'fill-gap' ? `<div class="sentence-level-grid" data-sentence-levels>
-      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button class="sentence-level-card ${state.sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}">
+      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button type="button" class="sentence-level-card ${sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}">
         <span class="sentence-level-title">${title}</span><small>${description}</small>
       </button>`).join('')}
     </div>` : ''}
@@ -47,14 +50,15 @@ export function renderMenu(root, store) {
   const modes = root.querySelector('[data-modes]');
   MODES.forEach(([id, title, description]) => {
     const button = document.createElement('button');
+    button.type = 'button';
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
-    button.onclick = () => store.setState({ mode: id, selectedStory: state.selectedStory, currentIndex: 0 });
+    button.onclick = () => store.setState({ mode: id, selectedStory: state.selectedStory, currentIndex: 0, sentenceLevel });
     modes.appendChild(button);
   });
 
   root.querySelectorAll('[data-sentence-level]').forEach(button => {
-    button.onclick = () => store.setState({ sentenceLevel: button.dataset.sentenceLevel });
+    button.onclick = () => store.setState({ sentenceLevel: button.dataset.sentenceLevel, currentIndex: 0 });
   });
 
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
@@ -73,6 +77,7 @@ export function renderMenu(root, store) {
   const stories = root.querySelector('[data-stories]');
   if (stories) STORIES.forEach(story => {
     const button = document.createElement('button');
+    button.type = 'button';
     button.className = `menu-card ${state.selectedStory === story.id ? 'selected' : ''}`;
     button.innerHTML = `<span>${story.emoji} ${story.title}</span><small>${story.subtitle}</small>`;
     button.onclick = () => store.setState({ selectedStory: story.id });
@@ -80,6 +85,6 @@ export function renderMenu(root, store) {
   });
 
   root.querySelector('[data-start]').onclick = () => {
-    if (!waitingForStory) store.setState({ screen: state.mode });
+    if (!waitingForStory) store.setState({ screen: state.mode, sentenceLevel });
   };
 }
