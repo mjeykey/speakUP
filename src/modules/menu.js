@@ -13,8 +13,7 @@ const MODES = [
 const SENTENCE_LEVELS = [
   ['beginner', '🌱 Beginner', 'One gap with full support.'],
   ['survivor', '🔥 Survivor', 'Two gaps with full support.'],
-  ['explorer', '🧭 Explorer', 'Three gaps with softer support.'],
-  ['motivation', '✨ Motivation', '20 positive and motivating learning sentences.']
+  ['explorer', '🧭 Explorer', 'Three gaps with softer support.']
 ];
 
 export function renderMenu(root, store) {
