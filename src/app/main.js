@@ -1,6 +1,6 @@
 import { createStore } from './state.js?v=56';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=64';
+import { renderMenu } from '../modules/menu.js?v=65';
 import { renderWords } from '../modules/words.js?v=53';
 import { renderMemory } from '../modules/memory.js?v=60';
 import { renderFillGap } from '../modules/fill-gap.js?v=60';
@@ -9,6 +9,7 @@ import { renderStory } from '../modules/story-loader.js?v=62';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=52';
 import { renderEmotions } from '../modules/emotions.js?v=56';
 import { renderFuture } from '../modules/future.js?v=1';
+import { renderPositiveLearning } from '../modules/positive-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=58';
 
 const root = document.getElementById('app');
@@ -22,6 +23,7 @@ const routes = {
   emotions: renderEmotions,
   'fill-gap': renderFillGap,
   'speak-practice': renderSpeakPractice,
+  'positive-learning': renderPositiveLearning,
   'effects-settings': renderEffectsSettings,
   future: renderFuture,
   story: renderStory
