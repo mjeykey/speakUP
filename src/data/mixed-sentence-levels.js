@@ -1,4 +1,4 @@
-import { getSentenceLevels as getLevelsWithMotivation } from './motivational-sentence-pack.js?v=1';
+import { getSentenceLevels as getLevelsWithMotivation } from './extended-motivational-sentence-pack.js?v=1';
 
 function interleave(existingItems, addedItems) {
   if (!addedItems.length) return existingItems;
