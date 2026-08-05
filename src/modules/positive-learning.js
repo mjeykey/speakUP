@@ -1,13 +1,14 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=58';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
-import { getPositiveContent } from '../data/positive-learning/content.js?v=1';
-import { POSITIVE_SECTIONS, getPositiveItem } from '../data/positive-learning/sections.js?v=1';
+import { getExpandedPositiveContent } from '../data/positive-learning/expanded-content.js?v=1';
+import { POSITIVE_SECTIONS, getPositiveCollection, getPositiveItem } from '../data/positive-learning/sections.js?v=2';
 
 export function renderPositiveLearning(root, store) {
   const state = store.getState();
   const section = state.positiveSection || 'sentences';
   const index = state.positiveIndex || 0;
-  const data = getPositiveContent(state.learningLanguage);
+  const data = getExpandedPositiveContent(state.learningLanguage);
+  const collection = getPositiveCollection(section, data);
   const text = getPositiveItem(section, index, data);
 
   root.innerHTML = `<section class="screen">
@@ -43,7 +44,7 @@ export function renderPositiveLearning(root, store) {
   });
 
   root.querySelector('[data-next]').onclick = () => store.setState({
-    positiveIndex: (index + 1) % data.sentences.length
+    positiveIndex: (index + 1) % Math.max(collection.length, 1)
   });
 
   if (section === 'listening' || section === 'pronunciation') {
