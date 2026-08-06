@@ -1,0 +1,13 @@
+.kicker,
+.sentence-mode-label,
+.sentence-mode-progress,
+.emotion-current,
+.emotion-progress,
+.emotion-language-hint,
+.memory-message-topic,
+.memory-intro,
+.word-language-label,
+.story-language-label,
+.voice-language-label {
+  display: none !important;
+}
