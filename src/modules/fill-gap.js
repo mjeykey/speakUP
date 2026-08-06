@@ -1,5 +1,5 @@
 import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=4';
-import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=4';
+import { getSpeechLanguage } from '../data/language-content-extended.js?v=4';
 import { repairSentenceLevels } from '../data/sentence-integrity.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=3';
@@ -25,8 +25,6 @@ export function renderFillGap(root, store) {
   const rawLevels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
   const levels = repairSentenceLevels(rawLevels, state.learningLanguage, state.nativeLanguage);
   const level = levels.find(item => item.id === state.sentenceLevel) || levels[0];
-  const learningName = languageName(state.learningLanguage);
-  const supportName = languageName(state.nativeLanguage);
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
   const progressKey = `${state.learningLanguage}|${state.nativeLanguage}|${level.id}`;
   const saved = state.progress?.fillGap?.[progressKey] || {};
@@ -48,11 +46,9 @@ export function renderFillGap(root, store) {
     root.innerHTML = `<section class="screen sentence-mode-screen">
       <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
       <div class="center sentence-mode-view">
-        <p class="kicker">Sentences · ${learningName} · ${level.title}</p>
-        <p class="sentence-mode-progress">Sentence ${sentenceIndex + 1} / ${level.items.length} · Gap ${Math.min(solvedCount + 1, item.answers.length)} / ${item.answers.length}</p>
         <div class="sentence-mode-stage" data-stage>
-          <p class="sentence-mode-label">${learningName}</p><p class="sentence sentence-mode-portuguese" data-learning-text>${escapeHtml(visibleSentence)}</p>
-          <p class="sentence-mode-label sentence-mode-english-label">${supportName}</p><p class="sentence-mode-english ${level.englishClass}" data-support-text>${escapeHtml(item.translation)}</p>
+          <p class="sentence sentence-mode-portuguese" data-learning-text>${escapeHtml(visibleSentence)}</p>
+          <p class="sentence-mode-english ${level.englishClass}" data-support-text>${escapeHtml(item.translation)}</p>
         </div>
         <div class="choices" data-choices></div><p class="feedback sentence-mode-feedback" data-feedback></p>
       </div>
