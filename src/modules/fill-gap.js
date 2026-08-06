@@ -5,13 +5,6 @@ import { speak, stopSpeech } from '../audio/speech.js?v=40';
 import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=3';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
-const SENTENCE_LEVELS = [
-  ['beginner', '🌱', 'Beginner', 'One gap with full support.'],
-  ['survivor', '🔥', 'Survivor', 'Two gaps with full support.'],
-  ['explorer', '🧭', 'Explorer', 'Three gaps with softer support.']
-];
-const VALID_LEVELS = new Set(SENTENCE_LEVELS.map(([id]) => id));
-const normaliseLevel = value => VALID_LEVELS.has(value) ? value : 'beginner';
 
 function escapeHtml(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
@@ -27,60 +20,11 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
   });
 }
 
-export function renderSentenceLevelPicker(root, store) {
-  const state = store.getState();
-  const selectedLevel = normaliseLevel(state.sentenceLevel);
-  const learningName = languageName(state.learningLanguage);
-
-  root.innerHTML = `<section class="screen sentence-mode-screen">
-    <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
-    <div class="center sentence-level-view">
-      <p class="kicker">Sentences · ${escapeHtml(learningName)}</p>
-      <h1>Choose your level</h1>
-      <p class="muted">Select a class before the sentence exercises begin.</p>
-      <label class="sentence-level-select-label">Level
-        <select data-level-select>
-          ${SENTENCE_LEVELS.map(([id, emoji, title]) => `<option value="${id}" ${selectedLevel === id ? 'selected' : ''}>${emoji} ${title}</option>`).join('')}
-        </select>
-      </label>
-      <div class="sentence-level-grid" data-level-grid>
-        ${SENTENCE_LEVELS.map(([id, emoji, title, description]) => `<button type="button" class="sentence-level-card ${selectedLevel === id ? 'selected' : ''}" data-level="${id}" aria-pressed="${selectedLevel === id}">
-          <span class="sentence-level-emoji">${emoji}</span><span class="sentence-level-title">${title}</span><small>${description}</small>
-        </button>`).join('')}
-      </div>
-      <div class="menu-action"><button class="primary-button" data-start-level>Start sentences</button></div>
-    </div>
-  </section>`;
-
-  root.querySelector('[data-menu]').onclick = () => store.setState({ screen: 'menu' });
-  const select = root.querySelector('[data-level-select]');
-  let currentLevel = selectedLevel;
-
-  const markLevel = value => {
-    currentLevel = normaliseLevel(value);
-    select.value = currentLevel;
-    root.querySelectorAll('[data-level]').forEach(button => {
-      const selected = button.dataset.level === currentLevel;
-      button.classList.toggle('selected', selected);
-      button.setAttribute('aria-pressed', String(selected));
-    });
-  };
-
-  select.onchange = event => markLevel(event.target.value);
-  root.querySelector('[data-level-grid]').onclick = event => {
-    const button = event.target.closest('[data-level]');
-    if (button) markLevel(button.dataset.level);
-  };
-  root.querySelector('[data-start-level]').onclick = () => {
-    store.setState({ sentenceLevel: currentLevel, currentIndex: 0, screen: 'fill-gap-practice' });
-  };
-}
-
 export function renderFillGap(root, store) {
   const state = store.getState();
   const rawLevels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
   const levels = repairSentenceLevels(rawLevels, state.learningLanguage, state.nativeLanguage);
-  const level = levels.find(item => item.id === normaliseLevel(state.sentenceLevel)) || levels[0];
+  const level = levels.find(item => item.id === state.sentenceLevel) || levels[0];
   const learningName = languageName(state.learningLanguage);
   const supportName = languageName(state.nativeLanguage);
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
@@ -116,7 +60,7 @@ export function renderFillGap(root, store) {
     </section>`;
 
     root.querySelector('[data-menu]').onclick = leave;
-    root.querySelector('[data-change-level]').onclick = () => { stopSpeech(); store.setState({ screen: 'fill-gap' }); };
+    root.querySelector('[data-change-level]').onclick = () => { stopSpeech(); store.setState({ screen: 'sentence-level-select' }); };
     const choices = root.querySelector('[data-choices]');
     const expected = item.answers[solvedCount];
 
