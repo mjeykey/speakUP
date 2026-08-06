@@ -23,6 +23,7 @@ function buildItems(learningLanguage, nativeLanguage) {
 
   return learning.map((complete, index) => {
     const gap = splitAnswer(complete);
+    const id = `motivation-${index + 21}`;
     const options = [
       gap.answer,
       answers[(index + 3) % answers.length],
@@ -31,8 +32,8 @@ function buildItems(learningLanguage, nativeLanguage) {
     ];
 
     return {
-      id: `motivation-${index + 21}`,
-      translationId: `motivation-${index + 21}`,
+      id,
+      translationId: id,
       sentence: gap.sentence,
       answers: [gap.answer],
       options: [...new Set(options)],
@@ -45,10 +46,14 @@ function buildItems(learningLanguage, nativeLanguage) {
 export function getSentenceLevels(learningLanguage, nativeLanguage) {
   return getBaseLevels(learningLanguage, nativeLanguage).map(level => {
     if (level.id !== 'motivation') return level;
+    const baseItems = level.items.map((item, index) => {
+      const id = `motivation-${index + 1}`;
+      return { ...item, id, translationId: id };
+    });
     return {
       ...level,
       description: '40 positive learning sentences.',
-      items: [...level.items, ...buildItems(learningLanguage, nativeLanguage)]
+      items: [...baseItems, ...buildItems(learningLanguage, nativeLanguage)]
     };
   });
 }
