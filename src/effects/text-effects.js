@@ -157,7 +157,7 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
   const stagger = options.stagger ?? 20;
 
   if (effect === 'particel') {
-    await runParticelEffect(allCharacters, duration, stagger);
+    await runParticelEffect(allCharacters, 3000, stagger);
     return;
   }
 
