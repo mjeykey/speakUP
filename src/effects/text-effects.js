@@ -102,83 +102,126 @@ function framesFor(effect, index, total) {
   ];
 }
 
-function createFragment(character, fragmentIndex, duration, delay) {
+function renderCharacterCanvas(character) {
   const rect = character.getBoundingClientRect();
-  const fragment = document.createElement('span');
-  const width = randomBetween(2.5, Math.max(4, rect.width * .22));
-  const height = randomBetween(2.5, Math.max(4, rect.height * .18));
-  const startX = rect.left + randomBetween(rect.width * .12, rect.width * .88);
-  const startY = rect.top + randomBetween(rect.height * .12, rect.height * .88);
-  const driftX = randomBetween(-34, 34);
-  const fallY = randomBetween(34, 105);
-  const rotation = randomBetween(-170, 170);
-  const color = getComputedStyle(character).color || EFFECT_COLORS[fragmentIndex % EFFECT_COLORS.length];
+  const style = getComputedStyle(character);
+  const scale = Math.min(2, window.devicePixelRatio || 1);
+  const width = Math.max(1, Math.ceil(rect.width));
+  const height = Math.max(1, Math.ceil(rect.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+  const context = canvas.getContext('2d');
+  if (!context) return null;
 
-  fragment.setAttribute('aria-hidden', 'true');
-  Object.assign(fragment.style, {
+  context.scale(scale, scale);
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillStyle = style.color;
+  context.fillText(character.textContent, width / 2, height / 2);
+  return { canvas, rect, width, height, scale };
+}
+
+function createGlyphShard(snapshot, column, row, columns, rows, delay, duration) {
+  const tileWidth = snapshot.width / columns;
+  const tileHeight = snapshot.height / rows;
+  const sourceX = Math.floor(column * tileWidth * snapshot.scale);
+  const sourceY = Math.floor(row * tileHeight * snapshot.scale);
+  const sourceWidth = Math.ceil(tileWidth * snapshot.scale);
+  const sourceHeight = Math.ceil(tileHeight * snapshot.scale);
+  const shardCanvas = document.createElement('canvas');
+  shardCanvas.width = sourceWidth;
+  shardCanvas.height = sourceHeight;
+  const shardContext = shardCanvas.getContext('2d');
+  if (!shardContext) return Promise.resolve();
+
+  shardContext.drawImage(
+    snapshot.canvas,
+    sourceX, sourceY, sourceWidth, sourceHeight,
+    0, 0, sourceWidth, sourceHeight
+  );
+
+  const pixels = shardContext.getImageData(0, 0, sourceWidth, sourceHeight).data;
+  let visible = false;
+  for (let i = 3; i < pixels.length; i += 16) {
+    if (pixels[i] > 15) { visible = true; break; }
+  }
+  if (!visible) return Promise.resolve();
+
+  Object.assign(shardCanvas.style, {
     position: 'fixed',
-    left: `${startX}px`,
-    top: `${startY}px`,
-    width: `${width}px`,
-    height: `${height}px`,
-    background: color,
-    clipPath: `polygon(${randomBetween(0,18)}% 0,100% ${randomBetween(0,28)}%,${randomBetween(72,100)}% 100%,0 ${randomBetween(68,100)}%)`,
-    opacity: '0',
+    left: `${snapshot.rect.left + column * tileWidth}px`,
+    top: `${snapshot.rect.top + row * tileHeight}px`,
+    width: `${tileWidth}px`,
+    height: `${tileHeight}px`,
     pointerEvents: 'none',
     zIndex: '9999',
-    transformOrigin: 'center'
+    transformOrigin: `${randomBetween(20,80)}% ${randomBetween(20,80)}%`
   });
-  document.body.appendChild(fragment);
+  document.body.appendChild(shardCanvas);
 
-  const animation = fragment.animate([
-    { opacity: 0, transform: 'translate(-50%,-50%) rotate(0deg) scale(.45)' },
-    { opacity: .86, transform: `translate(calc(-50% + ${driftX * .08}px),calc(-50% + ${fallY * .04}px)) rotate(${rotation * .08}deg) scale(1)`, offset: .18 },
-    { opacity: .78, transform: `translate(calc(-50% + ${driftX * .38}px),calc(-50% + ${fallY * .28}px)) rotate(${rotation * .38}deg) scale(.84)`, offset: .55 },
-    { opacity: 0, transform: `translate(calc(-50% + ${driftX}px),calc(-50% + ${fallY}px)) rotate(${rotation}deg) scale(.18)`, filter: 'blur(1.5px)' }
+  const horizontal = randomBetween(-18, 18) + (column - (columns - 1) / 2) * 1.8;
+  const vertical = randomBetween(22, 80) + row * 5;
+  const rotation = randomBetween(-85, 85);
+  const animation = shardCanvas.animate([
+    { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
+    { opacity: 1, transform: `translate(${horizontal * .08}px,${vertical * .04}px) rotate(${rotation * .08}deg) scale(.99)`, offset: .22 },
+    { opacity: .94, transform: `translate(${horizontal * .3}px,${vertical * .22}px) rotate(${rotation * .32}deg) scale(.94)`, offset: .55 },
+    { opacity: .5, transform: `translate(${horizontal * .72}px,${vertical * .68}px) rotate(${rotation * .75}deg) scale(.72)`, filter: 'blur(.4px)', offset: .82 },
+    { opacity: 0, transform: `translate(${horizontal}px,${vertical}px) rotate(${rotation}deg) scale(.42)`, filter: 'blur(2px)' }
   ], {
     duration,
     delay,
-    easing: 'cubic-bezier(.22,.61,.36,1)',
+    easing: 'cubic-bezier(.28,.62,.35,1)',
     fill: 'forwards'
   });
 
-  return animation.finished.catch(() => {}).finally(() => fragment.remove());
+  return animation.finished.catch(() => {}).finally(() => shardCanvas.remove());
 }
 
 async function runParticelEffect(characters, duration, stagger) {
-  const fragmentAnimations = [];
-  const characterAnimations = [];
+  const animations = [];
 
   characters.forEach((character, index) => {
     character.style.display = 'inline-block';
-    character.style.willChange = 'transform, opacity, filter';
-    const delay = index * Math.max(12, stagger * .7);
-    const tilt = randomBetween(-2.2, 2.2);
-    const drop = randomBetween(4, 11);
+    if (!character.textContent.trim()) return;
 
-    characterAnimations.push(character.animate([
-      { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
-      { opacity: 1, transform: `translate(${randomBetween(-1.5,1.5)}px,1px) rotate(${tilt * .25}deg) scale(1.01)`, filter: 'blur(0)', offset: .2 },
-      { opacity: .9, transform: `translate(${randomBetween(-2,2)}px,${drop * .35}px) rotate(${tilt * .6}deg) scale(.97,.94)`, filter: 'blur(.3px)', offset: .5 },
-      { opacity: .42, transform: `translate(${randomBetween(-3,3)}px,${drop}px) rotate(${tilt}deg) scale(.84,.7)`, filter: 'blur(1.8px)', offset: .78 },
-      { opacity: 0, transform: `translate(${randomBetween(-5,5)}px,${drop + 12}px) rotate(${tilt * 1.4}deg) scale(.55,.35)`, filter: 'blur(6px)' }
-    ], {
-      duration,
-      delay,
-      easing: 'cubic-bezier(.25,.46,.45,.94)',
-      fill: 'forwards'
-    }).finished.catch(() => {}));
+    const snapshot = renderCharacterCanvas(character);
+    if (!snapshot) return;
+    const columns = Math.max(3, Math.min(6, Math.round(snapshot.width / 5)));
+    const rows = Math.max(4, Math.min(8, Math.round(snapshot.height / 5)));
+    const characterDelay = index * Math.max(10, stagger * .55);
 
-    if (character.textContent.trim()) {
-      const fragmentCount = Math.max(12, Math.min(24, Math.round(character.getBoundingClientRect().width * .55)));
-      for (let i = 0; i < fragmentCount; i += 1) {
-        const fractureDelay = delay + duration * randomBetween(.28, .62);
-        fragmentAnimations.push(createFragment(character, index + i, duration * randomBetween(.44, .68), fractureDelay));
+    for (let row = 0; row < rows; row += 1) {
+      for (let column = 0; column < columns; column += 1) {
+        const fractureWave = (row / rows) * 720 + randomBetween(0, 240);
+        animations.push(createGlyphShard(
+          snapshot,
+          column,
+          row,
+          columns,
+          rows,
+          characterDelay + fractureWave,
+          duration * randomBetween(.58, .78)
+        ));
       }
     }
+
+    character.animate([
+      { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
+      { opacity: 1, transform: 'translateY(1px) scale(.995)', offset: .25 },
+      { opacity: .72, transform: 'translateY(4px) scale(.97,.94)', filter: 'blur(.2px)', offset: .52 },
+      { opacity: 0, transform: 'translateY(12px) scale(.82,.64)', filter: 'blur(3px)' }
+    ], {
+      duration: duration * .62,
+      delay: characterDelay + 480,
+      easing: 'cubic-bezier(.3,.55,.38,1)',
+      fill: 'forwards'
+    });
   });
 
-  await Promise.all([...characterAnimations, ...fragmentAnimations]);
+  await Promise.all(animations);
 }
 
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
