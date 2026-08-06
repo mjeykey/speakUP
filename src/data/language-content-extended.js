@@ -44,70 +44,6 @@ const ANDALUSIAN_EXERCISES = [
   ['Me _____ mi objetivo, _____ un pasito y _____ paciencia.',['imagino','doy','tengo'],['imagino','doy','tengo','bebo','abro','conduzco']]
 ];
 
-const CITY_BY_LEARNING = {
-  'pt-PT':'Lisboa','de-DE':'Berlin','en-GB':'London','es-ES':'Madrid',
-  'es-AN':'Sevilla','fr-FR':'Paris','hr-HR':'Zagreb','hr-DAL':'Split'
-};
-
-const LANGUAGE_BY_LEARNING = {
-  'pt-PT':{de:'Portugiesisch',en:'Portuguese',es:'portugués',fr:'le portugais',hr:'portugalski',dal:'portugalski'},
-  'de-DE':{de:'Deutsch',en:'German',es:'alemán',fr:'l’allemand',hr:'njemački',dal:'njemački'},
-  'en-GB':{de:'Englisch',en:'English',es:'inglés',fr:'l’anglais',hr:'engleski',dal:'engleski'},
-  'es-ES':{de:'Spanisch',en:'Spanish',es:'español',fr:'l’espagnol',hr:'španjolski',dal:'španjolski'},
-  'es-AN':{de:'Andalusisches Spanisch',en:'Andalusian Spanish',es:'andaluz',fr:'l’espagnol andalou',hr:'andaluzijski španjolski',dal:'andaluzijski španjolski'},
-  'fr-FR':{de:'Französisch',en:'French',es:'francés',fr:'le français',hr:'francuski',dal:'francuski'},
-  'hr-HR':{de:'Kroatisch',en:'Croatian',es:'croata',fr:'le croate',hr:'hrvatski',dal:'hrvatski'},
-  'hr-DAL':{de:'Dalmatinisch',en:'Dalmatian',es:'dálmata',fr:'le dalmate',hr:'dalmatinski',dal:'dalmatinski'}
-};
-
-function nativeKey(code) {
-  if (code === 'de-DE') return 'de';
-  if (code === 'en-GB') return 'en';
-  if (code === 'fr-FR') return 'fr';
-  if (code === 'hr-DAL') return 'dal';
-  if (code === 'hr-HR') return 'hr';
-  return 'es';
-}
-
-function cityTranslation(nativeLanguage, city) {
-  if (nativeLanguage === 'de-DE') return `Er wohnt in ${city}.`;
-  if (nativeLanguage === 'en-GB') return `He lives in ${city}.`;
-  if (nativeLanguage === 'fr-FR') return `Il habite à ${city}.`;
-  if (nativeLanguage === 'pt-PT') return `Ele mora em ${city}.`;
-  if (nativeLanguage === 'hr-HR') return `On živi u ${city}.`;
-  if (nativeLanguage === 'hr-DAL') return `On živi u ${city}.`;
-  return `Vive en ${city}.`;
-}
-
-function learningTranslation(nativeLanguage, learningLanguage) {
-  const name = LANGUAGE_BY_LEARNING[learningLanguage]?.[nativeKey(nativeLanguage)];
-  if (!name) return null;
-  if (nativeLanguage === 'de-DE') return `Ich lerne ${name}.`;
-  if (nativeLanguage === 'en-GB') return `I am learning ${name}.`;
-  if (nativeLanguage === 'fr-FR') return `J’apprends ${name}.`;
-  if (nativeLanguage === 'pt-PT') return `Estou a aprender ${name}.`;
-  if (nativeLanguage === 'hr-HR') return `Učim ${name}.`;
-  if (nativeLanguage === 'hr-DAL') return `Učin ${name}.`;
-  if (learningLanguage === 'es-AN') return 'Estoy aprendiendo a hablar andaluz.';
-  return `Estoy aprendiendo ${name}.`;
-}
-
-function normalizeCoreTranslations(levels, learningLanguage, nativeLanguage) {
-  const city = CITY_BY_LEARNING[learningLanguage];
-  const learningLine = learningTranslation(nativeLanguage, learningLanguage);
-  let absoluteIndex = 0;
-  return levels.map(level => ({
-    ...level,
-    items: level.items.map(item => {
-      let translation = item.translation;
-      if (absoluteIndex === 3 && city) translation = cityTranslation(nativeLanguage, city);
-      if (absoluteIndex === 4 && learningLine) translation = learningLine;
-      absoluteIndex += 1;
-      return { ...item, translation };
-    })
-  }));
-}
-
 function replaceWordSide(items, side) {
   return items.map((item, index) => ({ ...item, [side]: ANDALUSIAN_WORDS[index] || item[side] }));
 }
@@ -127,7 +63,10 @@ export function getSpeechLanguage(code) {
 
 export function getWords(learningLanguage, nativeLanguage) {
   if (learningLanguage === 'es-AN') {
-    return replaceWordSide(baseGetWords('es-ES', nativeLanguage === 'es-AN' ? 'es-ES' : nativeLanguage), 'target');
+    return replaceWordSide(
+      baseGetWords('es-ES', nativeLanguage === 'es-AN' ? 'es-ES' : nativeLanguage),
+      'target'
+    );
   }
   if (nativeLanguage === 'es-AN') {
     return replaceWordSide(baseGetWords(learningLanguage, 'es-ES'), 'translation');
@@ -135,34 +74,51 @@ export function getWords(learningLanguage, nativeLanguage) {
   return baseGetWords(learningLanguage, nativeLanguage);
 }
 
+function withStableIds(levels, prefix = 'core') {
+  return levels.map((level, levelIndex) => ({
+    ...level,
+    items: level.items.map((item, itemIndex) => ({
+      ...item,
+      id: item.id || `${prefix}-${level.id || levelIndex}-${itemIndex + 1}`
+    }))
+  }));
+}
+
 export function getSentenceLevels(learningLanguage, nativeLanguage) {
   if (learningLanguage === 'es-AN') {
     const supportLanguage = nativeLanguage === 'es-AN' ? 'es-ES' : nativeLanguage;
     const baseLevels = baseGetSentenceLevels('es-ES', supportLanguage);
-    let levels = baseLevels.map((level, levelIndex) => ({
+    const levels = baseLevels.map((level, levelIndex) => ({
       ...level,
       items: level.items.map((item, itemIndex) => {
         const exercise = ANDALUSIAN_EXERCISES[levelIndex * 5 + itemIndex];
-        return { ...item, sentence: exercise[0], answers: exercise[1], options: exercise[2] };
+        return {
+          ...item,
+          id: `andalusian-${level.id || levelIndex}-${itemIndex + 1}`,
+          sentence: exercise[0],
+          answers: exercise[1],
+          options: exercise[2]
+        };
       })
     }));
-    levels = normalizeCoreTranslations(levels, learningLanguage, nativeLanguage);
-    return appendEveryday(levels, learningLanguage, nativeLanguage);
+    return appendEveryday(withStableIds(levels, 'andalusian'), learningLanguage, nativeLanguage);
   }
 
   if (nativeLanguage === 'es-AN') {
     const baseLevels = baseGetSentenceLevels(learningLanguage, 'es-ES');
     let levels = baseLevels.map((level, levelIndex) => ({
       ...level,
-      items: level.items.map((item, itemIndex) => ({ ...item, translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex] }))
+      items: level.items.map((item, itemIndex) => ({
+        ...item,
+        id: item.id || `core-${level.id || levelIndex}-${itemIndex + 1}`,
+        translation: ANDALUSIAN_COMPLETE[levelIndex * 5 + itemIndex] || item.translation
+      }))
     }));
     if (learningLanguage === 'hr-DAL') levels = fixDalmatianSentence(levels);
-    levels = normalizeCoreTranslations(levels, learningLanguage, nativeLanguage);
-    return appendEveryday(levels, learningLanguage, nativeLanguage);
+    return appendEveryday(withStableIds(levels), learningLanguage, nativeLanguage);
   }
 
   let levels = baseGetSentenceLevels(learningLanguage, nativeLanguage);
   if (learningLanguage === 'hr-DAL') levels = fixDalmatianSentence(levels);
-  levels = normalizeCoreTranslations(levels, learningLanguage, nativeLanguage);
-  return appendEveryday(levels, learningLanguage, nativeLanguage);
+  return appendEveryday(withStableIds(levels), learningLanguage, nativeLanguage);
 }
