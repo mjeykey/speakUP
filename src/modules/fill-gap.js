@@ -2,7 +2,7 @@ import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=6';
 import { getSpeechLanguage } from '../data/language-content-extended.js?v=6';
 import { repairSentenceLevels } from '../data/sentence-integrity.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
-import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=3';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=7';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
