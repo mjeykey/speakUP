@@ -2,7 +2,8 @@ import { EMOTIONS } from '../data/emotions/index.js?v=2';
 import { getEmotionLabels, getEmotionPractice, resolveEmotionLanguage } from '../data/emotions/language-packs.js?v=1';
 import { getEmotionFlow } from '../data/emotions/emotion-flow.js?v=3';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
-import { speak, stopSpeech } from '../audio/speech.js?v=58';
+import { stopSpeech } from '../audio/speech.js?v=58';
+import { speakEmotion } from '../audio/emotion-speech.js?v=1';
 
 function escapeHtml(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
@@ -22,6 +23,7 @@ export function renderEmotions(root, store) {
   let remaining = 0;
   let timer = null;
 
+  const say = (text, rate = .62) => speakEmotion(text, voice, { enabled: store.getState().audioOn, rate });
   const clearTimer = () => { if (timer) window.clearInterval(timer); timer = null; };
   const leave = () => { clearTimer(); stopSpeech(); store.setState({ screen:'menu' }); };
 
@@ -60,10 +62,10 @@ export function renderEmotions(root, store) {
       if (button.dataset.answer !== step.answer) { button.classList.add('wrong'); feedback.textContent = copy.tryAgain; return; }
       root.querySelectorAll('[data-answer]').forEach(item => item.disabled = true);
       button.classList.add('correct'); feedback.textContent = copy.correct;
-      speak(step.instruction, voice, { enabled:store.getState().audioOn, rate:.62 });
+      say(step.instruction);
       window.setTimeout(() => { phase = 'action'; renderStep(); }, 650);
     });
-    speak(step.prompt, voice, { enabled:store.getState().audioOn, rate:.62 });
+    say(step.prompt);
   }
 
   function renderAction(step, steps) {
@@ -72,8 +74,8 @@ export function renderEmotions(root, store) {
       <p class="emotion-body emotion-instruction">${escapeHtml(step.instruction)}</p>
       <div class="emotion-countdown"><div class="emotion-countdown-ring"><span data-count>${remaining}</span></div><small>${escapeHtml(copy.seconds)}</small></div>
       <button class="secondary-button" data-listen>${escapeHtml(copy.listen)}</button></div>`, steps);
-    root.querySelector('[data-listen]').onclick = () => speak(step.instruction, voice, { enabled:store.getState().audioOn, rate:.62 });
-    speak(step.instruction, voice, { enabled:store.getState().audioOn, rate:.62 });
+    root.querySelector('[data-listen]').onclick = () => say(step.instruction);
+    say(step.instruction);
     timer = window.setInterval(() => {
       remaining -= 1;
       const count = root.querySelector('[data-count]');
@@ -87,9 +89,9 @@ export function renderEmotions(root, store) {
     shell(`<div class="emotion-panel emotion-calm-card"><div class="emotion-calm-icon">✦</div>
       <p class="emotion-body emotion-calm-sentence">${escapeHtml(step.calm)}</p>
       <div class="emotion-language-actions"><button class="secondary-button" data-listen>${escapeHtml(copy.listen)}</button><button class="primary-button" data-continue>${escapeHtml(atEnd ? copy.finish : copy.continue)}</button></div></div>`, steps);
-    root.querySelector('[data-listen]').onclick = () => speak(step.calm, voice, { enabled:store.getState().audioOn, rate:.58 });
+    root.querySelector('[data-listen]').onclick = () => say(step.calm, .58);
     root.querySelector('[data-continue]').onclick = () => { stopSpeech(); if (atEnd) renderPicker(); else { stepIndex += 1; phase = 'question'; renderStep(); } };
-    speak(step.calm, voice, { enabled:store.getState().audioOn, rate:.58 });
+    say(step.calm, .58);
   }
 
   function renderStep() {
