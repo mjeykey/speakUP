@@ -66,6 +66,7 @@ export function renderMenu(root, store) {
   root.querySelector('[data-start]').onclick = () => {
     const current = store.getState();
     if (current.mode === 'story' && !current.selectedStory) return;
-    store.setState({ screen: current.mode });
+    const screen = current.mode === 'fill-gap' ? 'sentence-level-select' : current.mode;
+    store.setState({ screen });
   };
 }
