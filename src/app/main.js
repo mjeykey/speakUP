@@ -1,6 +1,6 @@
 import { createStore } from './state.js?v=56';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=70';
+import { renderMenu } from '../modules/menu.js?v=71';
 import { renderWords } from '../modules/words.js?v=53';
 import { renderMemory } from '../modules/memory-full-speech.js?v=1';
 import { renderFillGap } from '../modules/fill-gap.js?v=63';
