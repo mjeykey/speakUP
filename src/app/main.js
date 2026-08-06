@@ -1,9 +1,10 @@
 import { createStore } from './state.js?v=56';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=69';
+import { renderMenu } from '../modules/menu.js?v=71';
 import { renderWords } from '../modules/words.js?v=53';
 import { renderMemory } from '../modules/memory-full-speech.js?v=1';
-import { renderFillGap } from '../modules/fill-gap.js?v=63';
+import { renderFillGap } from '../modules/fill-gap.js?v=64';
+import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice.js?v=54';
 import { renderStory } from '../modules/story-loader.js?v=62';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=53';
@@ -20,6 +21,7 @@ const routes = {
   words: renderWords,
   memory: renderMemory,
   emotions: renderEmotions,
+  'sentence-level-select': renderSentenceLevelSelect,
   'fill-gap': renderFillGap,
   'speak-practice': renderSpeakPractice,
   'effects-settings': renderEffectsSettings,
