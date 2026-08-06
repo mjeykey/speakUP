@@ -8,7 +8,8 @@ export const TEXT_EFFECTS = [
   { id: 'burst', label: 'Burst' },
   { id: 'float', label: 'Float' },
   { id: 'glow', label: 'Glow' },
-  { id: 'collapse', label: 'Push & Collapse' }
+  { id: 'collapse', label: 'Push & Collapse' },
+  { id: 'particel', label: 'particel' }
 ];
 
 export const EFFECT_MODES = [
@@ -69,7 +70,7 @@ function framesFor(effect, index, total) {
     const shove = centered < 0 ? 1 : -1;
     const inwardX = centered * -240;
     return [
-      { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)', letterSpacing: '0px' },
+      { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)' },
       { opacity: 1, color, textShadow: `0 0 16px ${color}`, transform: `translate(${shove * 22}px,${randomBetween(-8,8)}px) scale(1.08)`, offset: .2 },
       { opacity: .9, color, transform: `translate(${inwardX * .62}px,${randomBetween(-10,10)}px) rotate(${rotation * .08}deg) scale(.72,.92)`, filter: 'blur(1px)', offset: .58 },
       { opacity: 0, color, textShadow: `0 0 38px ${color}`, transform: `translate(${inwardX}px,${randomBetween(-5,5)}px) rotate(${rotation * .14}deg) scale(.04,.45)`, filter: 'blur(12px)' }
@@ -101,12 +102,65 @@ function framesFor(effect, index, total) {
   ];
 }
 
+function createParticle(character, index, duration, delay) {
+  const rect = character.getBoundingClientRect();
+  const particle = document.createElement('span');
+  const size = randomBetween(2, 5);
+  const color = EFFECT_COLORS[index % EFFECT_COLORS.length];
+  particle.setAttribute('aria-hidden', 'true');
+  Object.assign(particle.style, {
+    position: 'fixed',
+    left: `${rect.left + rect.width / 2}px`,
+    top: `${rect.top + rect.height / 2}px`,
+    width: `${size}px`,
+    height: `${size}px`,
+    borderRadius: '50%',
+    background: color,
+    boxShadow: `0 0 ${size * 2}px ${color}`,
+    pointerEvents: 'none',
+    zIndex: '9999'
+  });
+  document.body.appendChild(particle);
+  const angle = randomBetween(0, Math.PI * 2);
+  const distance = randomBetween(35, 125);
+  const animation = particle.animate([
+    { opacity: 0, transform: 'translate(-50%,-50%) scale(.2)' },
+    { opacity: 1, transform: `translate(calc(-50% + ${Math.cos(angle) * distance * .25}px),calc(-50% + ${Math.sin(angle) * distance * .25}px)) scale(1)`, offset: .25 },
+    { opacity: 0, transform: `translate(calc(-50% + ${Math.cos(angle) * distance}px),calc(-50% + ${Math.sin(angle) * distance}px)) scale(.1)`, filter: 'blur(2px)' }
+  ], { duration, delay, easing: 'cubic-bezier(.18,.72,.24,1)', fill: 'forwards' });
+  return animation.finished.catch(() => {}).finally(() => particle.remove());
+}
+
+async function runParticelEffect(characters, duration, stagger) {
+  const particles = [];
+  characters.forEach((character, index) => {
+    character.style.display = 'inline-block';
+    character.style.willChange = 'transform, opacity, filter';
+    const delay = index * stagger;
+    character.animate([
+      { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' },
+      { opacity: .75, transform: 'scale(1.06)', filter: 'blur(.5px)', offset: .2 },
+      { opacity: 0, transform: 'scale(.55)', filter: 'blur(7px)' }
+    ], { duration: duration * .62, delay, easing: 'ease-out', fill: 'forwards' });
+    if (character.textContent.trim()) {
+      for (let i = 0; i < 9; i += 1) particles.push(createParticle(character, index + i, duration, delay + i * 18));
+    }
+  });
+  await Promise.all(particles);
+}
+
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
   const list = (Array.isArray(elements) ? elements : [elements]).filter(Boolean);
   if (!list.length) return;
   const allCharacters = list.flatMap(wrapCharacters);
   const duration = options.duration || 1750;
   const stagger = options.stagger ?? 20;
+
+  if (effect === 'particel') {
+    await runParticelEffect(allCharacters, duration, stagger);
+    return;
+  }
+
   const animations = allCharacters.map((character, index) => {
     character.style.display = 'inline-block';
     character.style.willChange = 'transform, opacity, filter, color, text-shadow';
