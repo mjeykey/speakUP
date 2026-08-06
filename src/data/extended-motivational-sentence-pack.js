@@ -1,4 +1,4 @@
-import { getSentenceLevels as getBaseLevels } from './motivational-sentence-pack.js?v=1';
+import { getSentenceLevels as getBaseLevels } from './motivational-sentence-pack.js?v=2';
 import { EXTRA_MOTIVATIONAL_SENTENCES } from './motivational-sentences-extra.js?v=1';
 
 const ALIASES = { 'es-AN': 'es-ES', 'hr-DAL': 'hr-HR' };
@@ -31,6 +31,8 @@ function buildItems(learningLanguage, nativeLanguage) {
     ];
 
     return {
+      id: `motivation-${index + 21}`,
+      translationId: `motivation-${index + 21}`,
       sentence: gap.sentence,
       answers: [gap.answer],
       options: [...new Set(options)],
