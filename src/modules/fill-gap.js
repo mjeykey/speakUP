@@ -1,18 +1,13 @@
-import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=3';
+import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=4';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=4';
 import { repairSentenceLevels } from '../data/sentence-integrity.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
-import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=2';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=3';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
 function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+  return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
 function fillAnswers(sentence, answers, solvedCount = answers.length) {
@@ -35,26 +30,14 @@ export function renderFillGap(root, store) {
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
   const progressKey = `${state.learningLanguage}|${state.nativeLanguage}|${level.id}`;
   const saved = state.progress?.fillGap?.[progressKey] || {};
-  const speechRate = state.learningLanguage.startsWith('hr-')
-    ? 0.56
-    : speechLanguage === 'es-ES'
-      ? 0.6
-      : speechLanguage === 'fr-FR'
-        ? 0.56
-        : 0.58;
+  const speechRate = state.learningLanguage.startsWith('hr-') ? 0.56 : speechLanguage === 'es-ES' ? 0.6 : speechLanguage === 'fr-FR' ? 0.56 : 0.58;
 
   let sentenceIndex = Math.max(0, Number(saved.sentenceIndex) || 0) % level.items.length;
   let solvedCount = Math.max(0, Number(saved.solvedCount) || 0);
   let solved = false;
 
-  const saveProgress = () => {
-    store.saveProgress('fillGap', progressKey, { sentenceIndex, solvedCount });
-  };
-
-  const leave = () => {
-    stopSpeech();
-    store.setState({ screen: 'menu' });
-  };
+  const saveProgress = () => store.saveProgress('fillGap', progressKey, { sentenceIndex, solvedCount });
+  const leave = () => { stopSpeech(); store.setState({ screen: 'menu' }); };
 
   function renderSentence() {
     const item = level.items[sentenceIndex];
@@ -68,13 +51,10 @@ export function renderFillGap(root, store) {
         <p class="kicker">Sentences · ${learningName} · ${level.title}</p>
         <p class="sentence-mode-progress">Sentence ${sentenceIndex + 1} / ${level.items.length} · Gap ${Math.min(solvedCount + 1, item.answers.length)} / ${item.answers.length}</p>
         <div class="sentence-mode-stage" data-stage>
-          <p class="sentence-mode-label">${learningName}</p>
-          <p class="sentence sentence-mode-portuguese" data-learning-text>${escapeHtml(visibleSentence)}</p>
-          <p class="sentence-mode-label sentence-mode-english-label">${supportName}</p>
-          <p class="sentence-mode-english ${level.englishClass}" data-support-text>${escapeHtml(item.translation)}</p>
+          <p class="sentence-mode-label">${learningName}</p><p class="sentence sentence-mode-portuguese" data-learning-text>${escapeHtml(visibleSentence)}</p>
+          <p class="sentence-mode-label sentence-mode-english-label">${supportName}</p><p class="sentence-mode-english ${level.englishClass}" data-support-text>${escapeHtml(item.translation)}</p>
         </div>
-        <div class="choices" data-choices></div>
-        <p class="feedback sentence-mode-feedback" data-feedback></p>
+        <div class="choices" data-choices></div><p class="feedback sentence-mode-feedback" data-feedback></p>
       </div>
     </section>`;
 
@@ -90,10 +70,7 @@ export function renderFillGap(root, store) {
       button.onclick = async () => {
         if (solved) return;
         if (option !== expected) {
-          button.animate([
-            { transform: 'translateX(0)' }, { transform: 'translateX(-5px)' },
-            { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }
-          ], { duration: 340, easing: 'ease' });
+          button.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 340, easing: 'ease' });
           root.querySelector('[data-feedback]').textContent = 'Almost — try another word.';
           return;
         }
@@ -114,17 +91,13 @@ export function renderFillGap(root, store) {
         choices.querySelectorAll('button').forEach(choice => { choice.disabled = true; });
         const completeSentence = fillAnswers(item.sentence, item.answers);
         root.querySelector('[data-feedback]').textContent = 'Beautiful — now hear the whole sentence.';
-
         sentenceIndex = (sentenceIndex + 1) % level.items.length;
         solvedCount = 0;
         saveProgress();
 
         await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: speechRate });
         await sleep(500);
-        await explodeText([
-          root.querySelector('[data-learning-text]'),
-          root.querySelector('[data-support-text]')
-        ], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
+        await explodeText([root.querySelector('[data-learning-text]'), root.querySelector('[data-support-text]')], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
         await sleep(180);
         renderSentence();
       };
@@ -132,9 +105,7 @@ export function renderFillGap(root, store) {
     });
 
     const spokenSentence = fillAnswers(item.sentence, item.answers.map(() => '...'));
-    window.setTimeout(() => {
-      if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: Math.max(.52, speechRate - .02) });
-    }, 350);
+    window.setTimeout(() => { if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: Math.max(.52, speechRate - .02) }); }, 350);
   }
 
   renderSentence();

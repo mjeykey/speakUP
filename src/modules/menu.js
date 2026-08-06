@@ -17,10 +17,7 @@ const SENTENCE_LEVELS = [
 ];
 
 const VALID_SENTENCE_LEVELS = new Set(SENTENCE_LEVELS.map(([id]) => id));
-
-function normaliseSentenceLevel(value) {
-  return VALID_SENTENCE_LEVELS.has(value) ? value : 'beginner';
-}
+const normaliseSentenceLevel = value => VALID_SENTENCE_LEVELS.has(value) ? value : 'beginner';
 
 export function renderMenu(root, store) {
   const state = store.getState();
@@ -35,21 +32,27 @@ export function renderMenu(root, store) {
     <h2>Learning Mode</h2><div class="card-grid" data-modes></div>
     ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
     <h2>Personalise</h2>
-    ${state.mode === 'fill-gap' ? `<div class="sentence-level-grid" data-sentence-levels>
-      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button type="button" class="sentence-level-card ${sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}" aria-pressed="${sentenceLevel === id}">
-        <span class="sentence-level-title">${title}</span><small>${description}</small>
-      </button>`).join('')}
-    </div>` : ''}
+    ${state.mode === 'fill-gap' ? `<fieldset class="sentence-level-fieldset" data-sentence-levels>
+      <legend>Sentence level</legend>
+      <label class="sentence-level-select-label">Choose level
+        <select data-sentence-level-select>
+          ${SENTENCE_LEVELS.map(([id, title]) => `<option value="${id}" ${sentenceLevel === id ? 'selected' : ''}>${title}</option>`).join('')}
+        </select>
+      </label>
+      <div class="sentence-level-grid">
+        ${SENTENCE_LEVELS.map(([id, title, description]) => `<button type="button" class="sentence-level-card ${sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}" aria-pressed="${sentenceLevel === id}"><span class="sentence-level-title">${title}</span><small>${description}</small></button>`).join('')}
+      </div>
+    </fieldset>` : ''}
     <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
     <button class="menu-card future-menu-card" data-future><span>✦ Future SpeakUP</span><small>See what is planned next.</small></button>
-    <div class="settings-row">
-      <label>Learning Language<select data-learning>${languageOptions}</select></label>
-      <label>Support Language<select data-native>${nativeOptions}</select></label>
-    </div>
-    <div class="menu-action">
-      <button class="primary-button menu-start-button" data-start ${waitingForStory ? 'disabled' : ''}>${startLabel}</button>
-    </div>
+    <div class="settings-row"><label>Learning Language<select data-learning>${languageOptions}</select></label><label>Support Language<select data-native>${nativeOptions}</select></label></div>
+    <div class="menu-action"><button class="primary-button menu-start-button" data-start ${waitingForStory ? 'disabled' : ''}>${startLabel}</button></div>
   </div></section>`;
+
+  const selectLevel = value => {
+    const selectedLevel = normaliseSentenceLevel(value);
+    store.setState({ sentenceLevel: selectedLevel, currentIndex: 0 });
+  };
 
   const modes = root.querySelector('[data-modes]');
   MODES.forEach(([id, title, description]) => {
@@ -57,31 +60,15 @@ export function renderMenu(root, store) {
     button.type = 'button';
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
-    button.onclick = () => store.setState(current => ({
-      mode: id,
-      selectedStory: current.selectedStory,
-      currentIndex: 0,
-      sentenceLevel: normaliseSentenceLevel(current.sentenceLevel)
-    }));
+    button.onclick = () => store.setState(current => ({ mode: id, selectedStory: current.selectedStory, currentIndex: 0, sentenceLevel: normaliseSentenceLevel(current.sentenceLevel) }));
     modes.appendChild(button);
   });
 
-  const levelGrid = root.querySelector('[data-sentence-levels]');
-  if (levelGrid) {
-    levelGrid.onclick = event => {
-      const button = event.target.closest('[data-sentence-level]');
-      if (!button || !levelGrid.contains(button)) return;
-
-      const selectedLevel = normaliseSentenceLevel(button.dataset.sentenceLevel);
-      levelGrid.querySelectorAll('[data-sentence-level]').forEach(levelButton => {
-        const selected = levelButton === button;
-        levelButton.classList.toggle('selected', selected);
-        levelButton.setAttribute('aria-pressed', String(selected));
-      });
-
-      store.setState({ sentenceLevel: selectedLevel, currentIndex: 0 });
-    };
-  }
+  root.querySelector('[data-sentence-level-select]')?.addEventListener('change', event => selectLevel(event.target.value));
+  root.querySelector('[data-sentence-levels]')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-sentence-level]');
+    if (button) selectLevel(button.dataset.sentenceLevel);
+  });
 
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
   root.querySelector('[data-future]').onclick = () => store.setState({ screen: 'future' });
@@ -110,12 +97,7 @@ export function renderMenu(root, store) {
 
   root.querySelector('[data-start]').onclick = () => {
     const current = store.getState();
-    const currentWaitingForStory = current.mode === 'story' && !current.selectedStory;
-    if (!currentWaitingForStory) {
-      store.setState({
-        screen: current.mode,
-        sentenceLevel: normaliseSentenceLevel(current.sentenceLevel)
-      });
-    }
+    if (current.mode === 'story' && !current.selectedStory) return;
+    store.setState({ screen: current.mode, sentenceLevel: normaliseSentenceLevel(current.sentenceLevel) });
   };
 }
