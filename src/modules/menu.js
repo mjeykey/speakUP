@@ -18,9 +18,13 @@ const SENTENCE_LEVELS = [
 
 const VALID_SENTENCE_LEVELS = new Set(SENTENCE_LEVELS.map(([id]) => id));
 
+function normaliseSentenceLevel(value) {
+  return VALID_SENTENCE_LEVELS.has(value) ? value : 'beginner';
+}
+
 export function renderMenu(root, store) {
   const state = store.getState();
-  const sentenceLevel = VALID_SENTENCE_LEVELS.has(state.sentenceLevel) ? state.sentenceLevel : 'beginner';
+  const sentenceLevel = normaliseSentenceLevel(state.sentenceLevel);
   const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
   const waitingForStory = state.mode === 'story' && !state.selectedStory;
@@ -32,7 +36,7 @@ export function renderMenu(root, store) {
     ${state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
     <h2>Personalise</h2>
     ${state.mode === 'fill-gap' ? `<div class="sentence-level-grid" data-sentence-levels>
-      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button type="button" class="sentence-level-card ${sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}">
+      ${SENTENCE_LEVELS.map(([id, title, description]) => `<button type="button" class="sentence-level-card ${sentenceLevel === id ? 'selected' : ''}" data-sentence-level="${id}" aria-pressed="${sentenceLevel === id}">
         <span class="sentence-level-title">${title}</span><small>${description}</small>
       </button>`).join('')}
     </div>` : ''}
@@ -53,24 +57,44 @@ export function renderMenu(root, store) {
     button.type = 'button';
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
-    button.onclick = () => store.setState({ mode: id, selectedStory: state.selectedStory, currentIndex: 0, sentenceLevel });
+    button.onclick = () => store.setState(current => ({
+      mode: id,
+      selectedStory: current.selectedStory,
+      currentIndex: 0,
+      sentenceLevel: normaliseSentenceLevel(current.sentenceLevel)
+    }));
     modes.appendChild(button);
   });
 
-  root.querySelectorAll('[data-sentence-level]').forEach(button => {
-    button.onclick = () => store.setState({ sentenceLevel: button.dataset.sentenceLevel, currentIndex: 0 });
-  });
+  const levelGrid = root.querySelector('[data-sentence-levels]');
+  if (levelGrid) {
+    levelGrid.onclick = event => {
+      const button = event.target.closest('[data-sentence-level]');
+      if (!button || !levelGrid.contains(button)) return;
+
+      const selectedLevel = normaliseSentenceLevel(button.dataset.sentenceLevel);
+      levelGrid.querySelectorAll('[data-sentence-level]').forEach(levelButton => {
+        const selected = levelButton === button;
+        levelButton.classList.toggle('selected', selected);
+        levelButton.setAttribute('aria-pressed', String(selected));
+      });
+
+      store.setState({ sentenceLevel: selectedLevel, currentIndex: 0 });
+    };
+  }
 
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen: 'effects-settings' });
   root.querySelector('[data-future]').onclick = () => store.setState({ screen: 'future' });
   root.querySelector('[data-learning]').onchange = event => {
+    const current = store.getState();
     const learningLanguage = event.target.value;
-    const nativeLanguage = learningLanguage === state.nativeLanguage ? state.learningLanguage : state.nativeLanguage;
+    const nativeLanguage = learningLanguage === current.nativeLanguage ? current.learningLanguage : current.nativeLanguage;
     store.setState({ learningLanguage, nativeLanguage, currentIndex: 0 });
   };
   root.querySelector('[data-native]').onchange = event => {
+    const current = store.getState();
     const nativeLanguage = event.target.value;
-    const learningLanguage = nativeLanguage === state.learningLanguage ? state.nativeLanguage : state.learningLanguage;
+    const learningLanguage = nativeLanguage === current.learningLanguage ? current.nativeLanguage : current.learningLanguage;
     store.setState({ learningLanguage, nativeLanguage, currentIndex: 0 });
   };
 
@@ -85,6 +109,13 @@ export function renderMenu(root, store) {
   });
 
   root.querySelector('[data-start]').onclick = () => {
-    if (!waitingForStory) store.setState({ screen: state.mode, sentenceLevel });
+    const current = store.getState();
+    const currentWaitingForStory = current.mode === 'story' && !current.selectedStory;
+    if (!currentWaitingForStory) {
+      store.setState({
+        screen: current.mode,
+        sentenceLevel: normaliseSentenceLevel(current.sentenceLevel)
+      });
+    }
   };
 }
