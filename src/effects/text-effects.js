@@ -102,51 +102,83 @@ function framesFor(effect, index, total) {
   ];
 }
 
-function createParticle(character, index, duration, delay) {
+function createFragment(character, fragmentIndex, duration, delay) {
   const rect = character.getBoundingClientRect();
-  const particle = document.createElement('span');
-  const size = randomBetween(2, 5);
-  const color = EFFECT_COLORS[index % EFFECT_COLORS.length];
-  particle.setAttribute('aria-hidden', 'true');
-  Object.assign(particle.style, {
+  const fragment = document.createElement('span');
+  const width = randomBetween(2.5, Math.max(4, rect.width * .22));
+  const height = randomBetween(2.5, Math.max(4, rect.height * .18));
+  const startX = rect.left + randomBetween(rect.width * .12, rect.width * .88);
+  const startY = rect.top + randomBetween(rect.height * .12, rect.height * .88);
+  const driftX = randomBetween(-34, 34);
+  const fallY = randomBetween(34, 105);
+  const rotation = randomBetween(-170, 170);
+  const color = getComputedStyle(character).color || EFFECT_COLORS[fragmentIndex % EFFECT_COLORS.length];
+
+  fragment.setAttribute('aria-hidden', 'true');
+  Object.assign(fragment.style, {
     position: 'fixed',
-    left: `${rect.left + rect.width / 2}px`,
-    top: `${rect.top + rect.height / 2}px`,
-    width: `${size}px`,
-    height: `${size}px`,
-    borderRadius: '50%',
+    left: `${startX}px`,
+    top: `${startY}px`,
+    width: `${width}px`,
+    height: `${height}px`,
     background: color,
-    boxShadow: `0 0 ${size * 2}px ${color}`,
+    clipPath: `polygon(${randomBetween(0,18)}% 0,100% ${randomBetween(0,28)}%,${randomBetween(72,100)}% 100%,0 ${randomBetween(68,100)}%)`,
+    opacity: '0',
     pointerEvents: 'none',
-    zIndex: '9999'
+    zIndex: '9999',
+    transformOrigin: 'center'
   });
-  document.body.appendChild(particle);
-  const angle = randomBetween(0, Math.PI * 2);
-  const distance = randomBetween(35, 125);
-  const animation = particle.animate([
-    { opacity: 0, transform: 'translate(-50%,-50%) scale(.2)' },
-    { opacity: 1, transform: `translate(calc(-50% + ${Math.cos(angle) * distance * .25}px),calc(-50% + ${Math.sin(angle) * distance * .25}px)) scale(1)`, offset: .25 },
-    { opacity: 0, transform: `translate(calc(-50% + ${Math.cos(angle) * distance}px),calc(-50% + ${Math.sin(angle) * distance}px)) scale(.1)`, filter: 'blur(2px)' }
-  ], { duration, delay, easing: 'cubic-bezier(.18,.72,.24,1)', fill: 'forwards' });
-  return animation.finished.catch(() => {}).finally(() => particle.remove());
+  document.body.appendChild(fragment);
+
+  const animation = fragment.animate([
+    { opacity: 0, transform: 'translate(-50%,-50%) rotate(0deg) scale(.45)' },
+    { opacity: .86, transform: `translate(calc(-50% + ${driftX * .08}px),calc(-50% + ${fallY * .04}px)) rotate(${rotation * .08}deg) scale(1)`, offset: .18 },
+    { opacity: .78, transform: `translate(calc(-50% + ${driftX * .38}px),calc(-50% + ${fallY * .28}px)) rotate(${rotation * .38}deg) scale(.84)`, offset: .55 },
+    { opacity: 0, transform: `translate(calc(-50% + ${driftX}px),calc(-50% + ${fallY}px)) rotate(${rotation}deg) scale(.18)`, filter: 'blur(1.5px)' }
+  ], {
+    duration,
+    delay,
+    easing: 'cubic-bezier(.22,.61,.36,1)',
+    fill: 'forwards'
+  });
+
+  return animation.finished.catch(() => {}).finally(() => fragment.remove());
 }
 
 async function runParticelEffect(characters, duration, stagger) {
-  const particles = [];
+  const fragmentAnimations = [];
+  const characterAnimations = [];
+
   characters.forEach((character, index) => {
     character.style.display = 'inline-block';
     character.style.willChange = 'transform, opacity, filter';
-    const delay = index * stagger;
-    character.animate([
-      { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' },
-      { opacity: .75, transform: 'scale(1.06)', filter: 'blur(.5px)', offset: .2 },
-      { opacity: 0, transform: 'scale(.55)', filter: 'blur(7px)' }
-    ], { duration: duration * .62, delay, easing: 'ease-out', fill: 'forwards' });
+    const delay = index * Math.max(12, stagger * .7);
+    const tilt = randomBetween(-2.2, 2.2);
+    const drop = randomBetween(4, 11);
+
+    characterAnimations.push(character.animate([
+      { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
+      { opacity: 1, transform: `translate(${randomBetween(-1.5,1.5)}px,1px) rotate(${tilt * .25}deg) scale(1.01)`, filter: 'blur(0)', offset: .2 },
+      { opacity: .9, transform: `translate(${randomBetween(-2,2)}px,${drop * .35}px) rotate(${tilt * .6}deg) scale(.97,.94)`, filter: 'blur(.3px)', offset: .5 },
+      { opacity: .42, transform: `translate(${randomBetween(-3,3)}px,${drop}px) rotate(${tilt}deg) scale(.84,.7)`, filter: 'blur(1.8px)', offset: .78 },
+      { opacity: 0, transform: `translate(${randomBetween(-5,5)}px,${drop + 12}px) rotate(${tilt * 1.4}deg) scale(.55,.35)`, filter: 'blur(6px)' }
+    ], {
+      duration,
+      delay,
+      easing: 'cubic-bezier(.25,.46,.45,.94)',
+      fill: 'forwards'
+    }).finished.catch(() => {}));
+
     if (character.textContent.trim()) {
-      for (let i = 0; i < 9; i += 1) particles.push(createParticle(character, index + i, duration, delay + i * 18));
+      const fragmentCount = Math.max(12, Math.min(24, Math.round(character.getBoundingClientRect().width * .55)));
+      for (let i = 0; i < fragmentCount; i += 1) {
+        const fractureDelay = delay + duration * randomBetween(.28, .62);
+        fragmentAnimations.push(createFragment(character, index + i, duration * randomBetween(.44, .68), fractureDelay));
+      }
     }
   });
-  await Promise.all(particles);
+
+  await Promise.all([...characterAnimations, ...fragmentAnimations]);
 }
 
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
