@@ -1,6 +1,6 @@
 import { getWords, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speakPair, stopSpeech } from '../audio/speech.js?v=40';
-import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=7';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=10';
 
 export function renderWords(root, store) {
   const state = store.getState();
@@ -32,14 +32,24 @@ export function renderWords(root, store) {
     if (moving) return;
     moving = true;
     stopSpeech();
-    await explodeText(Array.from(root.querySelectorAll('[data-effect-text]')), getModeTextEffect('words'), { duration: 1750, stagger: 24 });
-    store.updateProgress('words', progressKey, {
-      currentIndex: currentIndex + 1,
-      viewed: Math.min(currentIndex + 1, words.length),
-      total: words.length,
-      learningLanguage: state.learningLanguage,
-      nativeLanguage: state.nativeLanguage
-    });
+
+    try {
+      await explodeText(
+        Array.from(root.querySelectorAll('[data-effect-text]')),
+        getModeTextEffect('words'),
+        { duration: 1750, stagger: 24 }
+      );
+    } catch (error) {
+      console.warn('Word effect failed; continuing to next word.', error);
+    } finally {
+      store.updateProgress('words', progressKey, {
+        currentIndex: currentIndex + 1,
+        viewed: Math.min(currentIndex + 1, words.length),
+        total: words.length,
+        learningLanguage: state.learningLanguage,
+        nativeLanguage: state.nativeLanguage
+      });
+    }
   };
 
   const learningRate = state.learningLanguage === 'de-DE'
@@ -56,5 +66,5 @@ export function renderWords(root, store) {
     { text: item.target, language: getSpeechLanguage(state.learningLanguage), rate: learningRate },
     { text: item.translation, language: getSpeechLanguage(state.nativeLanguage), rate: 0.88 },
     { enabled: state.audioOn, pause: 320 }
-  );
+  ).catch(error => console.warn('Word audio could not play.', error));
 }
