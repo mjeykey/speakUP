@@ -2,7 +2,7 @@ import { getSentenceLevels } from '../data/mixed-sentence-levels.js?v=6';
 import { getSpeechLanguage } from '../data/language-content-extended.js?v=6';
 import { repairSentenceLevels } from '../data/sentence-integrity.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=40';
-import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=7';
+import { explodeText, getModeTextEffect } from '../effects/text-effects.js?v=10';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
@@ -93,7 +93,15 @@ export function renderFillGap(root, store) {
 
         await speak(completeSentence, speechLanguage, { enabled: state.audioOn, rate: speechRate });
         await sleep(500);
-        await explodeText([root.querySelector('[data-learning-text]'), root.querySelector('[data-support-text]')], getModeTextEffect('sentences'), { duration: 1750, stagger: 16 });
+        try {
+          await explodeText(
+            [root.querySelector('[data-learning-text]'), root.querySelector('[data-support-text]')],
+            getModeTextEffect('sentences'),
+            { duration: 1750, stagger: 16 }
+          );
+        } catch (error) {
+          console.warn('Sentence effect failed; continuing.', error);
+        }
         await sleep(180);
         renderSentence();
       };
@@ -101,7 +109,9 @@ export function renderFillGap(root, store) {
     });
 
     const spokenSentence = fillAnswers(item.sentence, item.answers.map(() => '...'));
-    window.setTimeout(() => { if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: Math.max(.52, speechRate - .02) }); }, 350);
+    window.setTimeout(() => {
+      if (!solved) speak(spokenSentence, speechLanguage, { enabled: state.audioOn, rate: Math.max(.52, speechRate - .02) }).catch(() => {});
+    }, 350);
   }
 
   renderSentence();
