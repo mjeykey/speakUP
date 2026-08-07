@@ -9,7 +9,8 @@ export const TEXT_EFFECTS = [
   { id: 'float', label: 'Float' },
   { id: 'glow', label: 'Glow' },
   { id: 'collapse', label: 'Push & Collapse' },
-  { id: 'particel', label: 'particel' }
+  { id: 'particel', label: 'particel' },
+  { id: 'cascade', label: 'Cascade' }
 ];
 
 export const EFFECT_MODES = [
@@ -216,6 +217,116 @@ async function runParticelEffect(characters, totalDuration = 3000) {
   ]);
 }
 
+function buildCascadeParticles(snapshot, imageData) {
+  const particles = [];
+  const step = Math.max(4, Math.round(snapshot.scale * 2.8));
+
+  for (let py = 0; py < snapshot.canvas.height; py += step) {
+    for (let px = 0; px < snapshot.canvas.width; px += step) {
+      const offset = (py * snapshot.canvas.width + px) * 4;
+      const alpha = imageData.data[offset + 3];
+      if (alpha < 35) continue;
+
+      particles.push({
+        x: px,
+        y: py,
+        r: imageData.data[offset],
+        g: imageData.data[offset + 1],
+        b: imageData.data[offset + 2],
+        alpha: alpha / 255,
+        size: randomBetween(step * .55, step * 1.05),
+        vx: randomBetween(-34, 34) * snapshot.scale,
+        vy: randomBetween(26, 58) * snapshot.scale,
+        sway: randomBetween(-20, 20) * snapshot.scale,
+        phase: randomBetween(0, Math.PI * 2),
+        rotation: randomBetween(-2.2, 2.2),
+        release: Math.max(0, Math.min(.82, (py / Math.max(1, snapshot.canvas.height)) * .72 + randomBetween(0, .1)))
+      });
+    }
+  }
+
+  return particles;
+}
+
+function cascadeGlyph(character, startDelay, duration) {
+  return new Promise(resolve => {
+    const snapshot = createGlyphSnapshot(character);
+    if (!snapshot) { resolve(); return; }
+
+    const { canvas, context } = snapshot;
+    let original;
+    try {
+      original = context.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (_) {
+      resolve();
+      return;
+    }
+
+    const particles = buildCascadeParticles(snapshot, original);
+    if (!particles.length) { resolve(); return; }
+
+    document.body.appendChild(canvas);
+    character.style.opacity = '0';
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    const begin = performance.now() + startDelay;
+
+    const frame = now => {
+      if (now < begin) {
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
+      const progress = Math.min(1, (now - begin) / duration);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.putImageData(original, 0, 0);
+
+      const eraseFront = Math.min(canvas.height, canvas.height * Math.min(1, progress * 1.18));
+      context.clearRect(0, 0, canvas.width, eraseFront);
+
+      particles.forEach(particle => {
+        if (progress < particle.release) return;
+        const local = Math.min(1, (progress - particle.release) / Math.max(.18, 1 - particle.release));
+        const eased = 1 - Math.pow(1 - local, 1.7);
+        const horizontal = particle.vx * eased + Math.sin(local * Math.PI * 2 + particle.phase) * particle.sway * eased;
+        const vertical = particle.vy * eased + 92 * snapshot.scale * eased * eased;
+        const alpha = particle.alpha * Math.max(0, 1 - Math.pow(local, 1.45));
+
+        context.save();
+        context.globalAlpha = alpha;
+        context.fillStyle = `rgb(${particle.r},${particle.g},${particle.b})`;
+        context.translate(particle.x + horizontal, particle.y + vertical);
+        context.rotate(particle.rotation * eased);
+        context.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+        context.restore();
+      });
+
+      if (progress < 1) {
+        window.requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+        resolve();
+      }
+    };
+
+    window.requestAnimationFrame(frame);
+  });
+}
+
+async function runCascadeEffect(characters, totalDuration = 3000) {
+  const visibleCharacters = characters.filter(character => character.textContent.trim());
+  if (!visibleCharacters.length) return;
+
+  const step = Math.max(18, Math.min(60, totalDuration * .22 / visibleCharacters.length));
+  const tasks = visibleCharacters.map((character, index) =>
+    cascadeGlyph(character, index * step, Math.max(1700, totalDuration - index * step))
+  );
+
+  await Promise.race([
+    Promise.all(tasks),
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 800))
+  ]);
+}
+
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
   const list = (Array.isArray(elements) ? elements : [elements]).filter(Boolean);
   if (!list.length) return;
@@ -226,6 +337,11 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
   try {
     if (effect === 'particel') {
       await runParticelEffect(allCharacters, 3000);
+      return;
+    }
+
+    if (effect === 'cascade') {
+      await runCascadeEffect(allCharacters, 3000);
       return;
     }
 
