@@ -123,7 +123,7 @@ function renderCharacterCanvas(character) {
   return { canvas, rect, width, height, scale };
 }
 
-function createSandGrain(snapshot, x, y, size, delay, duration) {
+function createStationaryGrain(snapshot, x, y, size, delay, duration) {
   const sourceX = Math.max(0, Math.floor((x - size / 2) * snapshot.scale));
   const sourceY = Math.max(0, Math.floor((y - size / 2) * snapshot.scale));
   const sourceSize = Math.max(1, Math.ceil(size * snapshot.scale));
@@ -143,8 +143,8 @@ function createSandGrain(snapshot, x, y, size, delay, duration) {
 
   Object.assign(grain.style, {
     position: 'fixed',
-    left: `${snapshot.rect.left + x}px`,
-    top: `${snapshot.rect.top + y}px`,
+    left: `${snapshot.rect.left + x - size / 2}px`,
+    top: `${snapshot.rect.top + y - size / 2}px`,
     width: `${size}px`,
     height: `${size}px`,
     pointerEvents: 'none',
@@ -152,70 +152,53 @@ function createSandGrain(snapshot, x, y, size, delay, duration) {
   });
   document.body.appendChild(grain);
 
-  const driftX = randomBetween(-6, 6);
-  const fallY = randomBetween(12, 42);
-  const rotation = randomBetween(-35, 35);
   const animation = grain.animate([
-    { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
-    { opacity: .98, transform: `translate(${driftX * .2}px,${fallY * .16}px) rotate(${rotation * .15}deg) scale(.98)`, offset: .35 },
-    { opacity: .7, transform: `translate(${driftX * .65}px,${fallY * .62}px) rotate(${rotation * .6}deg) scale(.72)`, filter: 'blur(.2px)', offset: .78 },
-    { opacity: 0, transform: `translate(${driftX}px,${fallY}px) rotate(${rotation}deg) scale(.32)`, filter: 'blur(1px)' }
+    { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' },
+    { opacity: .98, transform: 'scale(.98)', filter: 'blur(0)', offset: .35 },
+    { opacity: .72, transform: 'scale(.9)', filter: 'blur(.25px)', offset: .68 },
+    { opacity: .32, transform: 'scale(.72)', filter: 'blur(.7px)', offset: .86 },
+    { opacity: 0, transform: 'scale(.5)', filter: 'blur(1.6px)' }
   ], {
     duration,
     delay,
-    easing: 'cubic-bezier(.22,.61,.36,1)',
+    easing: 'ease-out',
     fill: 'forwards'
   });
 
   return animation.finished.catch(() => {}).finally(() => grain.remove());
 }
 
-async function runParticelEffect(characters, duration, stagger) {
-  const animations = [];
+async function runParticelEffect(characters, duration) {
   const visibleCharacters = characters.filter(character => character.textContent.trim());
-  const perCharacterWindow = Math.max(170, Math.min(320, duration / Math.max(1, visibleCharacters.length)));
+  if (!visibleCharacters.length) return;
 
-  visibleCharacters.forEach((character, characterIndex) => {
-    character.style.display = 'inline-block';
-    const snapshot = renderCharacterCanvas(character);
-    if (!snapshot) return;
+  const snapshots = visibleCharacters.map(character => ({ character, snapshot: renderCharacterCanvas(character) })).filter(item => item.snapshot);
+  snapshots.forEach(({ character }) => { character.style.opacity = '0'; });
 
-    const grainSize = Math.max(1.4, Math.min(2.8, snapshot.width / 7));
-    const xStep = grainSize * .9;
-    const yStep = grainSize * .9;
-    const startDelay = characterIndex * perCharacterWindow;
-    const maskDuration = Math.max(900, duration - startDelay + 220);
+  const allAnimations = [];
+  const characterWindow = Math.max(180, Math.min(380, duration / snapshots.length));
 
-    character.animate([
-      { opacity: 1, filter: 'blur(0)', transform: 'translate(0,0)' },
-      { opacity: 1, filter: 'blur(0)', transform: 'translate(0,0)', offset: .24 },
-      { opacity: .92, filter: 'blur(.15px)', transform: 'translate(0,0)', offset: .52 },
-      { opacity: .54, filter: 'blur(.5px)', transform: 'translate(0,0)', offset: .78 },
-      { opacity: 0, filter: 'blur(1.4px)', transform: 'translate(0,0)' }
-    ], {
-      duration: maskDuration,
-      delay: startDelay,
-      easing: 'linear',
-      fill: 'forwards'
-    });
+  snapshots.forEach(({ snapshot }, characterIndex) => {
+    const grainSize = Math.max(1.25, Math.min(2.4, snapshot.width / 8));
+    const step = grainSize * .82;
+    const startDelay = characterIndex * characterWindow;
 
-    for (let y = grainSize / 2; y < snapshot.height; y += yStep) {
-      const verticalProgress = snapshot.height ? y / snapshot.height : 0;
-      for (let x = grainSize / 2; x < snapshot.width; x += xStep) {
-        const localDelay = startDelay + verticalProgress * 430 + randomBetween(0, 180);
-        animations.push(createSandGrain(
+    for (let y = grainSize / 2; y < snapshot.height; y += step) {
+      for (let x = grainSize / 2; x < snapshot.width; x += step) {
+        const localDelay = startDelay + randomBetween(0, characterWindow * .9);
+        allAnimations.push(createStationaryGrain(
           snapshot,
           x,
           y,
-          grainSize * randomBetween(.75, 1.18),
+          grainSize * randomBetween(.82, 1.08),
           localDelay,
-          randomBetween(900, 1450)
+          randomBetween(700, 1150)
         ));
       }
     }
   });
 
-  await Promise.all(animations);
+  await Promise.all(allAnimations);
 }
 
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
@@ -226,7 +209,7 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
   const stagger = options.stagger ?? 20;
 
   if (effect === 'particel') {
-    await runParticelEffect(allCharacters, 3000, stagger);
+    await runParticelEffect(allCharacters, 3000);
     return;
   }
 
