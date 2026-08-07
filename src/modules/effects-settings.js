@@ -4,7 +4,7 @@ import {
   explodeText,
   getModeTextEffect,
   setModeTextEffect
-} from '../effects/text-effects.js?v=9';
+} from '../effects/text-effects.js?v=10';
 
 export function renderEffectsSettings(root, store) {
   root.innerHTML = `<section class="screen effects-settings-screen">
@@ -34,9 +34,14 @@ export function renderEffectsSettings(root, store) {
       const target = root.querySelector(`[data-preview-text="${mode}"]`);
       if (!target || button.disabled) return;
       button.disabled = true;
-      await explodeText(target, getModeTextEffect(mode), { duration: 1750, stagger: 24 });
-      target.textContent = source;
-      button.disabled = false;
+      try {
+        await explodeText(target, getModeTextEffect(mode), { duration: 1750, stagger: 24 });
+      } catch (error) {
+        console.warn('Effect preview failed.', error);
+      } finally {
+        target.textContent = source;
+        button.disabled = false;
+      }
     };
   });
 }
