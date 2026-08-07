@@ -1,16 +1,16 @@
 import { createStore } from './state.js?v=56';
 import { renderWelcome } from '../modules/welcome.js?v=52';
 import { renderMenu } from '../modules/menu.js?v=71';
-import { renderWords } from '../modules/words.js?v=54';
+import { renderWords } from '../modules/words.js?v=55';
 import { renderMemory } from '../modules/memory-full-speech.js?v=1';
-import { renderFillGap } from '../modules/fill-gap.js?v=67';
+import { renderFillGap } from '../modules/fill-gap.js?v=68';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice.js?v=54';
 import { renderStory } from '../modules/story-loader.js?v=62';
-import { renderEffectsSettings } from '../modules/effects-settings.js?v=55';
+import { renderEffectsSettings } from '../modules/effects-settings.js?v=56';
 import { renderEmotions } from '../modules/emotions.js?v=58';
 import { renderFuture } from '../modules/future.js?v=1';
-import { stopSpeech } from '../audio/speech.js?v=58';
+import { stopSpeech } from '../audio/speech.js?v=60';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
