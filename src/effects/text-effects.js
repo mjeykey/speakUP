@@ -123,102 +123,96 @@ function renderCharacterCanvas(character) {
   return { canvas, rect, width, height, scale };
 }
 
-function createGlyphShard(snapshot, column, row, columns, rows, delay, duration) {
-  const tileWidth = snapshot.width / columns;
-  const tileHeight = snapshot.height / rows;
-  const sourceX = Math.floor(column * tileWidth * snapshot.scale);
-  const sourceY = Math.floor(row * tileHeight * snapshot.scale);
-  const sourceWidth = Math.ceil(tileWidth * snapshot.scale);
-  const sourceHeight = Math.ceil(tileHeight * snapshot.scale);
-  const shardCanvas = document.createElement('canvas');
-  shardCanvas.width = sourceWidth;
-  shardCanvas.height = sourceHeight;
-  const shardContext = shardCanvas.getContext('2d');
-  if (!shardContext) return Promise.resolve();
+function createSandGrain(snapshot, x, y, size, delay, duration) {
+  const sourceX = Math.max(0, Math.floor((x - size / 2) * snapshot.scale));
+  const sourceY = Math.max(0, Math.floor((y - size / 2) * snapshot.scale));
+  const sourceSize = Math.max(1, Math.ceil(size * snapshot.scale));
+  const grain = document.createElement('canvas');
+  grain.width = sourceSize;
+  grain.height = sourceSize;
+  const context = grain.getContext('2d');
+  if (!context) return Promise.resolve();
 
-  shardContext.drawImage(
-    snapshot.canvas,
-    sourceX, sourceY, sourceWidth, sourceHeight,
-    0, 0, sourceWidth, sourceHeight
-  );
-
-  const pixels = shardContext.getImageData(0, 0, sourceWidth, sourceHeight).data;
+  context.drawImage(snapshot.canvas, sourceX, sourceY, sourceSize, sourceSize, 0, 0, sourceSize, sourceSize);
+  const pixels = context.getImageData(0, 0, sourceSize, sourceSize).data;
   let visible = false;
-  for (let i = 3; i < pixels.length; i += 16) {
-    if (pixels[i] > 15) { visible = true; break; }
+  for (let i = 3; i < pixels.length; i += 8) {
+    if (pixels[i] > 22) { visible = true; break; }
   }
   if (!visible) return Promise.resolve();
 
-  Object.assign(shardCanvas.style, {
+  Object.assign(grain.style, {
     position: 'fixed',
-    left: `${snapshot.rect.left + column * tileWidth}px`,
-    top: `${snapshot.rect.top + row * tileHeight}px`,
-    width: `${tileWidth}px`,
-    height: `${tileHeight}px`,
+    left: `${snapshot.rect.left + x}px`,
+    top: `${snapshot.rect.top + y}px`,
+    width: `${size}px`,
+    height: `${size}px`,
     pointerEvents: 'none',
-    zIndex: '9999',
-    transformOrigin: `${randomBetween(20,80)}% ${randomBetween(20,80)}%`
+    zIndex: '9999'
   });
-  document.body.appendChild(shardCanvas);
+  document.body.appendChild(grain);
 
-  const horizontal = randomBetween(-18, 18) + (column - (columns - 1) / 2) * 1.8;
-  const vertical = randomBetween(22, 80) + row * 5;
-  const rotation = randomBetween(-85, 85);
-  const animation = shardCanvas.animate([
+  const driftX = randomBetween(-6, 6);
+  const fallY = randomBetween(12, 42);
+  const rotation = randomBetween(-35, 35);
+  const animation = grain.animate([
     { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
-    { opacity: 1, transform: `translate(${horizontal * .08}px,${vertical * .04}px) rotate(${rotation * .08}deg) scale(.99)`, offset: .22 },
-    { opacity: .94, transform: `translate(${horizontal * .3}px,${vertical * .22}px) rotate(${rotation * .32}deg) scale(.94)`, offset: .55 },
-    { opacity: .5, transform: `translate(${horizontal * .72}px,${vertical * .68}px) rotate(${rotation * .75}deg) scale(.72)`, filter: 'blur(.4px)', offset: .82 },
-    { opacity: 0, transform: `translate(${horizontal}px,${vertical}px) rotate(${rotation}deg) scale(.42)`, filter: 'blur(2px)' }
+    { opacity: .98, transform: `translate(${driftX * .2}px,${fallY * .16}px) rotate(${rotation * .15}deg) scale(.98)`, offset: .35 },
+    { opacity: .7, transform: `translate(${driftX * .65}px,${fallY * .62}px) rotate(${rotation * .6}deg) scale(.72)`, filter: 'blur(.2px)', offset: .78 },
+    { opacity: 0, transform: `translate(${driftX}px,${fallY}px) rotate(${rotation}deg) scale(.32)`, filter: 'blur(1px)' }
   ], {
     duration,
     delay,
-    easing: 'cubic-bezier(.28,.62,.35,1)',
+    easing: 'cubic-bezier(.22,.61,.36,1)',
     fill: 'forwards'
   });
 
-  return animation.finished.catch(() => {}).finally(() => shardCanvas.remove());
+  return animation.finished.catch(() => {}).finally(() => grain.remove());
 }
 
 async function runParticelEffect(characters, duration, stagger) {
   const animations = [];
+  const visibleCharacters = characters.filter(character => character.textContent.trim());
+  const perCharacterWindow = Math.max(170, Math.min(320, duration / Math.max(1, visibleCharacters.length)));
 
-  characters.forEach((character, index) => {
+  visibleCharacters.forEach((character, characterIndex) => {
     character.style.display = 'inline-block';
-    if (!character.textContent.trim()) return;
-
     const snapshot = renderCharacterCanvas(character);
     if (!snapshot) return;
-    const columns = Math.max(3, Math.min(6, Math.round(snapshot.width / 5)));
-    const rows = Math.max(4, Math.min(8, Math.round(snapshot.height / 5)));
-    const characterDelay = index * Math.max(10, stagger * .55);
 
-    for (let row = 0; row < rows; row += 1) {
-      for (let column = 0; column < columns; column += 1) {
-        const fractureWave = (row / rows) * 720 + randomBetween(0, 240);
-        animations.push(createGlyphShard(
+    const grainSize = Math.max(1.4, Math.min(2.8, snapshot.width / 7));
+    const xStep = grainSize * .9;
+    const yStep = grainSize * .9;
+    const startDelay = characterIndex * perCharacterWindow;
+    const maskDuration = Math.max(900, duration - startDelay + 220);
+
+    character.animate([
+      { opacity: 1, filter: 'blur(0)', transform: 'translate(0,0)' },
+      { opacity: 1, filter: 'blur(0)', transform: 'translate(0,0)', offset: .24 },
+      { opacity: .92, filter: 'blur(.15px)', transform: 'translate(0,0)', offset: .52 },
+      { opacity: .54, filter: 'blur(.5px)', transform: 'translate(0,0)', offset: .78 },
+      { opacity: 0, filter: 'blur(1.4px)', transform: 'translate(0,0)' }
+    ], {
+      duration: maskDuration,
+      delay: startDelay,
+      easing: 'linear',
+      fill: 'forwards'
+    });
+
+    for (let y = grainSize / 2; y < snapshot.height; y += yStep) {
+      const verticalProgress = snapshot.height ? y / snapshot.height : 0;
+      for (let x = grainSize / 2; x < snapshot.width; x += xStep) {
+        const localDelay = startDelay + verticalProgress * 430 + randomBetween(0, 180);
+        animations.push(createSandGrain(
           snapshot,
-          column,
-          row,
-          columns,
-          rows,
-          characterDelay + fractureWave,
-          duration * randomBetween(.58, .78)
+          x,
+          y,
+          grainSize * randomBetween(.75, 1.18),
+          localDelay,
+          randomBetween(900, 1450)
         ));
       }
     }
-
-    character.animate([
-      { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
-      { opacity: 1, transform: 'translateY(1px) scale(.995)', offset: .25 },
-      { opacity: .72, transform: 'translateY(4px) scale(.97,.94)', filter: 'blur(.2px)', offset: .52 },
-      { opacity: 0, transform: 'translateY(12px) scale(.82,.64)', filter: 'blur(3px)' }
-    ], {
-      duration: duration * .62,
-      delay: characterDelay + 480,
-      easing: 'cubic-bezier(.3,.55,.38,1)',
-      fill: 'forwards'
-    });
   });
 
   await Promise.all(animations);
