@@ -102,16 +102,16 @@ function framesFor(effect, index, total) {
   ];
 }
 
-function renderCharacterCanvas(character) {
+function createGlyphSnapshot(character) {
   const rect = character.getBoundingClientRect();
   const style = getComputedStyle(character);
   const scale = Math.min(2, window.devicePixelRatio || 1);
   const width = Math.max(1, Math.ceil(rect.width));
   const height = Math.max(1, Math.ceil(rect.height));
   const canvas = document.createElement('canvas');
-  canvas.width = Math.ceil(width * scale);
-  canvas.height = Math.ceil(height * scale);
-  const context = canvas.getContext('2d');
+  canvas.width = Math.max(1, Math.ceil(width * scale));
+  canvas.height = Math.max(1, Math.ceil(height * scale));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
 
   context.scale(scale, scale);
@@ -120,85 +120,100 @@ function renderCharacterCanvas(character) {
   context.textBaseline = 'middle';
   context.fillStyle = style.color;
   context.fillText(character.textContent, width / 2, height / 2);
-  return { canvas, rect, width, height, scale };
-}
 
-function createStationaryGrain(snapshot, x, y, size, delay, duration) {
-  const sourceX = Math.max(0, Math.floor((x - size / 2) * snapshot.scale));
-  const sourceY = Math.max(0, Math.floor((y - size / 2) * snapshot.scale));
-  const sourceSize = Math.max(1, Math.ceil(size * snapshot.scale));
-  const grain = document.createElement('canvas');
-  grain.width = sourceSize;
-  grain.height = sourceSize;
-  const context = grain.getContext('2d');
-  if (!context) return Promise.resolve();
-
-  context.drawImage(snapshot.canvas, sourceX, sourceY, sourceSize, sourceSize, 0, 0, sourceSize, sourceSize);
-  const pixels = context.getImageData(0, 0, sourceSize, sourceSize).data;
-  let visible = false;
-  for (let i = 3; i < pixels.length; i += 8) {
-    if (pixels[i] > 22) { visible = true; break; }
-  }
-  if (!visible) return Promise.resolve();
-
-  Object.assign(grain.style, {
+  Object.assign(canvas.style, {
     position: 'fixed',
-    left: `${snapshot.rect.left + x - size / 2}px`,
-    top: `${snapshot.rect.top + y - size / 2}px`,
-    width: `${size}px`,
-    height: `${size}px`,
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${width}px`,
+    height: `${height}px`,
     pointerEvents: 'none',
     zIndex: '9999'
   });
-  document.body.appendChild(grain);
 
-  const animation = grain.animate([
-    { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' },
-    { opacity: .98, transform: 'scale(.98)', filter: 'blur(0)', offset: .35 },
-    { opacity: .72, transform: 'scale(.9)', filter: 'blur(.25px)', offset: .68 },
-    { opacity: .32, transform: 'scale(.72)', filter: 'blur(.7px)', offset: .86 },
-    { opacity: 0, transform: 'scale(.5)', filter: 'blur(1.6px)' }
-  ], {
-    duration,
-    delay,
-    easing: 'ease-out',
-    fill: 'forwards'
-  });
-
-  return animation.finished.catch(() => {}).finally(() => grain.remove());
+  return { canvas, context, width, height, scale };
 }
 
-async function runParticelEffect(characters, duration) {
+function shuffleInPlace(values) {
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [values[index], values[target]] = [values[target], values[index]];
+  }
+  return values;
+}
+
+function dissolveGlyphAtPosition(character, startDelay, duration) {
+  return new Promise(resolve => {
+    const snapshot = createGlyphSnapshot(character);
+    if (!snapshot) { resolve(); return; }
+
+    const { canvas, context } = snapshot;
+    let imageData;
+    try {
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (_) {
+      character.style.opacity = '0';
+      resolve();
+      return;
+    }
+
+    const visiblePixels = [];
+    for (let offset = 3; offset < imageData.data.length; offset += 4) {
+      if (imageData.data[offset] > 18) visiblePixels.push(offset);
+    }
+    shuffleInPlace(visiblePixels);
+
+    document.body.appendChild(canvas);
+    character.style.opacity = '0';
+
+    const begin = performance.now() + startDelay;
+    let cleared = 0;
+
+    const frame = now => {
+      if (now < begin) {
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
+      const progress = Math.min(1, (now - begin) / duration);
+      const softened = 1 - Math.pow(1 - progress, 1.35);
+      const target = Math.floor(visiblePixels.length * softened);
+
+      while (cleared < target) {
+        const alphaOffset = visiblePixels[cleared];
+        imageData.data[alphaOffset] = 0;
+        cleared += 1;
+      }
+
+      context.putImageData(imageData, 0, 0);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+        resolve();
+      }
+    };
+
+    window.requestAnimationFrame(frame);
+  });
+}
+
+async function runParticelEffect(characters, totalDuration = 3000) {
   const visibleCharacters = characters.filter(character => character.textContent.trim());
   if (!visibleCharacters.length) return;
 
-  const snapshots = visibleCharacters.map(character => ({ character, snapshot: renderCharacterCanvas(character) })).filter(item => item.snapshot);
-  snapshots.forEach(({ character }) => { character.style.opacity = '0'; });
+  const count = visibleCharacters.length;
+  const step = Math.max(45, Math.min(180, totalDuration * .58 / count));
+  const dissolveDuration = Math.max(700, totalDuration - step * Math.max(0, count - 1));
+  const tasks = visibleCharacters.map((character, index) =>
+    dissolveGlyphAtPosition(character, index * step, dissolveDuration)
+  );
 
-  const allAnimations = [];
-  const characterWindow = Math.max(180, Math.min(380, duration / snapshots.length));
-
-  snapshots.forEach(({ snapshot }, characterIndex) => {
-    const grainSize = Math.max(1.25, Math.min(2.4, snapshot.width / 8));
-    const step = grainSize * .82;
-    const startDelay = characterIndex * characterWindow;
-
-    for (let y = grainSize / 2; y < snapshot.height; y += step) {
-      for (let x = grainSize / 2; x < snapshot.width; x += step) {
-        const localDelay = startDelay + randomBetween(0, characterWindow * .9);
-        allAnimations.push(createStationaryGrain(
-          snapshot,
-          x,
-          y,
-          grainSize * randomBetween(.82, 1.08),
-          localDelay,
-          randomBetween(700, 1150)
-        ));
-      }
-    }
-  });
-
-  await Promise.all(allAnimations);
+  await Promise.race([
+    Promise.all(tasks),
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 900))
+  ]);
 }
 
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
@@ -208,20 +223,24 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
   const duration = options.duration || 1750;
   const stagger = options.stagger ?? 20;
 
-  if (effect === 'particel') {
-    await runParticelEffect(allCharacters, 3000);
-    return;
-  }
+  try {
+    if (effect === 'particel') {
+      await runParticelEffect(allCharacters, 3000);
+      return;
+    }
 
-  const animations = allCharacters.map((character, index) => {
-    character.style.display = 'inline-block';
-    character.style.willChange = 'transform, opacity, filter, color, text-shadow';
-    return character.animate(framesFor(effect, index, allCharacters.length), {
-      duration,
-      delay: index * stagger,
-      easing: effect === 'collapse' ? 'cubic-bezier(.55,.02,.72,.38)' : 'cubic-bezier(.16,.78,.2,1)',
-      fill: 'forwards'
-    }).finished.catch(() => {});
-  });
-  await Promise.all(animations);
+    const animations = allCharacters.map((character, index) => {
+      character.style.display = 'inline-block';
+      character.style.willChange = 'transform, opacity, filter, color, text-shadow';
+      return character.animate(framesFor(effect, index, allCharacters.length), {
+        duration,
+        delay: index * stagger,
+        easing: effect === 'collapse' ? 'cubic-bezier(.55,.02,.72,.38)' : 'cubic-bezier(.16,.78,.2,1)',
+        fill: 'forwards'
+      }).finished.catch(() => {});
+    });
+    await Promise.all(animations);
+  } catch (error) {
+    console.warn('Text effect skipped so the learning flow can continue.', error);
+  }
 }
