@@ -77,8 +77,6 @@ function createUtterance(text, language, rate, pitch = 1) {
   const voice = pickVoice(language);
   const isFrench = String(language || '').toLowerCase().startsWith('fr');
 
-  // Desktop French must never fall back to an unrelated system voice.
-  // Mobile keeps its own working system fallback and direct playback path.
   if (!isMobileSpeechDevice && isFrench && !voice) return null;
 
   const utterance = new SpeechSynthesisUtterance(text);
@@ -132,6 +130,12 @@ export function speak(textOrRequest, language, options = {}) {
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    if (isMobileSpeechDevice) {
+      await sleep(45);
+      if (runId !== speechRunId) return;
+      synth.resume?.();
+    }
+
     for (const segment of segments) {
       if (runId !== speechRunId) return;
       const utterance = createUtterance(segment, selectedLanguage, rate, pitch);
@@ -158,6 +162,12 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    if (isMobileSpeechDevice) {
+      await sleep(45);
+      if (runId !== speechRunId) return;
+      synth.resume?.();
+    }
+
     let globalWordIndex = 0;
 
     for (const segment of segments) {
