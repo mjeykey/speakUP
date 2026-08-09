@@ -10,7 +10,8 @@ export const TEXT_EFFECTS = [
   { id: 'glow', label: 'Glow' },
   { id: 'collapse', label: 'Push & Collapse' },
   { id: 'particel', label: 'particel' },
-  { id: 'cascade', label: 'Cascade' }
+  { id: 'cascade', label: 'Cascade' },
+  { id: 'crack', label: 'Crack & Break' }
 ];
 
 export const EFFECT_MODES = [
@@ -133,6 +134,56 @@ function createGlyphSnapshot(character) {
   });
 
   return { canvas, context, width, height, scale };
+}
+
+function createCrackSnapshot(character) {
+  const rect = character.getBoundingClientRect();
+  const style = getComputedStyle(character);
+  const scale = Math.min(2, window.devicePixelRatio || 1);
+  const padding = Math.max(10, Math.ceil(rect.height * .24));
+  const width = Math.max(1, Math.ceil(rect.width + padding * 2));
+  const height = Math.max(1, Math.ceil(rect.height + padding * 2));
+  const source = document.createElement('canvas');
+  source.width = Math.max(1, Math.ceil(width * scale));
+  source.height = Math.max(1, Math.ceil(height * scale));
+  const sourceContext = source.getContext('2d');
+  if (!sourceContext) return null;
+
+  sourceContext.setTransform(scale, 0, 0, scale, 0, 0);
+  sourceContext.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  sourceContext.textAlign = 'center';
+  sourceContext.textBaseline = 'middle';
+  sourceContext.fillStyle = style.color;
+  sourceContext.fillText(character.textContent, width / 2, height / 2);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+
+  Object.assign(canvas.style, {
+    position: 'fixed',
+    left: `${rect.left - padding}px`,
+    top: `${rect.top - padding}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+    pointerEvents: 'none',
+    zIndex: '9999'
+  });
+
+  return {
+    canvas,
+    context,
+    source,
+    width,
+    height,
+    scale,
+    centerX: width / 2,
+    centerY: height / 2,
+    radius: Math.hypot(width, height)
+  };
 }
 
 function shuffleInPlace(values) {
@@ -327,6 +378,137 @@ async function runCascadeEffect(characters, totalDuration = 5800) {
   ]);
 }
 
+function buildCrackRays(count = 6) {
+  const start = randomBetween(-Math.PI, Math.PI);
+  return Array.from({ length: count }, (_, index) => {
+    const angle = start + index * (Math.PI * 2 / count) + randomBetween(-.16, .16);
+    return {
+      angle,
+      wobble: randomBetween(-.18, .18),
+      strength: randomBetween(.86, 1.06)
+    };
+  }).sort((a, b) => a.angle - b.angle);
+}
+
+function drawCrackLine(context, centerX, centerY, radius, ray, progress, color) {
+  const length = radius * ray.strength * progress;
+  const segments = 5;
+  context.beginPath();
+  context.moveTo(centerX, centerY);
+
+  for (let step = 1; step <= segments; step += 1) {
+    const portion = step / segments;
+    const baseX = centerX + Math.cos(ray.angle) * length * portion;
+    const baseY = centerY + Math.sin(ray.angle) * length * portion;
+    const offset = Math.sin(portion * Math.PI * 3 + ray.wobble * 8) * radius * .018 * portion;
+    const x = baseX + Math.cos(ray.angle + Math.PI / 2) * offset;
+    const y = baseY + Math.sin(ray.angle + Math.PI / 2) * offset;
+    context.lineTo(x, y);
+  }
+
+  context.strokeStyle = color;
+  context.lineWidth = 1.15;
+  context.shadowColor = color;
+  context.shadowBlur = 7;
+  context.stroke();
+}
+
+function drawCrackShard(snapshot, startAngle, endAngle, breakProgress, alpha) {
+  const { context, source, width, height, centerX, centerY, radius } = snapshot;
+  const middle = (startAngle + endAngle) / 2;
+  const distance = (7 + radius * .035) * breakProgress;
+  const dx = Math.cos(middle) * distance;
+  const dy = Math.sin(middle) * distance;
+  const rotation = (middle > 0 ? 1 : -1) * .035 * breakProgress;
+
+  context.save();
+  context.globalAlpha = alpha;
+  context.translate(centerX + dx, centerY + dy);
+  context.rotate(rotation);
+  context.translate(-centerX, -centerY);
+  context.beginPath();
+  context.moveTo(centerX, centerY);
+  context.arc(centerX, centerY, radius * 1.2, startAngle, endAngle);
+  context.closePath();
+  context.clip();
+  context.drawImage(source, 0, 0, source.width, source.height, 0, 0, width, height);
+  context.restore();
+}
+
+function crackGlyph(character, startDelay, duration, color) {
+  return new Promise(resolve => {
+    const snapshot = createCrackSnapshot(character);
+    if (!snapshot) { resolve(); return; }
+
+    const { canvas, context, source, width, height, centerX, centerY, radius, scale } = snapshot;
+    const rays = buildCrackRays(Math.floor(randomBetween(5, 8)));
+    const angles = rays.map(ray => ray.angle);
+    document.body.appendChild(canvas);
+    character.style.opacity = '0';
+    const begin = performance.now() + startDelay;
+
+    const frame = now => {
+      if (now < begin) {
+        window.requestAnimationFrame(frame);
+        return;
+      }
+
+      const progress = Math.min(1, (now - begin) / duration);
+      context.setTransform(scale, 0, 0, scale, 0, 0);
+      context.clearRect(0, 0, width, height);
+
+      const crackEnd = .58;
+      if (progress <= crackEnd) {
+        context.drawImage(source, 0, 0, source.width, source.height, 0, 0, width, height);
+        const crackProgress = Math.min(1, progress / crackEnd);
+        context.save();
+        context.globalCompositeOperation = 'source-atop';
+        rays.forEach(ray => drawCrackLine(context, centerX, centerY, radius, ray, crackProgress, color));
+        context.restore();
+      } else {
+        const breakProgress = Math.min(1, (progress - crackEnd) / (1 - crackEnd));
+        const easedBreak = 1 - Math.pow(1 - breakProgress, 1.6);
+        const alpha = Math.max(0, 1 - Math.pow(Math.max(0, breakProgress - .62) / .38, 1.2));
+
+        for (let index = 0; index < angles.length; index += 1) {
+          const startAngle = angles[index];
+          const endAngle = index === angles.length - 1 ? angles[0] + Math.PI * 2 : angles[index + 1];
+          drawCrackShard(snapshot, startAngle, endAngle, easedBreak, alpha);
+        }
+      }
+
+      if (progress < 1) {
+        window.requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+        resolve();
+      }
+    };
+
+    window.requestAnimationFrame(frame);
+  });
+}
+
+async function runCrackEffect(characters, totalDuration = 4400) {
+  const visibleCharacters = characters.filter(character => character.textContent.trim());
+  if (!visibleCharacters.length) return;
+
+  const step = Math.max(42, Math.min(115, totalDuration * .25 / visibleCharacters.length));
+  const tasks = visibleCharacters.map((character, index) =>
+    crackGlyph(
+      character,
+      index * step,
+      Math.max(2850, totalDuration - index * step),
+      EFFECT_COLORS[index % EFFECT_COLORS.length]
+    )
+  );
+
+  await Promise.race([
+    Promise.all(tasks),
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 1100))
+  ]);
+}
+
 function calmDurationFor(effect, requestedDuration) {
   if (effect === 'burst') return Math.max(2400, requestedDuration * 1.38);
   if (effect === 'float') return Math.max(3900, requestedDuration * 2.1);
@@ -351,6 +533,11 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
 
     if (effect === 'cascade') {
       await runCascadeEffect(allCharacters, 5800);
+      return;
+    }
+
+    if (effect === 'crack') {
+      await runCrackEffect(allCharacters, 4400);
       return;
     }
 
