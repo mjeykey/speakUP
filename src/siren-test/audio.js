@@ -1,6 +1,7 @@
 let stormAudio=null,sirenAudio=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
-const SIREN='../../assets/audio/siren-loop.mp3?v=2';
+const SIREN='../../assets/audio/siren-loop.mp3?v=3';
+const SIREN_LOOP_START=10;
 
 export async function startAudio(){
   if(stormAudio||sirenAudio)return;
@@ -11,11 +12,24 @@ export async function startAudio(){
   stormAudio.volume=.58;
 
   sirenAudio=new Audio(SIREN);
-  sirenAudio.loop=true;
+  sirenAudio.loop=false;
   sirenAudio.preload='auto';
   sirenAudio.volume=.78;
 
+  const setSirenStart=()=>{
+    if(!sirenAudio)return;
+    const start=(Number.isFinite(sirenAudio.duration)&&sirenAudio.duration>SIREN_LOOP_START+1)?SIREN_LOOP_START:0;
+    try{sirenAudio.currentTime=start}catch(e){}
+  };
+  sirenAudio.addEventListener('loadedmetadata',setSirenStart,{once:true});
+  sirenAudio.addEventListener('ended',()=>{
+    if(!sirenAudio)return;
+    setSirenStart();
+    sirenAudio.play().catch(e=>console.warn('Siren loop restart unavailable',e));
+  });
+
   try{
+    if(sirenAudio.readyState>=1)setSirenStart();
     await sirenAudio.play();
   }catch(e){
     console.warn('Siren audio unavailable',e);
