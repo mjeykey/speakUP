@@ -1,5 +1,4 @@
 import { renderWhatsAroundYouTest } from '../modules/whats-around-you-test.js?v=1';
-import { renderSirenProjectTest } from '../modules/siren-project-test.js?v=1';
 
 function makeTestStore(close) {
   return {
@@ -38,7 +37,7 @@ function mountLauncher() {
     <button type="button" data-siren-test style="border:1px solid rgba(255,255,255,.18);background:#071019;color:white;padding:10px 13px;border-radius:999px;box-shadow:0 8px 30px rgba(0,0,0,.3);cursor:pointer">🧜‍♀️ Siren Project · TEST</button>`;
 
   launcher.querySelector('[data-around-test]').onclick = () => openFeature(renderWhatsAroundYouTest);
-  launcher.querySelector('[data-siren-test]').onclick = () => openFeature(renderSirenProjectTest);
+  launcher.querySelector('[data-siren-test]').onclick = () => { window.location.href = './siren-test.html?v=1'; };
   document.body.appendChild(launcher);
 }
 
