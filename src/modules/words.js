@@ -1,6 +1,6 @@
 import { getWords, getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 import { speakPair, stopSpeech } from '../audio/speech.js?v=60';
-import { explodeText, getModeTextEffect } from '../effects/distinct-text-effects.js?v=3';
+import { explodeText, getModeTextEffect } from '../effects/distinct-text-effects.js?v=4';
 
 export function renderWords(root, store) {
   const state = store.getState();
