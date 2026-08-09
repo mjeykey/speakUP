@@ -1,9 +1,12 @@
 export const initialState = Object.freeze({
   screen: 'welcome',
   mode: 'story',
+  learningLevel: 'l1',
   learningLanguage: 'pt-PT',
   nativeLanguage: 'en-GB',
   selectedStory: null,
+  selectedL2Topic: null,
+  selectedL3Topic: null,
   sentenceLevel: 'beginner',
   audioOn: true,
   sentenceAudioOn: true,
@@ -15,7 +18,9 @@ export const initialState = Object.freeze({
     memory: {},
     fillGap: {},
     speakPractice: {},
-    emotions: {}
+    emotions: {},
+    l2: {},
+    l3: {}
   }
 });
 
@@ -23,9 +28,12 @@ const STORAGE_KEY = 'speakup-progress-v1';
 
 const persistedKeys = new Set([
   'mode',
+  'learningLevel',
   'learningLanguage',
   'nativeLanguage',
   'selectedStory',
+  'selectedL2Topic',
+  'selectedL3Topic',
   'sentenceLevel',
   'audioOn',
   'sentenceAudioOn',
@@ -40,7 +48,9 @@ const emptyProgress = () => ({
   memory: {},
   fillGap: {},
   speakPractice: {},
-  emotions: {}
+  emotions: {},
+  l2: {},
+  l3: {}
 });
 
 function normalizeProgress(parsed) {
@@ -72,6 +82,7 @@ function loadSavedState() {
       Object.entries(parsed).filter(([key]) => persistedKeys.has(key))
     );
     loaded.progress = normalizeProgress(parsed);
+    if (!['l1', 'l2', 'l3'].includes(loaded.learningLevel)) loaded.learningLevel = 'l1';
     return loaded;
   } catch (error) {
     console.warn('SpeakUP progress could not be loaded.', error);
