@@ -234,7 +234,7 @@ function buildCascadeParticles(snapshot, imageData) {
         g: imageData.data[offset + 1],
         b: imageData.data[offset + 2],
         alpha: alpha / 255,
-        size: randomBetween(step * .55, step * 1.05),
+        size: randomBetween(step * .68, step * 1.22),
         vx: randomBetween(-22, 22) * snapshot.scale,
         vy: randomBetween(15, 34) * snapshot.scale,
         sway: randomBetween(-13, 13) * snapshot.scale,
