@@ -72,33 +72,33 @@ function framesFor(effect, index, total) {
     const inwardX = centered * -240;
     return [
       { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)' },
-      { opacity: 1, color, textShadow: `0 0 16px ${color}`, transform: `translate(${shove * 22}px,${randomBetween(-8,8)}px) scale(1.08)`, offset: .2 },
-      { opacity: .9, color, transform: `translate(${inwardX * .62}px,${randomBetween(-10,10)}px) rotate(${rotation * .08}deg) scale(.72,.92)`, filter: 'blur(1px)', offset: .58 },
+      { opacity: 1, color, textShadow: `0 0 16px ${color}`, transform: `translate(${shove * 22}px,${randomBetween(-8,8)}px) scale(1.08)`, offset: .26 },
+      { opacity: .9, color, transform: `translate(${inwardX * .62}px,${randomBetween(-10,10)}px) rotate(${rotation * .08}deg) scale(.72,.92)`, filter: 'blur(1px)', offset: .62 },
       { opacity: 0, color, textShadow: `0 0 38px ${color}`, transform: `translate(${inwardX}px,${randomBetween(-5,5)}px) rotate(${rotation * .14}deg) scale(.04,.45)`, filter: 'blur(12px)' }
     ];
   }
 
   if (effect === 'burst') return [
     { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)' },
-    { opacity: 1, color, textShadow: `0 0 18px ${color}`, transform: `translate(${(progress-.5)*24}px,-10px) scale(1.16)`, offset: .18 },
+    { opacity: 1, color, textShadow: `0 0 18px ${color}`, transform: `translate(${(progress-.5)*24}px,-10px) scale(1.16)`, offset: .28 },
     { opacity: 0, color, textShadow: `0 0 34px ${color}`, transform: `translate(${(progress-.5)*390}px,${randomBetween(-220,220)}px) rotate(${rotation}deg) scale(.45)`, filter: 'blur(8px)' }
   ];
 
   if (effect === 'float') return [
     { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)' },
-    { opacity: .96, color, textShadow: `0 0 18px ${color}`, transform: `translate(${randomBetween(-18,18)}px,-32px) scale(1.07)`, offset: .22 },
+    { opacity: .96, color, textShadow: `0 0 18px ${color}`, transform: `translate(${randomBetween(-18,18)}px,-32px) scale(1.07)`, offset: .3 },
     { opacity: 0, color, textShadow: `0 0 34px ${color}`, transform: `translate(${randomBetween(-110,110)}px,${randomBetween(-240,-135)}px) rotate(${rotation*.5}deg) scale(.62)`, filter: 'blur(10px)' }
   ];
 
   if (effect === 'glow') return [
     { opacity: 1, transform: 'translate(0,0) scale(1)', filter: 'brightness(1) blur(0)', textShadow: '0 0 0 transparent' },
-    { opacity: 1, color, transform: 'translate(0,-7px) scale(1.2)', filter: 'brightness(2.3)', textShadow: `0 0 32px ${color}`, offset: .28 },
+    { opacity: 1, color, transform: 'translate(0,-7px) scale(1.2)', filter: 'brightness(2.3)', textShadow: `0 0 32px ${color}`, offset: .36 },
     { opacity: 0, color, transform: `translate(${x*.7}px,${y*.7}px) rotate(${rotation*.45}deg) scale(.25)`, filter: 'brightness(2.8) blur(14px)', textShadow: `0 0 54px ${color}` }
   ];
 
   return [
     { opacity: 1, transform: 'translate(0,0) rotate(0) scale(1)', filter: 'blur(0)' },
-    { opacity: .96, color, textShadow: `0 0 17px ${color}`, transform: `translate(${x*.14}px,${y*.14}px) scale(1.08)`, offset: .18 },
+    { opacity: .96, color, textShadow: `0 0 17px ${color}`, transform: `translate(${x*.14}px,${y*.14}px) scale(1.08)`, offset: .28 },
     { opacity: 0, color, textShadow: `0 0 34px ${color}`, transform: `translate(${x}px,${y}px) rotate(${rotation}deg) scale(.32)`, filter: 'blur(9px)' }
   ];
 }
@@ -177,7 +177,7 @@ function dissolveGlyphAtPosition(character, startDelay, duration) {
       }
 
       const progress = Math.min(1, (now - begin) / duration);
-      const softened = 1 - Math.pow(1 - progress, 1.35);
+      const softened = 1 - Math.pow(1 - progress, 1.18);
       const target = Math.floor(visiblePixels.length * softened);
 
       while (cleared < target) {
@@ -200,20 +200,20 @@ function dissolveGlyphAtPosition(character, startDelay, duration) {
   });
 }
 
-async function runParticelEffect(characters, totalDuration = 3000) {
+async function runParticelEffect(characters, totalDuration = 4200) {
   const visibleCharacters = characters.filter(character => character.textContent.trim());
   if (!visibleCharacters.length) return;
 
   const count = visibleCharacters.length;
-  const step = Math.max(45, Math.min(180, totalDuration * .58 / count));
-  const dissolveDuration = Math.max(700, totalDuration - step * Math.max(0, count - 1));
+  const step = Math.max(65, Math.min(230, totalDuration * .58 / count));
+  const dissolveDuration = Math.max(1050, totalDuration - step * Math.max(0, count - 1));
   const tasks = visibleCharacters.map((character, index) =>
     dissolveGlyphAtPosition(character, index * step, dissolveDuration)
   );
 
   await Promise.race([
     Promise.all(tasks),
-    new Promise(resolve => window.setTimeout(resolve, totalDuration + 900))
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 1000))
   ]);
 }
 
@@ -235,12 +235,12 @@ function buildCascadeParticles(snapshot, imageData) {
         b: imageData.data[offset + 2],
         alpha: alpha / 255,
         size: randomBetween(step * .55, step * 1.05),
-        vx: randomBetween(-26, 26) * snapshot.scale,
-        vy: randomBetween(18, 42) * snapshot.scale,
-        sway: randomBetween(-15, 15) * snapshot.scale,
+        vx: randomBetween(-22, 22) * snapshot.scale,
+        vy: randomBetween(15, 34) * snapshot.scale,
+        sway: randomBetween(-13, 13) * snapshot.scale,
         phase: randomBetween(0, Math.PI * 2),
-        rotation: randomBetween(-1.8, 1.8),
-        release: Math.max(0, Math.min(.88, (py / Math.max(1, snapshot.canvas.height)) * .78 + randomBetween(0, .08)))
+        rotation: randomBetween(-1.5, 1.5),
+        release: Math.max(0, Math.min(.9, (py / Math.max(1, snapshot.canvas.height)) * .8 + randomBetween(0, .07)))
       });
     }
   }
@@ -280,16 +280,16 @@ function cascadeGlyph(character, startDelay, duration) {
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.putImageData(original, 0, 0);
 
-      const eraseFront = Math.min(canvas.height, canvas.height * Math.min(1, progress * .9));
+      const eraseFront = Math.min(canvas.height, canvas.height * Math.min(1, progress * .78));
       context.clearRect(0, 0, canvas.width, eraseFront);
 
       particles.forEach(particle => {
         if (progress < particle.release) return;
-        const local = Math.min(1, (progress - particle.release) / Math.max(.2, 1 - particle.release));
-        const eased = 1 - Math.pow(1 - local, 1.45);
+        const local = Math.min(1, (progress - particle.release) / Math.max(.22, 1 - particle.release));
+        const eased = 1 - Math.pow(1 - local, 1.28);
         const horizontal = particle.vx * eased + Math.sin(local * Math.PI * 2 + particle.phase) * particle.sway * eased;
-        const vertical = particle.vy * eased + 58 * snapshot.scale * eased * eased;
-        const alpha = particle.alpha * Math.max(0, 1 - Math.pow(local, 1.2));
+        const vertical = particle.vy * eased + 48 * snapshot.scale * eased * eased;
+        const alpha = particle.alpha * Math.max(0, 1 - Math.pow(local, 1.08));
 
         context.save();
         context.globalAlpha = alpha;
@@ -312,36 +312,45 @@ function cascadeGlyph(character, startDelay, duration) {
   });
 }
 
-async function runCascadeEffect(characters, totalDuration = 4600) {
+async function runCascadeEffect(characters, totalDuration = 5800) {
   const visibleCharacters = characters.filter(character => character.textContent.trim());
   if (!visibleCharacters.length) return;
 
-  const step = Math.max(28, Math.min(95, totalDuration * .26 / visibleCharacters.length));
+  const step = Math.max(38, Math.min(120, totalDuration * .27 / visibleCharacters.length));
   const tasks = visibleCharacters.map((character, index) =>
-    cascadeGlyph(character, index * step, Math.max(2900, totalDuration - index * step))
+    cascadeGlyph(character, index * step, Math.max(3700, totalDuration - index * step))
   );
 
   await Promise.race([
     Promise.all(tasks),
-    new Promise(resolve => window.setTimeout(resolve, totalDuration + 900))
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 1100))
   ]);
+}
+
+function calmDurationFor(effect, requestedDuration) {
+  if (effect === 'burst') return Math.max(2400, requestedDuration * 1.38);
+  if (effect === 'float') return Math.max(3900, requestedDuration * 2.1);
+  if (effect === 'glow') return Math.max(3500, requestedDuration * 1.9);
+  if (effect === 'collapse') return Math.max(3400, requestedDuration * 1.82);
+  return Math.max(3200, requestedDuration * 1.72);
 }
 
 export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {}) {
   const list = (Array.isArray(elements) ? elements : [elements]).filter(Boolean);
   if (!list.length) return;
   const allCharacters = list.flatMap(wrapCharacters);
-  const duration = options.duration || 1750;
-  const stagger = options.stagger ?? 20;
+  const requestedDuration = options.duration || 1750;
+  const duration = calmDurationFor(effect, requestedDuration);
+  const stagger = Math.max(options.stagger ?? 20, 28);
 
   try {
     if (effect === 'particel') {
-      await runParticelEffect(allCharacters, 3000);
+      await runParticelEffect(allCharacters, 4200);
       return;
     }
 
     if (effect === 'cascade') {
-      await runCascadeEffect(allCharacters, 4600);
+      await runCascadeEffect(allCharacters, 5800);
       return;
     }
 
@@ -351,7 +360,7 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
       return character.animate(framesFor(effect, index, allCharacters.length), {
         duration,
         delay: index * stagger,
-        easing: effect === 'collapse' ? 'cubic-bezier(.55,.02,.72,.38)' : 'cubic-bezier(.16,.78,.2,1)',
+        easing: effect === 'collapse' ? 'cubic-bezier(.45,.08,.65,.38)' : 'cubic-bezier(.22,.5,.28,1)',
         fill: 'forwards'
       }).finished.catch(() => {});
     });
