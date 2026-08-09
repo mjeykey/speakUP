@@ -235,12 +235,12 @@ function buildCascadeParticles(snapshot, imageData) {
         b: imageData.data[offset + 2],
         alpha: alpha / 255,
         size: randomBetween(step * .55, step * 1.05),
-        vx: randomBetween(-34, 34) * snapshot.scale,
-        vy: randomBetween(26, 58) * snapshot.scale,
-        sway: randomBetween(-20, 20) * snapshot.scale,
+        vx: randomBetween(-26, 26) * snapshot.scale,
+        vy: randomBetween(18, 42) * snapshot.scale,
+        sway: randomBetween(-15, 15) * snapshot.scale,
         phase: randomBetween(0, Math.PI * 2),
-        rotation: randomBetween(-2.2, 2.2),
-        release: Math.max(0, Math.min(.82, (py / Math.max(1, snapshot.canvas.height)) * .72 + randomBetween(0, .1)))
+        rotation: randomBetween(-1.8, 1.8),
+        release: Math.max(0, Math.min(.88, (py / Math.max(1, snapshot.canvas.height)) * .78 + randomBetween(0, .08)))
       });
     }
   }
@@ -280,16 +280,16 @@ function cascadeGlyph(character, startDelay, duration) {
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.putImageData(original, 0, 0);
 
-      const eraseFront = Math.min(canvas.height, canvas.height * Math.min(1, progress * 1.18));
+      const eraseFront = Math.min(canvas.height, canvas.height * Math.min(1, progress * .9));
       context.clearRect(0, 0, canvas.width, eraseFront);
 
       particles.forEach(particle => {
         if (progress < particle.release) return;
-        const local = Math.min(1, (progress - particle.release) / Math.max(.18, 1 - particle.release));
-        const eased = 1 - Math.pow(1 - local, 1.7);
+        const local = Math.min(1, (progress - particle.release) / Math.max(.2, 1 - particle.release));
+        const eased = 1 - Math.pow(1 - local, 1.45);
         const horizontal = particle.vx * eased + Math.sin(local * Math.PI * 2 + particle.phase) * particle.sway * eased;
-        const vertical = particle.vy * eased + 92 * snapshot.scale * eased * eased;
-        const alpha = particle.alpha * Math.max(0, 1 - Math.pow(local, 1.45));
+        const vertical = particle.vy * eased + 58 * snapshot.scale * eased * eased;
+        const alpha = particle.alpha * Math.max(0, 1 - Math.pow(local, 1.2));
 
         context.save();
         context.globalAlpha = alpha;
@@ -312,18 +312,18 @@ function cascadeGlyph(character, startDelay, duration) {
   });
 }
 
-async function runCascadeEffect(characters, totalDuration = 3000) {
+async function runCascadeEffect(characters, totalDuration = 4600) {
   const visibleCharacters = characters.filter(character => character.textContent.trim());
   if (!visibleCharacters.length) return;
 
-  const step = Math.max(18, Math.min(60, totalDuration * .22 / visibleCharacters.length));
+  const step = Math.max(28, Math.min(95, totalDuration * .26 / visibleCharacters.length));
   const tasks = visibleCharacters.map((character, index) =>
-    cascadeGlyph(character, index * step, Math.max(1700, totalDuration - index * step))
+    cascadeGlyph(character, index * step, Math.max(2900, totalDuration - index * step))
   );
 
   await Promise.race([
     Promise.all(tasks),
-    new Promise(resolve => window.setTimeout(resolve, totalDuration + 800))
+    new Promise(resolve => window.setTimeout(resolve, totalDuration + 900))
   ]);
 }
 
@@ -341,7 +341,7 @@ export async function explodeText(elements, effect = DEFAULT_EFFECT, options = {
     }
 
     if (effect === 'cascade') {
-      await runCascadeEffect(allCharacters, 3000);
+      await runCascadeEffect(allCharacters, 4600);
       return;
     }
 
