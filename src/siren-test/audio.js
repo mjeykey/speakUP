@@ -1,7 +1,7 @@
 let stormAudio=null,sirenAudio=null,voiceAudio=null,voiceTimer=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
 const SIREN=new URL('../../assets/audio/siren-loop.mp3?v=4',import.meta.url).href;
-const VOICE=new URL('../../assets/9. Aug., 19.40%E2%80%8B.m4a?v=1',import.meta.url).href;
+const VOICE=new URL('../../assets/siren_voice_final.mp3?v=1',import.meta.url).href;
 const SIREN_LOOP_START=10;
 
 export async function startAudio(){
