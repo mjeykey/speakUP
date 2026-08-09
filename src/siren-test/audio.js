@@ -1,7 +1,7 @@
 let stormAudio=null,sirenAudio=null,voiceAudio=null,voiceTimer=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
-const SIREN='../../assets/audio/siren-loop.mp3?v=3';
-const VOICE='../../assets/komm_ins_wasser_sirene.mp3?v=1';
+const SIREN=new URL('../../assets/audio/siren-loop.mp3?v=4',import.meta.url).href;
+const VOICE=new URL('../../assets/komm_ins_wasser_sirene.mp3?v=2',import.meta.url).href;
 const SIREN_LOOP_START=10;
 
 export async function startAudio(){
@@ -10,19 +10,17 @@ export async function startAudio(){
   stormAudio=new Audio(STORM);
   stormAudio.loop=true;
   stormAudio.preload='auto';
-  stormAudio.volume=.58;
+  stormAudio.volume=.52;
 
   sirenAudio=new Audio(SIREN);
   sirenAudio.loop=false;
   sirenAudio.preload='auto';
-  sirenAudio.volume=.78;
+  sirenAudio.volume=.84;
 
-  // User-recorded voice, already processed with distant storm reverb.
-  // Preload it during the same user gesture; play it only once later in the scene.
   voiceAudio=new Audio(VOICE);
   voiceAudio.preload='auto';
-  voiceAudio.volume=.9;
-  voiceAudio.load();
+  voiceAudio.loop=true;
+  voiceAudio.volume=0;
 
   const setSirenStart=()=>{
     if(!sirenAudio)return;
@@ -36,18 +34,25 @@ export async function startAudio(){
     sirenAudio.play().catch(e=>console.warn('Siren loop restart unavailable',e));
   });
 
+  // Start every audio element inside the user's tap. This is important on iOS.
+  // The voice runs silently at first, then becomes audible once after 12 seconds.
+  const starts=[];
   try{
     if(sirenAudio.readyState>=1)setSirenStart();
-    await sirenAudio.play();
+    starts.push(sirenAudio.play());
   }catch(e){console.warn('Siren audio unavailable',e)}
-  try{await stormAudio.play()}catch(e){console.warn('Storm audio unavailable',e)}
+  try{starts.push(stormAudio.play())}catch(e){console.warn('Storm audio unavailable',e)}
+  try{starts.push(voiceAudio.play())}catch(e){console.warn('Voice unlock unavailable',e)}
+  await Promise.allSettled(starts);
 
-  // Let the listener settle into the storm before the whispered invitation appears once.
   clearTimeout(voiceTimer);
   voiceTimer=setTimeout(()=>{
     if(!voiceAudio)return;
-    try{voiceAudio.currentTime=0}catch(e){}
-    voiceAudio.play().catch(e=>console.warn('Voice audio unavailable',e));
+    try{
+      voiceAudio.loop=false;
+      voiceAudio.currentTime=0;
+      voiceAudio.volume=.92;
+    }catch(e){}
   },12000);
 
   scheduleLightning();
@@ -91,7 +96,7 @@ function thunderRumble(){
 export function softenAudio(){
   if(stormAudio)stormAudio.volume=.14;
   if(sirenAudio)sirenAudio.volume=.08;
-  if(voiceAudio)voiceAudio.volume=.16;
+  if(voiceAudio)voiceAudio.volume=.12;
 }
 
 export function stopAudio(){
