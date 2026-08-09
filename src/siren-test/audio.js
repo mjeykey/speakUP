@@ -1,6 +1,7 @@
-let stormAudio=null,sirenAudio=null,flashTimer=null,rumbleCtx=null;
+let stormAudio=null,sirenAudio=null,voiceAudio=null,voiceTimer=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
 const SIREN='../../assets/audio/siren-loop.mp3?v=3';
+const VOICE='../../assets/komm_ins_wasser_sirene.mp3?v=1';
 const SIREN_LOOP_START=10;
 
 export async function startAudio(){
@@ -15,6 +16,13 @@ export async function startAudio(){
   sirenAudio.loop=false;
   sirenAudio.preload='auto';
   sirenAudio.volume=.78;
+
+  // User-recorded voice, already processed with distant storm reverb.
+  // Preload it during the same user gesture; play it only once later in the scene.
+  voiceAudio=new Audio(VOICE);
+  voiceAudio.preload='auto';
+  voiceAudio.volume=.9;
+  voiceAudio.load();
 
   const setSirenStart=()=>{
     if(!sirenAudio)return;
@@ -31,14 +39,16 @@ export async function startAudio(){
   try{
     if(sirenAudio.readyState>=1)setSirenStart();
     await sirenAudio.play();
-  }catch(e){
-    console.warn('Siren audio unavailable',e);
-  }
-  try{
-    await stormAudio.play();
-  }catch(e){
-    console.warn('Storm audio unavailable',e);
-  }
+  }catch(e){console.warn('Siren audio unavailable',e)}
+  try{await stormAudio.play()}catch(e){console.warn('Storm audio unavailable',e)}
+
+  // Let the listener settle into the storm before the whispered invitation appears once.
+  clearTimeout(voiceTimer);
+  voiceTimer=setTimeout(()=>{
+    if(!voiceAudio)return;
+    try{voiceAudio.currentTime=0}catch(e){}
+    voiceAudio.play().catch(e=>console.warn('Voice audio unavailable',e));
+  },12000);
 
   scheduleLightning();
 }
@@ -81,11 +91,14 @@ function thunderRumble(){
 export function softenAudio(){
   if(stormAudio)stormAudio.volume=.14;
   if(sirenAudio)sirenAudio.volume=.08;
+  if(voiceAudio)voiceAudio.volume=.16;
 }
 
 export function stopAudio(){
   clearTimeout(flashTimer);
+  clearTimeout(voiceTimer);
   if(stormAudio){stormAudio.pause();stormAudio.currentTime=0;stormAudio=null}
   if(sirenAudio){sirenAudio.pause();sirenAudio.currentTime=0;sirenAudio=null}
+  if(voiceAudio){voiceAudio.pause();voiceAudio.currentTime=0;voiceAudio=null}
   if(rumbleCtx){rumbleCtx.close();rumbleCtx=null}
 }
