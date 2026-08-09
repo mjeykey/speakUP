@@ -1,0 +1,136 @@
+.learning-level-grid {
+  margin-bottom: 1.4rem;
+}
+
+.learning-level-card span {
+  font-size: 1.02rem;
+}
+
+.knowledge-topic-group {
+  margin-top: 1.25rem;
+}
+
+.knowledge-topic-grid {
+  margin-bottom: 1rem;
+}
+
+.knowledge-topic-card {
+  min-height: 104px;
+}
+
+.knowledge-screen {
+  min-height: 100vh;
+}
+
+.knowledge-view {
+  width: min(760px, calc(100% - 28px));
+  padding-top: clamp(5rem, 10vh, 7.5rem);
+  padding-bottom: 3rem;
+}
+
+.knowledge-topic {
+  text-align: center;
+  opacity: .78;
+  margin-bottom: .9rem;
+  letter-spacing: .02em;
+}
+
+.knowledge-card {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.055);
+  border-radius: 26px;
+  padding: clamp(1.4rem, 4vw, 2.5rem);
+  box-shadow: 0 24px 70px rgba(0,0,0,.18);
+  backdrop-filter: blur(12px);
+}
+
+.knowledge-level {
+  margin: 0 0 1rem;
+  font-size: .86rem;
+  opacity: .58;
+  text-align: center;
+}
+
+.knowledge-term {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(2.1rem, 8vw, 4.3rem);
+  line-height: 1.04;
+}
+
+.knowledge-translation {
+  text-align: center;
+  margin: .6rem 0 0;
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  opacity: .62;
+}
+
+.knowledge-divider {
+  width: min(160px, 42%);
+  height: 1px;
+  background: rgba(255,255,255,.15);
+  margin: 1.6rem auto;
+}
+
+.knowledge-info,
+.knowledge-fact {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  line-height: 1.45;
+  text-align: center;
+  margin: 0;
+}
+
+.knowledge-info-translation,
+.knowledge-fact-translation {
+  font-size: 1rem;
+  line-height: 1.55;
+  opacity: .6;
+  text-align: center;
+  margin: .85rem 0 0;
+}
+
+.knowledge-explanation-block {
+  margin-top: 1.8rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid rgba(255,255,255,.11);
+}
+
+.knowledge-explanation-label {
+  margin: 0 0 .65rem;
+  text-align: center;
+  font-size: .82rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  opacity: .5;
+}
+
+.knowledge-explanation {
+  margin: 0;
+  font-size: clamp(1.05rem, 3.3vw, 1.35rem);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.knowledge-explanation-translation {
+  margin: .85rem 0 0;
+  font-size: .96rem;
+  line-height: 1.6;
+  text-align: center;
+  opacity: .56;
+}
+
+.knowledge-next {
+  display: block;
+  margin: 1.2rem auto 0;
+  min-width: 150px;
+}
+
+@media (max-width: 640px) {
+  .knowledge-card {
+    border-radius: 22px;
+  }
+
+  .knowledge-view {
+    padding-top: 4.8rem;
+  }
+}
