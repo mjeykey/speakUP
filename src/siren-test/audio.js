@@ -1,10 +1,53 @@
-let stormAudio=null,flashTimer=null,rumbleCtx=null,sirenFrame=null,spokenOnce=false;
+let stormAudio=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
-const SIREN_PREVIEW='https://alesiadavina.com/embed-2a003f59d96d7e5922d5b6276fb217ee8d2e1a6c.html?access=allow';
-export async function startAudio(){if(stormAudio)return;stormAudio=new Audio(STORM);stormAudio.loop=true;stormAudio.preload='auto';stormAudio.volume=.82;await stormAudio.play();startSirenPreview();scheduleLightning();setTimeout(speakOnce,15000)}
-function startSirenPreview(){sirenFrame=document.createElement('iframe');sirenFrame.src=SIREN_PREVIEW;sirenFrame.allow='autoplay';sirenFrame.setAttribute('aria-hidden','true');sirenFrame.style.cssText='position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px';document.body.appendChild(sirenFrame)}
-function scheduleLightning(){clearTimeout(flashTimer);flashTimer=setTimeout(()=>{const f=document.getElementById('flash');if(f){f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}thunderRumble();scheduleLightning()},5200+Math.random()*7600)}
-function thunderRumble(){try{if(!rumbleCtx)rumbleCtx=new (window.AudioContext||window.webkitAudioContext)();const now=rumbleCtx.currentTime;const gain=rumbleCtx.createGain();gain.gain.setValueAtTime(.001,now);gain.gain.exponentialRampToValueAtTime(.21,now+.18);gain.gain.exponentialRampToValueAtTime(.06,now+1.4);gain.gain.exponentialRampToValueAtTime(.001,now+4.6);gain.connect(rumbleCtx.destination);[44,56,67].forEach((hz,n)=>{const o=rumbleCtx.createOscillator();o.type='sine';o.frequency.setValueAtTime(hz,now);o.frequency.exponentialRampToValueAtTime(hz*.64,now+4);const og=rumbleCtx.createGain();og.gain.value=.38/(n+1);o.connect(og).connect(gain);o.start(now+n*.04);o.stop(now+4.8)})}catch(e){}}
-function speakOnce(){if(spokenOnce||!('speechSynthesis'in window))return;spokenOnce=true;const u=new SpeechSynthesisUtterance('Come into the water');const voices=speechSynthesis.getVoices();u.voice=voices.find(v=>/^en/i.test(v.lang)&&/samantha|victoria|karen|moira|serena|ava|allison|susan|zira/i.test(v.name))||voices.find(v=>/^en/i.test(v.lang))||voices[0];u.lang='en-US';u.rate=.72;u.pitch=.92;u.volume=.18;speechSynthesis.speak(u)}
-export function softenAudio(){if(stormAudio)stormAudio.volume=.14;if(sirenFrame){sirenFrame.remove();sirenFrame=null}if('speechSynthesis'in window)speechSynthesis.cancel()}
-export function stopAudio(){clearTimeout(flashTimer);if(stormAudio){stormAudio.pause();stormAudio.currentTime=0;stormAudio=null}if(sirenFrame){sirenFrame.remove();sirenFrame=null}if(rumbleCtx){rumbleCtx.close();rumbleCtx=null}if('speechSynthesis'in window)speechSynthesis.cancel();spokenOnce=false}
+
+export async function startAudio(){
+  if(stormAudio)return;
+  stormAudio=new Audio(STORM);
+  stormAudio.loop=true;
+  stormAudio.preload='auto';
+  stormAudio.volume=.82;
+  await stormAudio.play();
+  scheduleLightning();
+}
+
+function scheduleLightning(){
+  clearTimeout(flashTimer);
+  flashTimer=setTimeout(()=>{
+    const f=document.getElementById('flash');
+    if(f){f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
+    thunderRumble();
+    scheduleLightning();
+  },5200+Math.random()*7600);
+}
+
+function thunderRumble(){
+  try{
+    if(!rumbleCtx)rumbleCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const now=rumbleCtx.currentTime;
+    const gain=rumbleCtx.createGain();
+    gain.gain.setValueAtTime(.001,now);
+    gain.gain.exponentialRampToValueAtTime(.21,now+.18);
+    gain.gain.exponentialRampToValueAtTime(.06,now+1.4);
+    gain.gain.exponentialRampToValueAtTime(.001,now+4.6);
+    gain.connect(rumbleCtx.destination);
+    [44,56,67].forEach((hz,n)=>{
+      const o=rumbleCtx.createOscillator();
+      o.type='sine';
+      o.frequency.setValueAtTime(hz,now);
+      o.frequency.exponentialRampToValueAtTime(hz*.64,now+4);
+      const og=rumbleCtx.createGain();
+      og.gain.value=.38/(n+1);
+      o.connect(og).connect(gain);
+      o.start(now+n*.04);
+      o.stop(now+4.8);
+    });
+  }catch(e){}
+}
+
+export function softenAudio(){if(stormAudio)stormAudio.volume=.14}
+export function stopAudio(){
+  clearTimeout(flashTimer);
+  if(stormAudio){stormAudio.pause();stormAudio.currentTime=0;stormAudio=null}
+  if(rumbleCtx){rumbleCtx.close();rumbleCtx=null}
+}
