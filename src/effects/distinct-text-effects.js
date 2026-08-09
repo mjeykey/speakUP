@@ -6,7 +6,7 @@ import {
   getTextEffect,
   setTextEffect,
   explodeText as baseExplodeText
-} from './text-effects.js?v=15';
+} from './text-effects.js?v=16';
 
 export { TEXT_EFFECTS, EFFECT_MODES, getModeTextEffect, setModeTextEffect, getTextEffect, setTextEffect };
 
