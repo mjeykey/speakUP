@@ -4,7 +4,7 @@ import {
   explodeText,
   getModeTextEffect,
   setModeTextEffect
-} from '../effects/distinct-text-effects.js?v=4';
+} from '../effects/distinct-text-effects.js?v=5';
 
 export function renderEffectsSettings(root, store) {
   root.innerHTML = `<section class="screen effects-settings-screen">
