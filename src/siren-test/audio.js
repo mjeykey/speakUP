@@ -1,7 +1,7 @@
 let stormAudio=null,sirenAudio=null,voiceAudio=null,voiceTimer=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
 const SIREN=new URL('../../assets/audio/alesiadavina-a-sirenx27s-song-207057%20(1).mp3?v=3',import.meta.url).href;
-const VOICE=new URL('../../assets/siren_voice_final.mp3?v=5',import.meta.url).href;
+const VOICE=new URL('../../assets/siren_voice_final.mp3?v=6',import.meta.url).href;
 
 export async function startAudio(){
   if(stormAudio||sirenAudio)return;
@@ -16,7 +16,6 @@ export async function startAudio(){
   sirenAudio.preload='auto';
   sirenAudio.volume=1;
 
-  // The MP3 already contains the hall/echo effect. Keep playback simple for mobile.
   voiceAudio=new Audio(VOICE);
   voiceAudio.loop=false;
   voiceAudio.preload='auto';
@@ -35,10 +34,11 @@ export async function startAudio(){
   voiceTimer=setTimeout(()=>{
     if(!voiceAudio)return;
     try{
-      voiceAudio.currentTime=0;
-      voiceAudio.volume=.075;
+      // Do not rewind here: the track is already running from the user tap.
+      // Opening the volume early keeps the spoken line inside the audible part of the 7s clip.
+      voiceAudio.volume=.12;
     }catch(e){}
-  },5000);
+  },900);
 
   scheduleLightning();
 }
@@ -73,7 +73,7 @@ function thunderRumble(){
 export function softenAudio(){
   if(stormAudio)stormAudio.volume=.10;
   if(sirenAudio)sirenAudio.volume=.18;
-  if(voiceAudio)voiceAudio.volume=.015;
+  if(voiceAudio)voiceAudio.volume=.02;
 }
 
 export function stopAudio(){
