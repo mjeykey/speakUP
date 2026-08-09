@@ -1,6 +1,6 @@
 import {stages} from './story.js?v=1';
 import {stormMarkup,startStormCanvas,stopStormCanvas} from './storm.js?v=1';
-import {startAudio,softenAudio,stopAudio} from './audio.js?v=6';
+import {startAudio,softenAudio,stopAudio} from './audio.js?v=7';
 const app=document.getElementById('app');let i=-1;
 function intro(){app.className='app';app.innerHTML=`<section class="scene">${stormMarkup()}<div class="copy"><div class="kicker">STORY MODE · HIDDEN TEST</div><h1>The Black Rock</h1><p>Headphones recommended.<br><br>This begins as a story.</p><p class="sound-note">Rain, thunder... and a distant siren begin when you enter.</p><button class="enter" id="enter">Enter the storm</button></div></section>`;startStormCanvas();document.getElementById('enter').onclick=async()=>{await startAudio();i=0;stage()}}
 function stage(){if(i>=stages.length){blackout();return}const s=stages[i];app.className=s.doc?'app document':'app';app.innerHTML=`<section class="scene">${stormMarkup()}<div class="copy"><div class="kicker">${s.k}</div><h1>${s.t}</h1><p>${s.b}</p>${s.doc?`<div class="paper"><div style="font-size:32px">1811</div><p>Deposition recorded before the Sheriff-Substitute of Kintyre.</p><small>Archive record survives</small></div>`:''}</div></section><div class="controls"><span>${String(i+1).padStart(2,'0')} / 08</span><button class="next" id="next">${i===7?'Continue into the dark':'Continue'}</button></div>`;startStormCanvas();document.getElementById('next').onclick=()=>{i++;stage()}}
