@@ -1,13 +1,13 @@
 let stormAudio=null,sirenAudio=null,voiceAudio=null,voiceTimer=null,flashTimer=null,rumbleCtx=null;
 const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
-const SIREN=new URL('../../assets/audio/siren-loop.mp3?v=4',import.meta.url).href;
+const SIREN=new URL('../../assets/audio/alesiadavina-a-sirenx27s-song-207057%20(1).mp3?v=1',import.meta.url).href;
 const VOICE=new URL('../../assets/siren_voice_final.mp3?v=1',import.meta.url).href;
 const SIREN_LOOP_START=10;
 
 export async function startAudio(){
   if(stormAudio||sirenAudio)return;
-  stormAudio=new Audio(STORM);stormAudio.loop=true;stormAudio.preload='auto';stormAudio.volume=.52;
-  sirenAudio=new Audio(SIREN);sirenAudio.loop=false;sirenAudio.preload='auto';sirenAudio.volume=.84;
+  stormAudio=new Audio(STORM);stormAudio.loop=true;stormAudio.preload='auto';stormAudio.volume=.46;
+  sirenAudio=new Audio(SIREN);sirenAudio.loop=false;sirenAudio.preload='auto';sirenAudio.volume=.72;
   voiceAudio=new Audio(VOICE);voiceAudio.preload='auto';voiceAudio.loop=true;voiceAudio.volume=0;
   const setSirenStart=()=>{if(!sirenAudio)return;const start=(Number.isFinite(sirenAudio.duration)&&sirenAudio.duration>SIREN_LOOP_START+1)?SIREN_LOOP_START:0;try{sirenAudio.currentTime=start}catch(e){}};
   sirenAudio.addEventListener('loadedmetadata',setSirenStart,{once:true});
