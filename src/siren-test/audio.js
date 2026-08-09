@@ -3,12 +3,20 @@ const STORM='https://assets.mixkit.co/active_storage/sfx/2402/2402-preview.mp3';
 
 export async function startAudio(){
   if(stormAudio)return;
+
+  // Create/resume WebAudio synchronously inside the user's click gesture.
+  // Mobile Safari may keep a context silent if it is created after an await.
+  try{
+    sirenCtx=new (window.AudioContext||window.webkitAudioContext)();
+    await sirenCtx.resume();
+    startSirenSong();
+  }catch(e){console.warn('Siren audio unavailable',e)}
+
   stormAudio=new Audio(STORM);
   stormAudio.loop=true;
   stormAudio.preload='auto';
-  stormAudio.volume=.78;
-  await stormAudio.play();
-  startSirenSong();
+  stormAudio.volume=.68;
+  try{await stormAudio.play()}catch(e){console.warn('Storm audio unavailable',e)}
   scheduleLightning();
 }
 
@@ -25,11 +33,12 @@ function scheduleLightning(){
 function thunderRumble(){
   try{
     if(!rumbleCtx)rumbleCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(rumbleCtx.state==='suspended')rumbleCtx.resume();
     const now=rumbleCtx.currentTime;
     const gain=rumbleCtx.createGain();
     gain.gain.setValueAtTime(.001,now);
-    gain.gain.exponentialRampToValueAtTime(.21,now+.18);
-    gain.gain.exponentialRampToValueAtTime(.06,now+1.4);
+    gain.gain.exponentialRampToValueAtTime(.25,now+.18);
+    gain.gain.exponentialRampToValueAtTime(.07,now+1.4);
     gain.gain.exponentialRampToValueAtTime(.001,now+4.6);
     gain.connect(rumbleCtx.destination);
     [44,56,67].forEach((hz,n)=>{
@@ -38,7 +47,7 @@ function thunderRumble(){
       o.frequency.setValueAtTime(hz,now);
       o.frequency.exponentialRampToValueAtTime(hz*.64,now+4);
       const og=rumbleCtx.createGain();
-      og.gain.value=.38/(n+1);
+      og.gain.value=.42/(n+1);
       o.connect(og).connect(gain);
       o.start(now+n*.04);
       o.stop(now+4.8);
@@ -47,57 +56,69 @@ function thunderRumble(){
 }
 
 function startSirenSong(){
+  if(!sirenCtx)return;
   try{
-    sirenCtx=new (window.AudioContext||window.webkitAudioContext)();
     const master=sirenCtx.createGain();
-    master.gain.value=.10;
+    // Intentionally obvious for this test; we'll lower it once you approve the sound.
+    master.gain.value=.34;
     const convolver=sirenCtx.createConvolver();
-    convolver.buffer=makeImpulse(sirenCtx,3.4,2.4);
-    const wet=sirenCtx.createGain();wet.gain.value=.78;
-    const dry=sirenCtx.createGain();dry.gain.value=.18;
+    convolver.buffer=makeImpulse(sirenCtx,3.6,2.5);
+    const wet=sirenCtx.createGain();wet.gain.value=.48;
+    const dry=sirenCtx.createGain();dry.gain.value=.72;
     master.connect(dry).connect(sirenCtx.destination);
     master.connect(convolver).connect(wet).connect(sirenCtx.destination);
     sirenNodes=[master,convolver,wet,dry];
-    const melody=[220,246.94,261.63,293.66,261.63,246.94,220,196,220,261.63,329.63,293.66,261.63,220];
+
+    // Slow human-vocal-like melody, kept in a comfortable female vocal register.
+    const melody=[392,440,493.88,523.25,493.88,440,392,349.23,392,440,523.25,587.33,523.25,493.88,440];
     let step=0;
     const singNote=()=>{
       if(!sirenCtx)return;
       const now=sirenCtx.currentTime;
       const f=melody[step%melody.length];
       step++;
+
       const env=sirenCtx.createGain();
       env.gain.setValueAtTime(.0001,now);
-      env.gain.exponentialRampToValueAtTime(.8,now+.7);
-      env.gain.exponentialRampToValueAtTime(.12,now+2.8);
-      env.gain.exponentialRampToValueAtTime(.0001,now+4.2);
+      env.gain.exponentialRampToValueAtTime(.75,now+.45);
+      env.gain.exponentialRampToValueAtTime(.32,now+2.1);
+      env.gain.exponentialRampToValueAtTime(.0001,now+3.8);
       env.connect(master);
-      [1,.5,2].forEach((ratio,idx)=>{
-        const o=sirenCtx.createOscillator();
-        o.type=idx===0?'sine':'triangle';
-        o.frequency.setValueAtTime(f*ratio,now);
-        o.detune.value=(idx-1)*5;
-        const og=sirenCtx.createGain();
-        og.gain.value=idx===0?.58:idx===1?.16:.08;
-        o.connect(og).connect(env);
-        o.start(now);
-        o.stop(now+4.3);
-      });
-      const form1=sirenCtx.createBiquadFilter();form1.type='bandpass';form1.frequency.value=800;form1.Q.value=5;
-      const form2=sirenCtx.createBiquadFilter();form2.type='bandpass';form2.frequency.value=1200;form2.Q.value=7;
-      const breath=sirenCtx.createOscillator();breath.type='sine';breath.frequency.value=f*1.005;
-      const bg=sirenCtx.createGain();bg.gain.value=.07;
-      breath.connect(form1).connect(bg).connect(env);
-      breath.connect(form2).connect(bg);
-      breath.start(now);breath.stop(now+4.3);
+
+      const fundamental=sirenCtx.createOscillator();
+      fundamental.type='sine';
+      fundamental.frequency.setValueAtTime(f,now);
+      fundamental.frequency.linearRampToValueAtTime(f*1.015,now+1.6);
+      fundamental.frequency.linearRampToValueAtTime(f*.995,now+3.5);
+      const fg=sirenCtx.createGain();fg.gain.value=.66;
+      fundamental.connect(fg).connect(env);
+      fundamental.start(now);fundamental.stop(now+3.9);
+
+      const harmonic=sirenCtx.createOscillator();
+      harmonic.type='sine';
+      harmonic.frequency.value=f*2;
+      const hg=sirenCtx.createGain();hg.gain.value=.11;
+      harmonic.connect(hg).connect(env);
+      harmonic.start(now);harmonic.stop(now+3.9);
+
+      const alto=sirenCtx.createOscillator();
+      alto.type='triangle';
+      alto.frequency.value=f*.5;
+      const ag=sirenCtx.createGain();ag.gain.value=.07;
+      alto.connect(ag).connect(env);
+      alto.start(now);alto.stop(now+3.9);
+
       clearTimeout(sirenTimer);
-      sirenTimer=setTimeout(singNote,2500+Math.random()*1600);
+      sirenTimer=setTimeout(singNote,2600);
     };
-    setTimeout(singNote,2600);
-  }catch(e){}
+
+    // Start immediately so mobile users can confirm it is working.
+    singNote();
+  }catch(e){console.warn('Siren melody failed',e)}
 }
 
 function makeImpulse(ctx,duration,decay){
-  const rate=ctx.sampleRate,length=rate*duration,impulse=ctx.createBuffer(2,length,rate);
+  const rate=ctx.sampleRate,length=Math.floor(rate*duration),impulse=ctx.createBuffer(2,length,rate);
   for(let c=0;c<2;c++){
     const data=impulse.getChannelData(c);
     for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/length,decay);
@@ -107,7 +128,7 @@ function makeImpulse(ctx,duration,decay){
 
 export function softenAudio(){
   if(stormAudio)stormAudio.volume=.14;
-  if(sirenNodes[0])sirenNodes[0].gain.setTargetAtTime(.02,sirenCtx.currentTime,.6);
+  if(sirenNodes[0]&&sirenCtx)sirenNodes[0].gain.setTargetAtTime(.02,sirenCtx.currentTime,.6);
 }
 
 export function stopAudio(){
