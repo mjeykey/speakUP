@@ -39,32 +39,40 @@ function wrapCharacters(element) {
 }
 
 function scatterFrames(index) {
+  const color = COLORS[index % COLORS.length];
   const angle = rand(0, Math.PI * 2);
-  const distance = rand(190, 390);
+  const distance = rand(180, 360);
   const x = Math.cos(angle) * distance;
   const y = Math.sin(angle) * distance;
-  const rotation = rand(-420, 420);
-  const color = COLORS[index % COLORS.length];
+  const bendX = rand(-90, 90);
+  const bendY = rand(-70, 70);
+  const rotation = rand(-520, 520);
+
   return [
-    { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
-    { opacity: 1, transform: `translate(${x * .08}px,${y * .08}px) rotate(${rotation * .04}deg) scale(1.12)`, textShadow: `0 0 12px ${color}`, offset: .14 },
-    { opacity: .72, transform: `translate(${x * .45}px,${y * .45}px) rotate(${rotation * .42}deg) scale(.82)`, filter: 'blur(1px)', offset: .52 },
-    { opacity: 0, transform: `translate(${x}px,${y}px) rotate(${rotation}deg) scale(.18)`, filter: 'blur(9px)' }
+    { opacity: 1, color, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)', textShadow: `0 0 8px ${color}` },
+    { opacity: .98, color, transform: `translate(${bendX * .35}px,${bendY * .35}px) rotate(${rotation * .08}deg) scale(1.06)`, textShadow: `0 0 18px ${color}`, offset: .2 },
+    { opacity: .78, color, transform: `translate(${x * .42 + bendX}px,${y * .38 + bendY}px) rotate(${rotation * .46}deg) scale(.88)`, filter: 'blur(.8px)', textShadow: `0 0 24px ${color}`, offset: .55 },
+    { opacity: .35, color, transform: `translate(${x * .78 - bendX * .25}px,${y * .78 - bendY * .2}px) rotate(${rotation * .78}deg) scale(.48)`, filter: 'blur(3px)', offset: .8 },
+    { opacity: 0, color, transform: `translate(${x}px,${y}px) rotate(${rotation}deg) scale(.12)`, filter: 'blur(10px)', textShadow: `0 0 34px ${color}` }
   ];
 }
 
 function burstFrames(index, total) {
-  const center = (total - 1) / 2;
-  const side = index < center ? -1 : 1;
-  const horizontal = side * rand(240, 470);
-  const vertical = rand(-170, 170);
-  const rotation = rand(-220, 220);
   const color = COLORS[index % COLORS.length];
+  const center = Math.max(1, total - 1) / 2;
+  const normalized = (index - center) / Math.max(1, center);
+  const side = normalized < 0 ? -1 : 1;
+  const horizontal = side * (300 + Math.abs(normalized) * 220);
+  const vertical = normalized * 120 + rand(-28, 28);
+  const rotation = side * rand(50, 130);
+
   return [
-    { opacity: 1, transform: 'translate(0,0) scale(1)', filter: 'brightness(1)' },
-    { opacity: 1, transform: 'translate(0,-3px) scale(1.38)', filter: 'brightness(2.2)', textShadow: `0 0 30px ${color}`, offset: .16 },
-    { opacity: .92, transform: `translate(${horizontal * .18}px,${vertical * .12}px) scale(1.02)`, filter: 'brightness(1.7)', offset: .3 },
-    { opacity: 0, transform: `translate(${horizontal}px,${vertical}px) rotate(${rotation}deg) scale(.08)`, filter: 'blur(7px)' }
+    { opacity: 1, color: '#ffffff', transform: 'translate(0,0) scale(1)', filter: 'brightness(1)', textShadow: '0 0 0 transparent' },
+    { opacity: 1, color: '#dffbff', transform: 'translate(0,0) scale(.82)', filter: 'brightness(1.35)', textShadow: '0 0 10px #65e8ff', offset: .1 },
+    { opacity: 1, color, transform: 'translate(0,0) scale(1.52)', filter: 'brightness(3.2)', textShadow: `0 0 46px ${color}`, offset: .2 },
+    { opacity: .96, color, transform: `translate(${horizontal * .22}px,${vertical * .22}px) rotate(${rotation * .16}deg) scale(1.12)`, filter: 'brightness(2.1)', textShadow: `0 0 34px ${color}`, offset: .34 },
+    { opacity: .5, color, transform: `translate(${horizontal * .72}px,${vertical * .72}px) rotate(${rotation * .7}deg) scale(.5)`, filter: 'brightness(1.5) blur(2px)', offset: .7 },
+    { opacity: 0, color, transform: `translate(${horizontal}px,${vertical}px) rotate(${rotation}deg) scale(.04)`, filter: 'blur(9px)', textShadow: `0 0 42px ${color}` }
   ];
 }
 
@@ -74,21 +82,21 @@ function floatFrames(index) {
   const rotation = rand(-18, 18);
   const color = COLORS[index % COLORS.length];
   return [
-    { opacity: 1, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)' },
-    { opacity: .98, transform: `translate(${drift * .08}px,-18px) rotate(${rotation * .08}deg) scale(1.04)`, textShadow: `0 0 10px ${color}`, offset: .18 },
-    { opacity: .82, transform: `translate(${drift * .38}px,${rise * .42}px) rotate(${rotation * .35}deg) scale(.96)`, filter: 'blur(.4px)', offset: .58 },
-    { opacity: 0, transform: `translate(${drift}px,${rise}px) rotate(${rotation}deg) scale(.72)`, filter: 'blur(8px)' }
+    { opacity: 1, color, transform: 'translate(0,0) rotate(0deg) scale(1)', filter: 'blur(0)', textShadow: `0 0 8px ${color}` },
+    { opacity: .98, color, transform: `translate(${drift * .08}px,-18px) rotate(${rotation * .08}deg) scale(1.04)`, textShadow: `0 0 18px ${color}`, offset: .18 },
+    { opacity: .82, color, transform: `translate(${drift * .38}px,${rise * .42}px) rotate(${rotation * .35}deg) scale(.96)`, filter: 'blur(.4px)', textShadow: `0 0 24px ${color}`, offset: .58 },
+    { opacity: 0, color, transform: `translate(${drift}px,${rise}px) rotate(${rotation}deg) scale(.72)`, filter: 'blur(8px)', textShadow: `0 0 34px ${color}` }
   ];
 }
 
 function glowFrames(index) {
   const color = COLORS[index % COLORS.length];
   return [
-    { opacity: 1, transform: 'scale(1)', filter: 'brightness(1) blur(0)', textShadow: '0 0 0 transparent' },
-    { opacity: 1, color, transform: 'scale(1.08)', filter: 'brightness(1.7)', textShadow: `0 0 18px ${color}`, offset: .2 },
-    { opacity: 1, color, transform: 'scale(1.22)', filter: 'brightness(3)', textShadow: `0 0 54px ${color}`, offset: .5 },
-    { opacity: .6, color, transform: 'scale(1.08)', filter: 'brightness(2.4) blur(3px)', textShadow: `0 0 80px ${color}`, offset: .76 },
-    { opacity: 0, color, transform: 'scale(.94)', filter: 'brightness(3.2) blur(18px)', textShadow: `0 0 96px ${color}` }
+    { opacity: 1, color: '#ffffff', transform: 'scale(1)', filter: 'brightness(1) blur(0)', textShadow: '0 0 0 transparent' },
+    { opacity: 1, color, transform: 'scale(1.08)', filter: 'brightness(1.7)', textShadow: `0 0 22px ${color}`, offset: .2 },
+    { opacity: 1, color, transform: 'scale(1.22)', filter: 'brightness(3)', textShadow: `0 0 58px ${color}`, offset: .5 },
+    { opacity: .6, color, transform: 'scale(1.08)', filter: 'brightness(2.4) blur(3px)', textShadow: `0 0 88px ${color}`, offset: .76 },
+    { opacity: 0, color, transform: 'scale(.94)', filter: 'brightness(3.2) blur(18px)', textShadow: `0 0 104px ${color}` }
   ];
 }
 
@@ -98,11 +106,11 @@ function collapseFrames(index, total) {
   const inwardX = direction * 18;
   const color = COLORS[index % COLORS.length];
   return [
-    { opacity: 1, transform: 'translate(0,0) scale(1,1)', filter: 'blur(0)' },
-    { opacity: 1, transform: `translate(${Math.sign(direction || 1) * -12}px,0) scale(1.06,.98)`, textShadow: `0 0 12px ${color}`, offset: .18 },
-    { opacity: .95, transform: `translate(${inwardX * .52}px,2px) scale(.7,.86)`, filter: 'blur(.5px)', offset: .48 },
-    { opacity: .55, transform: `translate(${inwardX}px,5px) scale(.24,.58)`, filter: 'blur(2px)', offset: .74 },
-    { opacity: 0, transform: `translate(${inwardX * 1.12}px,8px) scale(.015,.28)`, filter: 'blur(10px)' }
+    { opacity: 1, color, transform: 'translate(0,0) scale(1,1)', filter: 'blur(0)', textShadow: `0 0 7px ${color}` },
+    { opacity: 1, color, transform: `translate(${Math.sign(direction || 1) * -12}px,0) scale(1.06,.98)`, textShadow: `0 0 18px ${color}`, offset: .18 },
+    { opacity: .95, color, transform: `translate(${inwardX * .52}px,2px) scale(.7,.86)`, filter: 'blur(.5px)', textShadow: `0 0 24px ${color}`, offset: .48 },
+    { opacity: .55, color, transform: `translate(${inwardX}px,5px) scale(.24,.58)`, filter: 'blur(2px)', offset: .74 },
+    { opacity: 0, color, transform: `translate(${inwardX * 1.12}px,8px) scale(.015,.28)`, filter: 'blur(10px)', textShadow: `0 0 38px ${color}` }
   ];
 }
 
@@ -115,11 +123,17 @@ function framesFor(effect, index, total) {
 }
 
 function timingFor(effect, requestedDuration) {
-  if (effect === 'burst') return { duration: Math.max(1050, requestedDuration * .78), easing: 'cubic-bezier(.12,.78,.2,1)' };
+  if (effect === 'burst') return { duration: Math.max(900, requestedDuration * .66), easing: 'cubic-bezier(.08,.76,.12,1)' };
   if (effect === 'float') return { duration: Math.max(2550, requestedDuration * 1.42), easing: 'cubic-bezier(.22,.58,.3,1)' };
   if (effect === 'glow') return { duration: Math.max(2200, requestedDuration * 1.24), easing: 'cubic-bezier(.2,.55,.3,1)' };
   if (effect === 'collapse') return { duration: Math.max(2050, requestedDuration * 1.12), easing: 'cubic-bezier(.62,.02,.78,.34)' };
-  return { duration: Math.max(1750, requestedDuration), easing: 'cubic-bezier(.12,.7,.18,1)' };
+  return { duration: Math.max(2050, requestedDuration * 1.12), easing: 'cubic-bezier(.18,.58,.22,1)' };
+}
+
+function delayFor(effect, index, stagger) {
+  if (effect === 'burst') return Math.min(index * 3, 42);
+  if (effect === 'scatter') return index * stagger + rand(0, 120);
+  return index * stagger;
 }
 
 export async function explodeText(elements, effect = 'scatter', options = {}) {
@@ -139,7 +153,7 @@ export async function explodeText(elements, effect = 'scatter', options = {}) {
       framesFor(effect, index, characters.length),
       {
         duration: timing.duration,
-        delay: index * stagger,
+        delay: delayFor(effect, index, stagger),
         easing: timing.easing,
         fill: 'forwards'
       }
