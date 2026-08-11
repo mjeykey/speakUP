@@ -39,5 +39,14 @@ function render(state) {
   view(root, store);
 }
 
+root.addEventListener('click', event => {
+  const startButton = event.target.closest?.('[data-start]');
+  if (!startButton || startButton.disabled) return;
+  const current = store.getState();
+  if (current.learningLevel === 'l1' && current.mode === 'story' && current.selectedStory) {
+    store.setState({ mode: 'story', screen: 'story' });
+  }
+});
+
 store.subscribe(render);
 render(store.getState());
