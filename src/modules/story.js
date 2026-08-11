@@ -1,10 +1,36 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
+import { fantasyStory } from '../data/stories/fantasy.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+function fantasyText(page,language){return String(language||'').startsWith('pt')?page.portuguese:page.english;}
+function learningItems(text,nativeText){
+ const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
+ const words=[...new Set(clean(text))].slice(0,3);
+ const hints=clean(nativeText);
+ while(words.length<3)words.push(clean(text)[words.length]||'story');
+ return words.map((answer,index)=>({answer,hint:hints[index]||answer}));
+}
+function getStory(storyId,learningLanguage,nativeLanguage){
+ if(storyId!=='fantasy-1')return getMultilingualStory(storyId,learningLanguage,nativeLanguage);
+ return {
+  id:fantasyStory.id,
+  emoji:fantasyStory.emoji,
+  title:fantasyStory.title,
+  subtitle:fantasyStory.subtitle,
+  pages:fantasyStory.pages.map(source=>{
+   const learning=fantasyText(source,learningLanguage);
+   const native=fantasyText(source,nativeLanguage);
+   return {learning,native,sound:source.sound,items:learningItems(learning,native)};
+  })
+ };
+}
 
 function gapHtml(page,solved){
  let html=escapeHtml(page.learning);
@@ -19,7 +45,7 @@ export function renderStory(root,store){
  const state=store.getState();
  const storyId=state.selectedStory||'everyday';
  const progressKey=[storyId,state.learningLanguage,state.nativeLanguage].join('|');
- const story=getMultilingualStory(storyId,state.learningLanguage,state.nativeLanguage);
+ const story=getStory(storyId,state.learningLanguage,state.nativeLanguage);
  const learningVoice=getSpeechLanguage(state.learningLanguage);
  const nativeVoice=getSpeechLanguage(state.nativeLanguage);
  const saved=state.progress?.story?.[progressKey];
@@ -28,7 +54,7 @@ export function renderStory(root,store){
  let solved=Math.max(Number(saved?.solved)||0,0);
  let locked=false;
  const page=()=>story.pages[pageIndex];
- const leave=()=>{stopSpeech();store.setState({screen:'menu'});};
+ const leave=()=>{stopSpeech();stopStorySfx();store.setState({screen:'menu'});};
  const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
 
  function shell(content){
@@ -52,9 +78,15 @@ export function renderStory(root,store){
 
  async function renderPhase(){
   stopSpeech();
+  stopStorySfx();
   const current=page();
   if(phaseIndex===0){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
+   if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&store.getState().audioOn){
+    await playStorySfx(current.sound,{enabled:true});
+    await wait(850);
+    stopStorySfx();
+   }
    await speak(current.native,nativeVoice,{enabled:store.getState().audioOn,rate:.88});
   }else if(phaseIndex===1){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
@@ -82,6 +114,7 @@ export function renderStory(root,store){
  }
 
  function navigate(direction){
+  stopStorySfx();
   if(direction>0){
    if(phaseIndex===2&&solved<page().items.length)return;
    if(phaseIndex<3){phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
