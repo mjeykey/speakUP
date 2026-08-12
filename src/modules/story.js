@@ -60,6 +60,7 @@ export function renderStory(root,store){
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
+  const testButton=storyId==='fantasy-1'?'<button type="button" class="primary-button" data-test-sfx style="margin:10px auto 16px;display:block">🔊 Test Sound</button>':'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -69,11 +70,23 @@ export function renderStory(root,store){
     <h1>${story.emoji} ${escapeHtml(story.title)}</h1>
     <p class="story-subtitle">${escapeHtml(story.subtitle)}</p>
     <p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>
+    ${testButton}
     ${content}
    </div></section>`;
   root.querySelector('[data-menu]').onclick=leave;
   root.querySelector('[data-prev]').onclick=()=>navigate(-1);
   root.querySelector('[data-next]').onclick=()=>navigate(1);
+  const test=root.querySelector('[data-test-sfx]');
+  if(test)test.onclick=async()=>{
+   stopSpeech();
+   stopStorySfx();
+   const sound=page().sound&&page().sound!=='none'?page().sound:'rain';
+   test.disabled=true;
+   test.textContent='🔊 Playing…';
+   const played=await playStorySfx(sound,{enabled:true});
+   test.textContent=played?'✅ Sound played':'❌ Sound blocked';
+   setTimeout(()=>{if(test.isConnected){test.disabled=false;test.textContent='🔊 Test Sound';}},1800);
+  };
  }
 
  async function renderPhase(){
