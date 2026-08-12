@@ -1,7 +1,7 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=1';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 
 const PHASES=['native','learning','gap','review'];
