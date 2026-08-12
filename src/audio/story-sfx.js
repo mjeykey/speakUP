@@ -2,6 +2,10 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=1';
 
 let activeAudio=null;
 
+export function getStorySfxSrc(name){
+ return STORY_SFX_ASSETS[name]||'';
+}
+
 function ensureAudio(){
  if(activeAudio && activeAudio.isConnected) return activeAudio;
  const audio=document.createElement('audio');
@@ -30,7 +34,7 @@ export function stopStorySfx(){
 
 export async function playStorySfx(name,{enabled=true}={}){
  if(!enabled||!name||name==='none')return false;
- const src=STORY_SFX_ASSETS[name];
+ const src=getStorySfxSrc(name);
  if(!src)return false;
  const audio=ensureAudio();
  try{
