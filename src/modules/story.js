@@ -1,7 +1,7 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=4';
+import { getStorySfxSrc, playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=5';
 import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
 
 const PHASES=['native','learning','gap','review'];
@@ -60,7 +60,9 @@ export function renderStory(root,store){
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-  const testButton=storyId==='fantasy-1'?'<button type="button" class="primary-button" data-test-sfx style="margin:10px auto 16px;display:block">🔊 Test Sound</button>':'';
+  const currentSound=page().sound&&page().sound!=='none'?page().sound:'rain';
+  const currentSrc=getStorySfxSrc(currentSound);
+  const testControl=storyId==='fantasy-1'&&currentSrc?`<div style="margin:10px auto 16px;max-width:360px"><div style="font-size:.9rem;margin-bottom:6px">🔊 Mobile sound test</div><audio data-native-sfx-test controls playsinline preload="auto" style="width:100%" src="${currentSrc}"></audio><div data-native-sfx-status style="font-size:.8rem;margin-top:5px;opacity:.75">Tap the ▶ button in the audio bar.</div></div>`:'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -70,23 +72,19 @@ export function renderStory(root,store){
     <h1>${story.emoji} ${escapeHtml(story.title)}</h1>
     <p class="story-subtitle">${escapeHtml(story.subtitle)}</p>
     <p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>
-    ${testButton}
+    ${testControl}
     ${content}
    </div></section>`;
   root.querySelector('[data-menu]').onclick=leave;
   root.querySelector('[data-prev]').onclick=()=>navigate(-1);
   root.querySelector('[data-next]').onclick=()=>navigate(1);
-  const test=root.querySelector('[data-test-sfx]');
-  if(test)test.onclick=async()=>{
-   stopSpeech();
-   stopStorySfx();
-   const sound=page().sound&&page().sound!=='none'?page().sound:'rain';
-   test.disabled=true;
-   test.textContent='🔊 Playing…';
-   const played=await playStorySfx(sound,{enabled:true});
-   test.textContent=played?'✅ Sound played':'❌ Sound blocked';
-   setTimeout(()=>{if(test.isConnected){test.disabled=false;test.textContent='🔊 Test Sound';}},1800);
-  };
+  const nativeTest=root.querySelector('[data-native-sfx-test]');
+  const nativeStatus=root.querySelector('[data-native-sfx-status]');
+  if(nativeTest){
+   nativeTest.addEventListener('play',()=>{stopSpeech();if(nativeStatus)nativeStatus.textContent='✅ Native mobile player started';});
+   nativeTest.addEventListener('error',()=>{if(nativeStatus)nativeStatus.textContent='❌ Audio file could not be loaded';});
+   nativeTest.addEventListener('stalled',()=>{if(nativeStatus)nativeStatus.textContent='⚠️ Audio loading stalled';});
+  }
  }
 
  async function renderPhase(){
