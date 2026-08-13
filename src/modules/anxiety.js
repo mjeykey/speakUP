@@ -20,18 +20,37 @@ const L = {
     'hr-HR': 'Bok. Ja sam Anxiety. Volim brinuti o budućnostima koje se još nisu dogodile.',
     'it-IT': 'Ciao. Sono Anxiety. Mi piace preoccuparmi di futuri che non sono ancora accaduti.'
   },
+  hate1: {
+    'en-GB': "You know what I hate? Distractions. And your ugly little friends cheering you up. Absolutely disgusting.",
+    'de-DE': 'Weißt du, was ich hasse? Ablenkung. Und deine hässlichen kleinen Freunde, die dich aufmuntern. Absolut widerlich.',
+    'pt-PT': 'Sabes o que eu odeio? Distrações. E os teus amiguinhos feios a animarem-te. Absolutamente nojento.',
+    'es-ES': '¿Sabes qué odio? Las distracciones. Y a tus amiguitos feos animándote. Absolutamente asqueroso.',
+    'fr-FR': "Tu sais ce que je déteste ? Les distractions. Et tes petits amis moches qui te remontent le moral. Absolument dégoûtant.",
+    'hr-HR': 'Znaš što mrzim? Ometanja. I tvoje ružne male prijatelje koji te bodre. Apsolutno odvratno.',
+    'it-IT': 'Sai cosa odio? Le distrazioni. E i tuoi brutti amichetti che ti tirano su. Assolutamente disgustoso.'
+  },
+  hate2: {
+    'en-GB': "You're laughing. You're doing something. You're talking to people. How am I supposed to catastrophize under these working conditions?",
+    'de-DE': 'Du lachst. Du machst irgendwas. Du redest mit Menschen. Wie soll ich unter diesen Arbeitsbedingungen bitte katastrophisieren?',
+    'pt-PT': 'Estás a rir. Estás a fazer alguma coisa. Estás a falar com pessoas. Como é que eu hei de catastrofizar nestas condições de trabalho?',
+    'es-ES': 'Te estás riendo. Estás haciendo algo. Estás hablando con gente. ¿Cómo se supone que voy a catastrofizar con estas condiciones de trabajo?',
+    'fr-FR': "Tu ris. Tu fais quelque chose. Tu parles aux gens. Comment veux-tu que je catastrophise dans ces conditions de travail ?",
+    'hr-HR': 'Smiješ se. Nešto radiš. Razgovaraš s ljudima. Kako bih ja trebala katastrofizirati u ovakvim radnim uvjetima?',
+    'it-IT': 'Stai ridendo. Stai facendo qualcosa. Stai parlando con le persone. Come dovrei catastrofizzare in queste condizioni di lavoro?'
+  },
+  evidence: {
+    'en-GB': "I also hate evidence. You keep asking, 'But did that actually happen?' Please stop fact-checking me. I'm trying to panic.",
+    'de-DE': 'Ich hasse übrigens auch Beweise. Du fragst ständig: „Aber ist das wirklich passiert?“ Bitte hör auf, mich zu fact-checken. Ich versuche hier gerade, Panik zu machen.',
+    'pt-PT': 'Também odeio provas. Estás sempre a perguntar: “Mas isso aconteceu mesmo?” Por favor, para de verificar os meus factos. Estou a tentar entrar em pânico.',
+    'es-ES': 'También odio las pruebas. Sigues preguntando: “¿Pero eso pasó de verdad?” Por favor, deja de comprobar mis datos. Estoy intentando entrar en pánico.',
+    'fr-FR': "Je déteste aussi les preuves. Tu n'arrêtes pas de demander : « Mais est-ce que c'est vraiment arrivé ? » Arrête de vérifier mes faits, s'il te plaît. J'essaie de paniquer.",
+    'hr-HR': 'Mrzim i dokaze. Stalno pitaš: „Ali je li se to stvarno dogodilo?“ Molim te, prestani provjeravati moje činjenice. Pokušavam paničariti.',
+    'it-IT': 'Odio anche le prove. Continui a chiedere: “Ma è successo davvero?” Per favore, smettila di verificare i miei fatti. Sto cercando di andare nel panico.'
+  },
   future: {
-    'en-GB': "The future is simply what hasn't happened yet.",
-    'de-DE': 'Die Zukunft ist einfach das, was noch nicht passiert ist.',
-    'pt-PT': 'O futuro é simplesmente aquilo que ainda não aconteceu.',
-    'es-ES': 'El futuro es simplemente lo que todavía no ha ocurrido.',
-    'fr-FR': "Le futur, c'est simplement ce qui ne s'est pas encore produit.",
-    'hr-HR': 'Budućnost je jednostavno ono što se još nije dogodilo.',
-    'it-IT': 'Il futuro è semplicemente ciò che non è ancora successo.'
+    'en-GB': "The future is simply what hasn't happened yet.", 'de-DE': 'Die Zukunft ist einfach das, was noch nicht passiert ist.', 'pt-PT': 'O futuro é simplesmente aquilo que ainda não aconteceu.', 'es-ES': 'El futuro es simplemente lo que todavía no ha ocurrido.', 'fr-FR': "Le futur, c'est simplement ce qui ne s'est pas encore produit.", 'hr-HR': 'Budućnost je jednostavno ono što se još nije dogodilo.', 'it-IT': 'Il futuro è semplicemente ciò che non è ancora successo.'
   },
-  come: {
-    'en-GB': 'Come with me. Just one step.', 'de-DE': 'Komm mit. Nur ein Schritt.', 'pt-PT': 'Vem comigo. Só um passo.', 'es-ES': 'Ven conmigo. Solo un paso.', 'fr-FR': 'Viens avec moi. Juste un pas.', 'hr-HR': 'Pođi sa mnom. Samo jedan korak.', 'it-IT': 'Vieni con me. Solo un passo.'
-  },
+  come: {'en-GB':'Come with me. Just one step.','de-DE':'Komm mit. Nur ein Schritt.','pt-PT':'Vem comigo. Só um passo.','es-ES':'Ven conmigo. Solo un paso.','fr-FR':'Viens avec moi. Juste un pas.','hr-HR':'Pođi sa mnom. Samo jedan korak.','it-IT':'Vieni con me. Solo un passo.'},
   step: {'en-GB':'STEP','de-DE':'SCHRITT','pt-PT':'PASSO','es-ES':'PASO','fr-FR':'PAS','hr-HR':'KORAK','it-IT':'PASSO'},
   stepTo: {'en-GB':'STEP TO...','de-DE':'SCHRITT ZUM...','pt-PT':'PASSO PARA...','es-ES':'PASO HACIA...','fr-FR':'PAS VERS...','hr-HR':'KORAK PREMA...','it-IT':'PASSO VERSO...'},
   grave: {'en-GB':'THE GRAVE','de-DE':'DAS GRAB','pt-PT':'A SEPULTURA','es-ES':'LA TUMBA','fr-FR':'LA TOMBE','hr-HR':'GROB','it-IT':'LA TOMBA'},
@@ -45,7 +64,7 @@ const L = {
   joke2: {'en-GB':'Excellent. I was extremely underqualified.','de-DE':'Ausgezeichnet. Dafür war ich sowieso völlig unterqualifiziert.','pt-PT':'Excelente. Eu não tinha qualificação nenhuma para isso.','es-ES':'Excelente. No estaba nada cualificada para eso.','fr-FR':"Excellent. Je n'étais vraiment pas qualifiée pour ça.",'hr-HR':'Odlično. Ionako sam bila potpuno nekvalificirana za to.','it-IT':'Eccellente. Ero decisamente poco qualificata per quello.'}
 };
 
-const STORY = ['intro','future','come','step','stepTo','grave','wait','push','forgot','see','moments','handle','joke1','joke2'];
+const STORY = ['intro','hate1','hate2','evidence','future','come','step','stepTo','grave','wait','push','forgot','see','moments','handle','joke1','joke2'];
 function c(code){ if(code==='es-AN') return 'es-ES'; if(code==='hr-DAL') return 'hr-HR'; return code; }
 function t(key,code){ return L[key]?.[c(code)] || L[key]?.['en-GB'] || ''; }
 
@@ -55,7 +74,6 @@ export function renderAnxiety(root, store) {
   const support = state.nativeLanguage;
   let index = -1;
   const voice = getSpeechLanguage(learning);
-
   function draw(){
     const isProfile = index === -1;
     const key = isProfile ? 'profile' : STORY[index];
