@@ -10,7 +10,7 @@ import { renderCommunicationStrength } from '../modules/communication-strength-m
 import { renderStory } from '../modules/story-loader.js?v=67';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-matrix.js?v=1';
-import { renderAnxiety } from '../modules/anxiety.js?v=1';
+import { renderAnxiety } from '../modules/anxiety.js?v=2';
 import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
