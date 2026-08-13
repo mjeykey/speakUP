@@ -1,11 +1,12 @@
 import { createStore } from './state.js?v=57';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=72';
+import { renderMenu } from '../modules/menu.js?v=73';
 import { renderWords } from '../modules/words.js?v=62';
 import { renderMemory } from '../modules/memory-full-speech.js?v=1';
 import { renderFillGap } from '../modules/fill-gap.js?v=75';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice.js?v=54';
+import { renderCommunicationStrength } from '../modules/communication-strength.js?v=1';
 import { renderStory } from '../modules/story-loader.js?v=67';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions.js?v=58';
@@ -27,6 +28,7 @@ const routes = {
   'sentence-level-select': renderSentenceLevelSelect,
   'fill-gap': renderFillGap,
   'speak-practice': renderSpeakPractice,
+  'communication-strength': renderCommunicationStrength,
   'effects-settings': renderEffectsSettings,
   'l2-learning': renderL2Learning,
   'l3-learning': renderL3Learning,
