@@ -27,13 +27,17 @@ export function renderMemory(root, store) {
   const matched = new Set();
   const voice = getSpeechLanguage(learning);
 
-  function draw() {
-    root.innerHTML = `<section class="screen memory-screen"><button class="menu-button" data-menu>Menu</button><div class="center"><p class="kicker">Memory · ${languageName(learning)}</p><div class="memory-grid">${cards.map(card => `<button class="memory-card ${matched.has(card.pair)?'matched':''}" data-id="${card.id}" ${matched.has(card.pair)?'disabled':''}><span>${card.target}</span><small>${card.support}</small></button>`).join('')}</div><p class="feedback" data-feedback>${matched.size===4?'Geschafft.':''}</p></div></section>`;
+  function draw(message='') {
+    root.innerHTML = `<section class="screen memory-screen"><button class="menu-button" data-menu>Menu</button><div class="center"><p class="kicker">Memory · ${languageName(learning)}</p><div class="memory-grid">${cards.map(card => {
+      const visible = matched.has(card.pair) || open.includes(card.id);
+      return `<button class="memory-card ${matched.has(card.pair)?'matched':''}" data-id="${card.id}" ${matched.has(card.pair)?'disabled':''}>${visible ? `<span>${card.target}</span><small>${card.support}</small>` : '<span>?</span>'}</button>`;
+    }).join('')}</div><p class="feedback" data-feedback>${matched.size===4?'Geschafft.':message}</p></div></section>`;
     root.querySelector('[data-menu]').onclick = () => { stopSpeech(); store.setState({screen:'menu'}); };
     root.querySelectorAll('[data-id]').forEach(button => button.onclick = async () => {
-      if (open.includes(button.dataset.id)) return;
+      if (open.includes(button.dataset.id) || open.length >= 2) return;
       open.push(button.dataset.id);
       const card = cards.find(x => x.id === button.dataset.id);
+      draw();
       await speak(card.target, voice, {enabled:state.audioOn,rate:.72}).catch(() => {});
       if (open.length < 2) return;
       const first = cards.find(x => x.id === open[0]);
@@ -41,10 +45,9 @@ export function renderMemory(root, store) {
       if (first.pair === second.pair) {
         matched.add(first.pair);
         open = [];
-        draw();
+        window.setTimeout(() => draw(), 250);
       } else {
-        root.querySelector('[data-feedback]').textContent = 'Nicht dieses Paar.';
-        window.setTimeout(() => { open=[]; draw(); }, 650);
+        window.setTimeout(() => { open=[]; draw('Nicht dieses Paar.'); }, 700);
       }
     });
   }
