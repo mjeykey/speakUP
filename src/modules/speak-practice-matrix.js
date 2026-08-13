@@ -13,10 +13,18 @@ export function renderSpeakPractice(root, store) {
     sentence: fillAnswers(item.sentence, item.answers),
     translation: item.translation
   })));
-  let index = Math.min(state.currentIndex || 0, Math.max(0, items.length - 1));
+  const progressKey = `${state.learningLanguage}|${state.nativeLanguage}`;
+  const saved = state.progress?.speakPractice?.[progressKey] || {};
+  let index = Math.min(Math.max(Number(saved.currentIndex) || 0, 0), Math.max(0, items.length - 1));
   const voice = getSpeechLanguage(state.learningLanguage);
 
-  const leave = () => { stopSpeech(); store.setState({ screen:'menu', currentIndex:0 }); };
+  const save = () => store.saveProgress?.('speakPractice', progressKey, {
+    currentIndex:index,
+    learningLanguage:state.learningLanguage,
+    nativeLanguage:state.nativeLanguage,
+    total:items.length
+  });
+  const leave = () => { stopSpeech(); save(); store.setState({ screen:'menu' }); };
 
   function draw() {
     const item = items[index];
@@ -34,7 +42,12 @@ export function renderSpeakPractice(root, store) {
     </section>`;
     root.querySelector('[data-menu]').onclick = leave;
     root.querySelector('[data-listen]').onclick = () => speak(item.sentence, voice, { enabled:state.audioOn, rate:.68 }).catch(() => {});
-    root.querySelector('[data-next]').onclick = () => { stopSpeech(); index = (index + 1) % items.length; draw(); };
+    root.querySelector('[data-next]').onclick = () => {
+      stopSpeech();
+      index = (index + 1) % items.length;
+      save();
+      draw();
+    };
     window.setTimeout(() => speak(item.sentence, voice, { enabled:state.audioOn, rate:.68 }).catch(() => {}), 180);
   }
 
