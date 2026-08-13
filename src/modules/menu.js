@@ -5,6 +5,7 @@ import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
+  ['anxiety', 'Anxiety', 'Lerne Sprache in kleinen Geschichten über ängstliche Gedanken, Perspektive und Humor.'],
   ['fill-gap', 'Sätze', 'Wähle dein Level und ergänze den Satz.'],
   ['memory', 'Memory', 'Finde Wörter, Bedeutungen und passende Verbindungen.'],
   ['words', 'Wörter', 'Ein Wort nach dem anderen.'],
