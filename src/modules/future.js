@@ -1,4 +1,7 @@
 const FUTURE_FEATURES = [
+  ['🎭', 'Real-Life Role Simulator', 'Step into realistic conversations and practise using strong communication in the moment — not only recognising it afterwards.'],
+  ['💼', 'Job Interview Simulator', 'Face different recruiter personalities, difficult follow-up questions, confidence tests and realistic interview pressure in the language you are learning.'],
+  ['🧑‍💼', 'Conversation Roles', 'Practise with roles such as a demanding recruiter, difficult boss, unhappy customer, salary negotiator, date, new friend or meeting partner. The conversation changes with your answers.'],
   ['🗺️', 'SpeakUP Map', 'Find language partners, meetups, trainers and events near you.'],
   ['👥', 'Online Group Training', 'Join calm, guided practice sessions with other learners.'],
   ['🎥', 'Native Speaker Calls', 'Practice naturally in live video conversations.'],
