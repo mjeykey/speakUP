@@ -5,6 +5,7 @@ import { SPANISH_STRONG } from './spanish.js?v=1';
 import { FRENCH_STRONG } from './french.js?v=1';
 import { CROATIAN_STRONG } from './croatian.js?v=1';
 import { ITALIAN_STRONG } from './italian.js?v=1';
+import { learningBaseLanguage } from '../learning-languages.js?v=1';
 
 const PACKS = {
   'en-GB': ENGLISH_STRONG,
@@ -17,8 +18,8 @@ const PACKS = {
 };
 
 export function getCommunicationStrengthMatrix(learningLanguage, nativeLanguage) {
-  const target = PACKS[learningLanguage] || ENGLISH_STRONG;
-  const support = PACKS[nativeLanguage] || ENGLISH_STRONG;
+  const target = PACKS[learningBaseLanguage(learningLanguage)] || ENGLISH_STRONG;
+  const support = PACKS[learningBaseLanguage(nativeLanguage)] || ENGLISH_STRONG;
   const count = Math.min(target.length, support.length);
   return target.slice(0, count).map((pair, index) => ({
     weak: pair[0],
