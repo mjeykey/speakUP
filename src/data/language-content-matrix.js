@@ -8,8 +8,11 @@ import {
 import { ITALIAN_WORDS } from './italian/words.js?v=1';
 import { ITALIAN_COMPLETE, ITALIAN_EXERCISES } from './italian/sentences.js?v=1';
 
+// Italian content is intentionally parked for a future complete rollout.
+// It remains available internally, but it is not exposed as a selectable language
+// until every SpeakUP area has full Italian coverage.
 export const ITALIAN_OPTION = { code:'it-IT', label:'🇮🇹 Italiano — standard', short:'Italiano' };
-export const LANGUAGE_OPTIONS = [...BASE_OPTIONS, ITALIAN_OPTION];
+export const LANGUAGE_OPTIONS = [...BASE_OPTIONS];
 
 const META = [
   { id:'beginner', title:'Beginner', emoji:'🌱', description:'One gap with full support.', englishClass:'' },
