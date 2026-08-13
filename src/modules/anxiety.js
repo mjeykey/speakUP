@@ -2,6 +2,15 @@ import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const L = {
+  profile: {
+    'en-GB': "I'm Anxiety. I'm definitely not professional help — I have anxiety, so I'm probably not that great at helping anyway. But please, come in. You have to see this...",
+    'de-DE': 'Ich bin Anxiety. Professionelle Hilfe bin ich definitiv nicht — ich habe selbst Anxiety, also bin ich vermutlich sowieso nicht besonders gut im Helfen. Aber komm bitte rein. Du musst das sehen ...',
+    'pt-PT': 'Eu sou a Anxiety. Definitivamente não sou ajuda profissional — eu própria tenho ansiedade, por isso provavelmente nem sou grande ajuda. Mas entra, por favor. Tens de ver isto...',
+    'es-ES': 'Soy Anxiety. Definitivamente no soy ayuda profesional — yo misma tengo ansiedad, así que probablemente tampoco sea de gran ayuda. Pero entra, por favor. Tienes que ver esto...',
+    'fr-FR': "Je suis Anxiety. Je ne suis clairement pas une aide professionnelle — j'ai moi-même de l'anxiété, donc je ne suis probablement pas très douée pour aider. Mais entre, s'il te plaît. Il faut que tu voies ça...",
+    'hr-HR': 'Ja sam Anxiety. Definitivno nisam stručna pomoć — i sama imam anksioznost, pa vjerojatno nisam ni neka pomoć. Ali uđi, molim te. Ovo moraš vidjeti...',
+    'it-IT': "Sono Anxiety. Non sono decisamente un aiuto professionale — ho anch'io l'ansia, quindi probabilmente non sono nemmeno un granché come aiuto. Ma entra, per favore. Devi vedere questa cosa..."
+  },
   intro: {
     'en-GB': "Hi. I'm Anxiety. I like worrying about futures that haven't happened yet.",
     'de-DE': 'Hi. Ich bin Anxiety. Ich mache mir gern Sorgen über Zukünfte, die noch gar nicht passiert sind.',
@@ -44,17 +53,18 @@ export function renderAnxiety(root, store) {
   const state = store.getState();
   const learning = state.learningLanguage;
   const support = state.nativeLanguage;
-  let index = 0;
+  let index = -1;
   const voice = getSpeechLanguage(learning);
 
   function draw(){
-    const key = STORY[index];
+    const isProfile = index === -1;
+    const key = isProfile ? 'profile' : STORY[index];
     const target = t(key,learning);
     const translation = t(key,support);
-    root.innerHTML = `<section class="screen anxiety-screen"><button class="menu-button" data-menu>Menu</button><div class="center"><p class="kicker">Anxiety · ${languageName(learning)}</p><p class="muted">Language story about anxious thoughts — not treatment.</p><div class="communication-card"><p class="communication-target">${target}</p>${c(learning)!==c(support)?`<p class="communication-translation">${translation}</p>`:''}</div><div class="communication-actions"><button class="secondary-button" data-listen>🔊</button><button class="primary-button" data-next>${index===STORY.length-1?'Again':'Next →'}</button></div></div></section>`;
+    root.innerHTML = `<section class="screen anxiety-screen"><button class="menu-button" data-menu>Menu</button><div class="center"><p class="kicker">Anxiety · ${languageName(learning)}</p><div class="communication-card"><p class="communication-target">${target}</p>${c(learning)!==c(support)?`<p class="communication-translation">${translation}</p>`:''}</div><div class="communication-actions"><button class="secondary-button" data-listen>🔊</button><button class="primary-button" data-next>${index===STORY.length-1?'Again':isProfile?'Come in →':'Next →'}</button></div></div></section>`;
     root.querySelector('[data-menu]').onclick=()=>{stopSpeech();store.setState({screen:'menu'});};
     root.querySelector('[data-listen]').onclick=()=>speak(target,voice,{enabled:store.getState().audioOn,rate:.76}).catch(()=>{});
-    root.querySelector('[data-next]').onclick=()=>{stopSpeech();index=index===STORY.length-1?0:index+1;draw();};
+    root.querySelector('[data-next]').onclick=()=>{stopSpeech();index=index===STORY.length-1?-1:index+1;draw();};
   }
   draw();
 }
