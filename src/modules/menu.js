@@ -1,22 +1,22 @@
 import { STORIES } from '../data/content.js?v=4';
-import { LANGUAGE_OPTIONS } from '../data/language-content-extended.js?v=2';
+import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
 
 const MODES = [
-  ['emotions', '🧠 Emotions', 'Learn useful words, phrases and playful ways to express what you feel.'],
-  ['fill-gap', 'Sentences', 'Choose Beginner, Survivor or Explorer.'],
-  ['memory', 'Memory', 'Match words, meanings and useful connections.'],
-  ['words', 'Words', 'One word after another.'],
-  ['speak-practice', 'Speak & Grow', 'Repeat real phrases gently and keep speaking.'],
-  ['communication-strength', '💬 Speak Strong', 'Learn the language — and say it stronger.'],
-  ['story', 'Story Mode', 'Tiny stories with mother-language clues.']
+  ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
+  ['fill-gap', 'Sätze', 'Wähle dein Level und ergänze den Satz.'],
+  ['memory', 'Memory', 'Finde Wörter, Bedeutungen und passende Verbindungen.'],
+  ['words', 'Wörter', 'Ein Wort nach dem anderen.'],
+  ['speak-practice', 'Sprechen', 'Sprich echte, nützliche Sätze laut aus.'],
+  ['communication-strength', 'Kommunikation', 'Lerne einen Satz und eine klarere Formulierung.'],
+  ['story', 'Geschichten', 'Lerne Sprache in kleinen Geschichten.']
 ];
 
 const LEVELS = [
-  ['l1', 'L1 · Language', 'Play, speak and build real everyday language.'],
-  ['l2', 'L2 · Interests & Career', 'Learn the language through a field you already care about.'],
-  ['l3', 'L3 · Knowledge', 'Learn true facts and practical knowledge in the new language.']
+  ['l1', 'L1 · Sprache', 'Wörter, Sätze, Sprechen und Geschichten.'],
+  ['l2', 'L2 · Interessen & Beruf', 'Lerne Sprache über Themen, die dich interessieren.'],
+  ['l3', 'L3 · Wissen', 'Lerne Fakten und praktisches Wissen in der neuen Sprache.']
 ];
 
 const L1_MODE_IDS = new Set(MODES.map(([id]) => id));
@@ -37,14 +37,14 @@ export function renderMenu(root, store) {
   const waiting = waitingForStory || waitingForL2 || waitingForL3;
 
   let startLabel = 'Start';
-  if (waitingForStory) startLabel = 'Choose a story first';
-  else if (learningLevel === 'l1' && state.mode === 'story') startLabel = '▶ Play Story';
-  else if (waitingForL2 || waitingForL3) startLabel = 'Choose a topic first';
-  else if (learningLevel === 'l2') startLabel = 'Start L2';
-  else if (learningLevel === 'l3') startLabel = 'Start L3';
+  if (waitingForStory) startLabel = 'Geschichte wählen';
+  else if (learningLevel === 'l1' && state.mode === 'story') startLabel = '▶ Geschichte starten';
+  else if (waitingForL2 || waitingForL3) startLabel = 'Thema wählen';
+  else if (learningLevel === 'l2') startLabel = 'L2 starten';
+  else if (learningLevel === 'l3') startLabel = 'L3 starten';
 
   const l2Topics = learningLevel === 'l2'
-    ? `<h2>Choose what you love</h2><div class="card-grid knowledge-topic-grid" data-l2-topics>${L2_TOPICS.map(topic => topicButton(topic, state.selectedL2Topic === topic.id, 'data-l2-topic')).join('')}</div>`
+    ? `<h2>Thema wählen</h2><div class="card-grid knowledge-topic-grid" data-l2-topics>${L2_TOPICS.map(topic => topicButton(topic, state.selectedL2Topic === topic.id, 'data-l2-topic')).join('')}</div>`
     : '';
 
   const l3Topics = learningLevel === 'l3'
@@ -52,15 +52,15 @@ export function renderMenu(root, store) {
     : '';
 
   root.innerHTML = `<section class="screen menu-screen"><div class="menu-panel">
-    <h1>Choose your path</h1><p class="muted">Learn the language — and discover better ways to use it.</p>
-    <h2>Learning Level</h2><div class="card-grid learning-level-grid" data-learning-levels></div>
-    ${learningLevel === 'l1' ? '<h2>Learning Mode</h2><div class="card-grid" data-modes></div>' : ''}
-    ${learningLevel === 'l1' && state.mode === 'story' ? '<h2>Choose a Story</h2><div class="story-grid" data-stories></div>' : ''}
+    <h1>SpeakUP</h1>
+    <h2>Level</h2><div class="card-grid learning-level-grid" data-learning-levels></div>
+    ${learningLevel === 'l1' ? '<h2>Übung</h2><div class="card-grid" data-modes></div>' : ''}
+    ${learningLevel === 'l1' && state.mode === 'story' ? '<h2>Geschichte wählen</h2><div class="story-grid" data-stories></div>' : ''}
     ${l2Topics}${l3Topics}
-    <h2>Personalise</h2>
-    <button class="menu-card effects-menu-card" data-effects><span>✨ Effects</span><small>Choose a separate letter dissolve effect for every mode.</small></button>
-    <button class="menu-card future-menu-card" data-future><span>✦ Future SpeakUP</span><small>See what is planned next.</small></button>
-    <div class="settings-row"><label>Learning Language<select data-learning>${languageOptions}</select></label><label>Support Language<select data-native>${nativeOptions}</select></label></div>
+    <h2>Einstellungen</h2>
+    <button class="menu-card effects-menu-card" data-effects><span>Effekte</span><small>Effekt für die Übungen auswählen.</small></button>
+    <button class="menu-card future-menu-card" data-future><span>Später</span><small>Geplante Funktionen ansehen.</small></button>
+    <div class="settings-row"><label>Lernsprache<select data-learning>${languageOptions}</select></label><label>Übersetzung<select data-native>${nativeOptions}</select></label></div>
     <div class="menu-action"><button class="primary-button menu-start-button" data-start ${waiting ? 'disabled' : ''}>${startLabel}</button></div>
   </div></section>`;
 
