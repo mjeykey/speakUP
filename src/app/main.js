@@ -44,17 +44,23 @@ function render(state) {
   view(root, store);
 }
 
+// Capture the user's Story start gesture before the menu button rerenders the app.
+// This preserves mobile audio unlocking without performing a second navigation or
+// accidentally intercepting the Welcome screen's own data-start button.
 root.addEventListener('click', event => {
   const startButton = event.target.closest?.('[data-start]');
   if (!startButton || startButton.disabled) return;
   const current = store.getState();
-  if (current.learningLevel === 'l1' && current.mode === 'story' && current.selectedStory) {
-    if (current.selectedStory === 'fantasy-1' && current.audioOn) {
-      void playStorySfx('rain', { enabled: true });
-    }
-    store.setState({ mode: 'story', screen: 'story' });
+  if (
+    current.screen === 'menu' &&
+    current.learningLevel === 'l1' &&
+    current.mode === 'story' &&
+    current.selectedStory === 'fantasy-1' &&
+    current.audioOn
+  ) {
+    void playStorySfx('rain', { enabled: true });
   }
-});
+}, true);
 
 store.subscribe(render);
 render(store.getState());
