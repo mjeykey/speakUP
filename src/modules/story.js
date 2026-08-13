@@ -1,15 +1,15 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=1';
+import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
 import { getStorySfxSrc, playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=5';
-import { getSpeechLanguage, languageName } from '../data/language-content-extended.js?v=2';
+import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-function fantasyText(page,language){return String(language||'').startsWith('pt')?page.portuguese:page.english;}
 function learningItems(text,nativeText){
  const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
  const words=[...new Set(clean(text))].slice(0,3);
@@ -24,9 +24,9 @@ function getStory(storyId,learningLanguage,nativeLanguage){
   emoji:fantasyStory.emoji,
   title:fantasyStory.title,
   subtitle:fantasyStory.subtitle,
-  pages:fantasyStory.pages.map(source=>{
-   const learning=fantasyText(source,learningLanguage);
-   const native=fantasyText(source,nativeLanguage);
+  pages:fantasyStory.pages.map((source,index)=>{
+   const learning=getFantasyTranslation(source,index,learningLanguage);
+   const native=getFantasyTranslation(source,index,nativeLanguage);
    return {learning,native,sound:source.sound,items:learningItems(learning,native)};
   })
  };
