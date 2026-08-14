@@ -7,7 +7,7 @@ import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
-import { renderStory } from '../modules/story-loader.js?v=69';
+import { renderStory } from '../modules/story-loader.js?v=70';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
@@ -15,7 +15,7 @@ import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=60';
-import { playStorySfx } from '../audio/story-sfx.js?v=3';
+import { playStorySfx } from '../audio/story-sfx.js?v=6';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });

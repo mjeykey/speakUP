@@ -1,49 +1,76 @@
-import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=1';
+import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 
-let activeAudio=null;
+let audioContext=null;
+let activeSource=null;
+const bufferCache=new Map();
 
 export function getStorySfxSrc(name){
  return STORY_SFX_ASSETS[name]||'';
 }
 
-function ensureAudio(){
- if(activeAudio && activeAudio.isConnected) return activeAudio;
- const audio=document.createElement('audio');
- audio.setAttribute('playsinline','');
- audio.preload='auto';
- audio.volume=1;
- audio.style.position='fixed';
- audio.style.width='1px';
- audio.style.height='1px';
- audio.style.opacity='0';
- audio.style.pointerEvents='none';
- audio.style.left='-9999px';
- document.body.appendChild(audio);
- activeAudio=audio;
- return audio;
+function ensureContext(){
+ if(audioContext)return audioContext;
+ const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+ if(!AudioContextClass)return null;
+ audioContext=new AudioContextClass();
+ return audioContext;
 }
 
 export async function unlockStorySfx(){
- ensureAudio();
+ const ctx=ensureContext();
+ if(!ctx)return false;
+ try{
+  if(ctx.state==='suspended')await ctx.resume();
+  return ctx.state==='running';
+ }catch(_){
+  return false;
+ }
 }
 
 export function stopStorySfx(){
- if(!activeAudio)return;
- try{activeAudio.pause();activeAudio.currentTime=0;}catch(_){}
+ if(!activeSource)return;
+ try{activeSource.stop();}catch(_){}
+ try{activeSource.disconnect();}catch(_){}
+ activeSource=null;
+}
+
+async function getBuffer(name){
+ if(bufferCache.has(name))return bufferCache.get(name);
+ const src=getStorySfxSrc(name);
+ if(!src)return null;
+ const ctx=ensureContext();
+ if(!ctx)return null;
+ try{
+  const response=await fetch(src);
+  const bytes=await response.arrayBuffer();
+  const buffer=await ctx.decodeAudioData(bytes.slice(0));
+  bufferCache.set(name,buffer);
+  return buffer;
+ }catch(error){
+  console.warn('Story SFX decode failed.',name,error);
+  return null;
+ }
 }
 
 export async function playStorySfx(name,{enabled=true}={}){
  if(!enabled||!name||name==='none')return false;
- const src=getStorySfxSrc(name);
- if(!src)return false;
- const audio=ensureAudio();
+ const ctx=ensureContext();
+ if(!ctx)return false;
  try{
-  audio.pause();
-  audio.currentTime=0;
-  if(audio.src!==src)audio.src=src;
-  audio.load();
-  const result=audio.play();
-  if(result && typeof result.then==='function')await result;
+  if(ctx.state==='suspended')await ctx.resume();
+  if(ctx.state!=='running')return false;
+  const buffer=await getBuffer(name);
+  if(!buffer)return false;
+  stopStorySfx();
+  const source=ctx.createBufferSource();
+  const gain=ctx.createGain();
+  gain.gain.value=1;
+  source.buffer=buffer;
+  source.connect(gain);
+  gain.connect(ctx.destination);
+  source.onended=()=>{if(activeSource===source)activeSource=null;};
+  activeSource=source;
+  source.start(0);
   return true;
  }catch(error){
   console.warn('Story SFX playback blocked or failed.',error);
@@ -52,7 +79,7 @@ export async function playStorySfx(name,{enabled=true}={}){
 }
 
 if(typeof window!=='undefined'){
- const prime=()=>{ensureAudio();};
- window.addEventListener('pointerdown',prime,{capture:true});
- window.addEventListener('touchstart',prime,{capture:true,passive:true});
+ const prime=()=>{void unlockStorySfx();};
+ window.addEventListener('pointerdown',prime,{once:true,capture:true});
+ window.addEventListener('touchstart',prime,{once:true,capture:true,passive:true});
 }
