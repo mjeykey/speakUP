@@ -1,5 +1,5 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
-import { fantasyStory } from '../data/stories/fantasy.js?v=2';
+import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
 import { getStorySfxSrc, playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=5';
