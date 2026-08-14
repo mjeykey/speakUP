@@ -9,8 +9,8 @@ import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
 import { renderStory } from '../modules/story-loader.js?v=67';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
-import { renderEmotions } from '../modules/emotions-matrix.js?v=1';
-import { renderAnxiety } from '../modules/anxiety.js?v=2';
+import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
+import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
 import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
@@ -44,9 +44,6 @@ function render(state) {
   view(root, store);
 }
 
-// Capture the user's Story start gesture before the menu button rerenders the app.
-// This preserves mobile audio unlocking without performing a second navigation or
-// accidentally intercepting the Welcome screen's own data-start button.
 root.addEventListener('click', event => {
   const startButton = event.target.closest?.('[data-start]');
   if (!startButton || startButton.disabled) return;
