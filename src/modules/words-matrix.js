@@ -1,5 +1,5 @@
 import { getWords, getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
-import { speakPair, stopSpeech } from '../audio/speech.js?v=60';
+import { speakPair, stopSpeech } from '../audio/speech.js?v=61';
 
 export function renderWords(root, store) {
   const state = store.getState();
