@@ -1,5 +1,5 @@
 import { getCommunicationStrengthPack } from '../data/communication-strength.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { speak, stopSpeech } from '../audio/speech.js?v=61';
 import { getSpeechLanguage } from '../data/language-content-extended.js?v=2';
 
 function escapeHtml(value) {
@@ -10,8 +10,19 @@ export function renderCommunicationStrength(root, store) {
   const state = store.getState();
   const items = getCommunicationStrengthPack(state.learningLanguage, state.nativeLanguage);
   const voice = getSpeechLanguage(state.learningLanguage);
-  let index = Math.min(state.currentIndex || 0, items.length - 1);
+  const progressKey = `${state.learningLanguage}|${state.nativeLanguage}`;
+  const saved = state.progress?.communicationStrength?.[progressKey];
+  let index = Math.min(Math.max(Number(saved?.currentIndex) || 0, 0), Math.max(items.length - 1, 0));
   let revealed = false;
+  let pendingSpeechTimer = null;
+
+  const save = () => store.saveProgress?.('communicationStrength', progressKey, { currentIndex: index, total: items.length });
+  const clearPendingSpeech = () => {
+    if (pendingSpeechTimer !== null) {
+      window.clearTimeout(pendingSpeechTimer);
+      pendingSpeechTimer = null;
+    }
+  };
 
   const say = text => {
     if (!store.getState().audioOn) return;
@@ -19,8 +30,10 @@ export function renderCommunicationStrength(root, store) {
   };
 
   function leave() {
+    clearPendingSpeech();
     stopSpeech();
-    store.setState({ screen: 'menu', currentIndex: 0 });
+    save();
+    store.setState({ screen: 'menu' });
   }
 
   function render() {
@@ -46,13 +59,35 @@ export function renderCommunicationStrength(root, store) {
     root.querySelector('[data-menu]').onclick = leave;
     root.querySelector('[data-listen-original]').onclick = () => say(item.weak);
     const reveal = root.querySelector('[data-reveal]');
-    if (reveal) reveal.onclick = () => { revealed = true; render(); window.setTimeout(() => say(item.strong), 120); };
+    if (reveal) reveal.onclick = () => {
+      revealed = true;
+      render();
+      clearPendingSpeech();
+      pendingSpeechTimer = window.setTimeout(() => {
+        pendingSpeechTimer = null;
+        if (store.getState().screen === 'communication-strength') say(item.strong);
+      }, 120);
+    };
     const listenStrong = root.querySelector('[data-listen-strong]');
     if (listenStrong) listenStrong.onclick = () => say(item.strong);
     const prev = root.querySelector('[data-prev]');
-    if (prev) prev.onclick = () => { stopSpeech(); index = Math.max(0, index - 1); revealed = false; render(); };
+    if (prev) prev.onclick = () => {
+      clearPendingSpeech();
+      stopSpeech();
+      index = Math.max(0, index - 1);
+      revealed = false;
+      save();
+      render();
+    };
     const next = root.querySelector('[data-next]');
-    if (next) next.onclick = () => { stopSpeech(); index = index === items.length - 1 ? 0 : index + 1; revealed = false; render(); };
+    if (next) next.onclick = () => {
+      clearPendingSpeech();
+      stopSpeech();
+      index = index === items.length - 1 ? 0 : index + 1;
+      revealed = false;
+      save();
+      render();
+    };
   }
 
   render();
