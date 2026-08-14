@@ -15,5 +15,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run QA
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run static QA
         run: npm test
+      - name: Run browser QA
+        run: npm run test:browser
