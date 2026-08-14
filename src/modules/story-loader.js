@@ -1,1 +1,1 @@
-export { renderStory } from './story.js?v=39';
+export { renderStory } from './story.js?v=40';
