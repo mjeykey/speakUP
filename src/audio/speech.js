@@ -19,27 +19,57 @@ if (synth) {
   synth.addEventListener?.('voiceschanged', refreshDesktopVoices);
 }
 
-function pickMobileVoice(language) {
-  const requested = String(language || '').toLowerCase();
-  const base = requested.split('-')[0];
-  const voices = synth?.getVoices?.() || [];
-
-  return voices.find(voice => String(voice.lang || '').toLowerCase() === requested)
-    || voices.find(voice => String(voice.lang || '').toLowerCase().startsWith(base))
-    || null;
+function availableVoices() {
+  return synth?.getVoices?.() || [];
 }
 
-function pickDesktopVoice(language) {
+async function ensureVoices(runId, timeoutMs = 900) {
+  if (!synth || runId !== speechRunId) return [];
+  let voices = availableVoices();
+  if (voices.length) {
+    desktopVoices = voices;
+    return voices;
+  }
+
+  await new Promise(resolve => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      synth?.removeEventListener?.('voiceschanged', onVoicesChanged);
+      window.clearTimeout(timer);
+      resolve();
+    };
+    const onVoicesChanged = () => finish();
+    const timer = window.setTimeout(finish, timeoutMs);
+    synth?.addEventListener?.('voiceschanged', onVoicesChanged);
+  });
+
+  if (runId !== speechRunId) return [];
+  voices = availableVoices();
+  if (voices.length) desktopVoices = voices;
+  return voices;
+}
+
+function findLanguageVoice(language, voices) {
   const requested = String(language || '').toLowerCase();
   const base = requested.split('-')[0];
-  const voices = desktopVoices.length ? desktopVoices : refreshDesktopVoices();
-
-  return voices.find(voice => String(voice.lang || '').toLowerCase() === requested)
-    || voices.find(voice => {
+  const list = voices || [];
+  return list.find(voice => String(voice.lang || '').toLowerCase() === requested)
+    || list.find(voice => {
       const voiceLanguage = String(voice.lang || '').toLowerCase();
       return voiceLanguage === base || voiceLanguage.startsWith(`${base}-`);
     })
     || null;
+}
+
+function pickMobileVoice(language) {
+  return findLanguageVoice(language, availableVoices());
+}
+
+function pickDesktopVoice(language) {
+  const voices = desktopVoices.length ? desktopVoices : refreshDesktopVoices();
+  return findLanguageVoice(language, voices);
 }
 
 function pickVoice(language) {
@@ -130,6 +160,9 @@ export function speak(textOrRequest, language, options = {}) {
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    await ensureVoices(runId);
+    if (runId !== speechRunId) return;
+
     if (isMobileSpeechDevice) {
       await sleep(45);
       if (runId !== speechRunId) return;
@@ -162,6 +195,9 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
   const segments = splitSpeechSegments(value);
 
   return (async () => {
+    await ensureVoices(runId);
+    if (runId !== speechRunId) return;
+
     if (isMobileSpeechDevice) {
       await sleep(45);
       if (runId !== speechRunId) return;
