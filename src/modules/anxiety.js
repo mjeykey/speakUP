@@ -1,6 +1,6 @@
-import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { speak, stopSpeech } from '../audio/speech.js?v=61';
 import { getSpeechLanguage } from '../data/language-content-matrix.js?v=3';
-import { getAnxietyPages } from '../data/anxiety-i18n.js?v=1';
+import { getAnxietyPages, hasAnxietyTranslation } from '../data/anxiety-i18n.js?v=1';
 
 export function renderAnxiety(root, store) {
   const state = store.getState();
@@ -8,6 +8,7 @@ export function renderAnxiety(root, store) {
   const pages = getAnxietyPages(state.learningLanguage);
   const pageCount = pages.length;
   const saved = state.progress?.anxiety?.[key];
+  const contentLanguage = hasAnxietyTranslation(state.learningLanguage) ? state.learningLanguage : 'en-GB';
   let index = Math.max(0, Math.min(Number(saved?.currentIndex) || 0, pageCount - 1));
 
   function save(){
@@ -36,7 +37,7 @@ export function renderAnxiety(root, store) {
     root.querySelector('[data-menu]').onclick=()=>{ stopSpeech(); save(); store.setState({screen:'menu'}); };
     root.querySelector('[data-prev]').onclick=()=>{ stopSpeech(); index=Math.max(0,index-1); save(); draw(); };
     root.querySelector('[data-next]').onclick=()=>{ stopSpeech(); index=index>=pageCount-1?0:index+1; save(); draw(); };
-    root.querySelector('[data-listen]').onclick=()=>speak(page.text,getSpeechLanguage(state.learningLanguage),{enabled:store.getState().audioOn,rate:page.whisper?.66:.78,pitch:page.whisper?.92:1}).catch(()=>{});
+    root.querySelector('[data-listen]').onclick=()=>speak(page.text,getSpeechLanguage(contentLanguage),{enabled:store.getState().audioOn,rate:page.whisper?.66:.78,pitch:page.whisper?.92:1}).catch(()=>{});
   }
 
   draw();
