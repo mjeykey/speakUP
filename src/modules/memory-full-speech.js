@@ -84,7 +84,7 @@ export function renderMemory(root, store) {
     const learningSentence = memorySentence(item, learningLanguage);
     const nativeSentence = memorySentence(item, nativeLanguage);
 
-    stage.innerHTML = `<div class="memory-message-card"><div class="memory-message-icon">${item.emoji}</div><p class="memory-message-topic">${learningWord} · ${nativeWord}</p><p class="memory-message-text" data-message-text>${learningSentence}</p></div>`;
+    stage.innerHTML = `<div class="memory-message-card"><div class="memory-message-icon">${item.emoji}</div><p class="memory-message-topic">${learningWord}</p><p class="memory-message-text" data-message-text>${learningSentence}</p></div>`;
     await speakMemorySentence(learningSentence, memorySpeechLanguage(learningLanguage), {
       enabled: store.getState().audioOn,
       rate: learningLanguage.startsWith('pt') || learningLanguage.startsWith('fr') ? .62 : .78
@@ -92,7 +92,7 @@ export function renderMemory(root, store) {
     await sleep(500);
     await dissolve(stage.querySelector('[data-message-text]'));
 
-    stage.innerHTML = `<div class="memory-message-card"><div class="memory-message-icon">${item.emoji}</div><p class="memory-message-topic">${learningWord} · ${nativeWord}</p><p class="memory-message-text memory-message-english" data-message-text>${nativeSentence}</p></div>`;
+    stage.innerHTML = `<div class="memory-message-card"><div class="memory-message-icon">${item.emoji}</div><p class="memory-message-topic">${nativeWord}</p><p class="memory-message-text memory-message-english" data-message-text>${nativeSentence}</p></div>`;
     await speakMemorySentence(nativeSentence, memorySpeechLanguage(nativeLanguage), {
       enabled: store.getState().audioOn,
       rate: nativeLanguage.startsWith('pt') || nativeLanguage.startsWith('fr') ? .62 : .86
