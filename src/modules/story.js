@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { getStorySfxSrc, playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=6';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=7';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -60,8 +60,8 @@ export function renderStory(root,store){
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-  const currentSound=page().sound&&page().sound!=='none'?page().sound:'';
-  const soundControl=storyId==='fantasy-1'&&currentSound&&getStorySfxSrc(currentSound)?`<button type="button" data-story-sfx style="margin:8px auto 14px;padding:10px 16px;border-radius:999px">🔊 Effekt abspielen</button><div data-story-sfx-status style="font-size:.8rem;opacity:.7;margin-top:-8px;margin-bottom:10px"></div>`:'';
+  const currentSound=page().sound&&page().sound!=='none'?page().sound:'rain';
+  const soundControl=storyId==='fantasy-1'?`<button type="button" data-story-sfx style="display:block;margin:8px auto 14px;padding:12px 18px;border-radius:999px;font-size:1rem">🔊 Effekt abspielen</button><div data-story-sfx-status style="font-size:.8rem;opacity:.75;margin-top:-8px;margin-bottom:10px">Effekt: ${escapeHtml(currentSound)}</div>`:'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -83,7 +83,7 @@ export function renderStory(root,store){
    soundButton.onclick=async()=>{
     stopSpeech();
     const ok=await playStorySfx(currentSound,{enabled:true});
-    if(soundStatus)soundStatus.textContent=ok?'✓ Sound läuft':'Sound konnte nicht gestartet werden';
+    if(soundStatus)soundStatus.textContent=ok?`✓ Sound läuft: ${currentSound}`:`Sound konnte nicht gestartet werden: ${currentSound}`;
    };
   }
  }

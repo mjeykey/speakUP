@@ -52,6 +52,48 @@ async function getBuffer(name){
  }
 }
 
+function playFallback(name,ctx){
+ stopStorySfx();
+ const now=ctx.currentTime;
+ const gain=ctx.createGain();
+ gain.connect(ctx.destination);
+ gain.gain.setValueAtTime(0.0001,now);
+ gain.gain.exponentialRampToValueAtTime(0.7,now+0.02);
+ gain.gain.exponentialRampToValueAtTime(0.0001,now+1.15);
+
+ if(name==='rain'||name==='wind'||name==='soft-wind'||name==='dawn-wind'||name==='water'||name==='water-crash'){
+  const length=Math.max(1,Math.floor(ctx.sampleRate*1.2));
+  const buffer=ctx.createBuffer(1,length,ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(name==='rain'?0.45:0.28);
+  const source=ctx.createBufferSource();
+  const filter=ctx.createBiquadFilter();
+  filter.type=name==='water-crash'?'lowpass':'bandpass';
+  filter.frequency.value=name==='rain'?2400:700;
+  source.buffer=buffer;
+  source.connect(filter);
+  filter.connect(gain);
+  source.start(now);
+  activeSource=source;
+  source.onended=()=>{if(activeSource===source)activeSource=null;};
+  return true;
+ }
+
+ const osc=ctx.createOscillator();
+ osc.type=name==='heartbeat'?'sine':name==='magic-hum'?'triangle':'sawtooth';
+ const freq=name==='heartbeat'?85:name==='thunder'?55:name==='engine-start'?95:name==='magic-hum'?140:220;
+ osc.frequency.setValueAtTime(freq,now);
+ if(name==='engine-start')osc.frequency.exponentialRampToValueAtTime(170,now+0.9);
+ if(name==='thunder')osc.frequency.exponentialRampToValueAtTime(38,now+1.0);
+ if(name==='key-turn'||name==='metal-scrape'||name==='door-creak')osc.frequency.exponentialRampToValueAtTime(480,now+0.45);
+ osc.connect(gain);
+ osc.start(now);
+ osc.stop(now+1.15);
+ activeSource=osc;
+ osc.onended=()=>{if(activeSource===osc)activeSource=null;};
+ return true;
+}
+
 export async function playStorySfx(name,{enabled=true}={}){
  if(!enabled||!name||name==='none')return false;
  const ctx=ensureContext();
@@ -60,7 +102,7 @@ export async function playStorySfx(name,{enabled=true}={}){
   if(ctx.state==='suspended')await ctx.resume();
   if(ctx.state!=='running')return false;
   const buffer=await getBuffer(name);
-  if(!buffer)return false;
+  if(!buffer)return playFallback(name,ctx);
   stopStorySfx();
   const source=ctx.createBufferSource();
   const gain=ctx.createGain();
@@ -74,7 +116,7 @@ export async function playStorySfx(name,{enabled=true}={}){
   return true;
  }catch(error){
   console.warn('Story SFX playback blocked or failed.',error);
-  return false;
+  try{return playFallback(name,ctx);}catch(_){return false;}
  }
 }
 
