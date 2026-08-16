@@ -54,14 +54,13 @@ export function renderStory(root,store){
  let locked=false;
  let renderToken=0;
  const page=()=>story.pages[pageIndex];
- const leave=()=>{renderToken+=1;stopSpeech();stopStorySfx();store.setState({screen:'menu'});};
+ const stopScene=()=>{stopSpeech();stopStorySfx();};
+ const leave=()=>{renderToken+=1;stopScene();store.setState({screen:'menu'});};
  const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
 
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-  const currentSound=page().sound&&page().sound!=='none'?page().sound:'rain';
-  const soundControl=storyId==='fantasy-1'?`<button type="button" data-story-sfx style="display:block;margin:8px auto 14px;padding:12px 18px;border-radius:999px;font-size:1rem">🔊 Effekt testen</button><div data-story-sfx-status style="font-size:.8rem;opacity:.75;margin-top:-8px;margin-bottom:10px">Effekt: ${escapeHtml(currentSound)}</div>`:'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -71,49 +70,38 @@ export function renderStory(root,store){
     <h1>${story.emoji} ${escapeHtml(story.title)}</h1>
     <p class="story-subtitle">${escapeHtml(story.subtitle)}</p>
     <p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>
-    ${soundControl}
     ${content}
    </div></section>`;
   root.querySelector('[data-menu]').onclick=leave;
   root.querySelector('[data-prev]').onclick=()=>navigate(-1);
   root.querySelector('[data-next]').onclick=()=>navigate(1);
-  const soundButton=root.querySelector('[data-story-sfx]');
-  const soundStatus=root.querySelector('[data-story-sfx-status]');
-  if(soundButton){
-   soundButton.onclick=async()=>{
-    renderToken+=1;
-    stopSpeech();
-    stopStorySfx();
-    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain',testDurationMs:currentSound==='rain'?4500:1800});
-    if(soundStatus)soundStatus.textContent=ok?`✓ Echter Effekt läuft: ${currentSound}`:`Kein echter Sound verfügbar: ${currentSound}`;
-   };
-  }
  }
 
- async function narrateWithSceneSound(text,voice,current,audioEnabled,rate,token){
-  let soundStarted=false;
+ async function playScene(text,voice,current,audioEnabled,rate,token){
+  stopScene();
+  if(token!==renderToken)return;
+
   if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled){
-   soundStarted=await playStorySfx(current.sound,{
+   void playStorySfx(current.sound,{
     enabled:true,
     loop:current.sound==='rain',
-    volume:current.sound==='rain'?0.10:0.42
+    volume:current.sound==='rain'?0.08:0.30
    });
   }
-  if(token!==renderToken){stopStorySfx();return;}
+
   await speak(text,voice,{enabled:audioEnabled,rate});
-  if(token===renderToken&&soundStarted)stopStorySfx();
+  if(token===renderToken)stopStorySfx();
  }
 
  async function renderPhase(){
   const token=++renderToken;
-  stopSpeech();
-  stopStorySfx();
+  stopScene();
   const current=page();
   const audioEnabled=Boolean(store.getState().audioOn);
 
   if(phaseIndex===0){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-   await narrateWithSceneSound(current.native,nativeVoice,current,audioEnabled,.88,token);
+   await playScene(current.native,nativeVoice,current,audioEnabled,.88,token);
   }else if(phaseIndex===1){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
    await speak(current.learning,learningVoice,{enabled:audioEnabled,rate:.62});
@@ -141,8 +129,7 @@ export function renderStory(root,store){
 
  function navigate(direction){
   renderToken+=1;
-  stopSpeech();
-  stopStorySfx();
+  stopScene();
   if(direction>0){
    if(phaseIndex===2&&solved<page().items.length)return;
    if(phaseIndex<3){phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
