@@ -82,6 +82,12 @@ function createUtterance(text, language, rate, pitch = 1) {
   return utterance;
 }
 
+function beginSpeechRun() {
+  speechRunId += 1;
+  if (synth && (synth.speaking || synth.pending || synth.paused)) synth.cancel?.();
+  return speechRunId;
+}
+
 function playUtterance(utterance, runId, onBoundary, { keepAlive = false } = {}) {
   return new Promise(resolve => {
     if (!synth || !utterance || runId !== speechRunId) return resolve(false);
@@ -103,7 +109,7 @@ function playUtterance(utterance, runId, onBoundary, { keepAlive = false } = {})
       }, 3000);
     }
     if (runId !== speechRunId) return finish();
-    synth.resume?.();
+    if (synth.paused) synth.resume?.();
     synth.speak(utterance);
   });
 }
@@ -117,16 +123,15 @@ export function speak(textOrRequest, language, options = {}) {
   const enabled = request.enabled ?? options.enabled;
   if (!value || !synth || enabled === false) return Promise.resolve();
 
-  stopSpeech();
-  const runId = speechRunId;
+  const runId = beginSpeechRun();
   const rate = adjustedRate(selectedLanguage, request.rate ?? options.rate);
   const pitch = request.pitch ?? options.pitch ?? 1;
 
   return (async () => {
     await ensureVoices(runId);
     if (runId !== speechRunId) return;
-    // One continuous utterance keeps narration natural. Do not split at punctuation:
-    // Android TTS already provides natural sentence rhythm and splitting causes gaps.
+    // Story/default narration stays one continuous utterance. Browser TTS handles
+    // punctuation naturally; splitting creates audible gaps on Android.
     const utterance = createUtterance(value, selectedLanguage, rate, pitch);
     await playUtterance(utterance, runId, null, { keepAlive: true });
   })();
@@ -145,7 +150,7 @@ export function speakWithWordHighlight({ text, language = 'pt-PT', rate = 0.48, 
 
   return (async () => {
     await ensureVoices(runId); if (runId !== speechRunId) return;
-    if (isMobileSpeechDevice) { await sleep(20); if (runId !== speechRunId) return; synth.resume?.(); }
+    if (isMobileSpeechDevice) { await sleep(20); if (runId !== speechRunId) return; if (synth.paused) synth.resume?.(); }
     let globalWordIndex = 0;
     for (const segment of segments) {
       if (runId !== speechRunId) return;
