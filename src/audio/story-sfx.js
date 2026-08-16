@@ -59,23 +59,31 @@ function playFallback(name,ctx,{loop=false}={}){
  gain.connect(ctx.destination);
 
  if(name==='rain'||name==='wind'||name==='soft-wind'||name==='dawn-wind'||name==='water'||name==='water-crash'){
-  const seconds=loop?4:1.2;
+  const seconds=loop?6:1.2;
   const length=Math.max(1,Math.floor(ctx.sampleRate*seconds));
   const buffer=ctx.createBuffer(1,length,ctx.sampleRate);
   const data=buffer.getChannelData(0);
-  const strength=name==='rain'?0.34:0.24;
-  for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*strength;
+  let smooth=0;
+  for(let i=0;i<length;i++){
+   const white=Math.random()*2-1;
+   smooth=(smooth*0.965)+(white*0.035);
+   const drop=Math.random()<0.0018?(Math.random()*0.55):0;
+   data[i]=(smooth*0.42)+(white*0.055)+drop;
+  }
   const source=ctx.createBufferSource();
-  const filter=ctx.createBiquadFilter();
-  filter.type=name==='water-crash'?'lowpass':'bandpass';
-  filter.frequency.value=name==='rain'?1800:700;
-  filter.Q.value=name==='rain'?0.45:0.7;
+  const low=ctx.createBiquadFilter();
+  const high=ctx.createBiquadFilter();
+  low.type='lowpass';
+  low.frequency.value=name==='rain'?5200:1800;
+  high.type='highpass';
+  high.frequency.value=name==='rain'?220:80;
   source.buffer=buffer;
   source.loop=loop;
-  source.connect(filter);
-  filter.connect(gain);
+  source.connect(low);
+  low.connect(high);
+  high.connect(gain);
   gain.gain.setValueAtTime(0.0001,now);
-  gain.gain.exponentialRampToValueAtTime(loop?0.16:0.55,now+0.08);
+  gain.gain.exponentialRampToValueAtTime(loop?0.075:0.42,now+0.75);
   if(!loop)gain.gain.exponentialRampToValueAtTime(0.0001,now+1.15);
   source.start(now);
   activeSource=source;
@@ -109,23 +117,36 @@ export async function playStorySfx(name,{enabled=true,loop=false}={}){
   if(ctx.state==='suspended')await ctx.resume();
   if(ctx.state!=='running')return false;
 
-  // Rain is ambience, not a one-shot effect. Use a generated seamless loop so
-  // mobile browsers do not turn a very short asset/fallback into a loud burst.
-  if(name==='rain'&&loop)return playFallback(name,ctx,{loop:true});
-
   const buffer=await getBuffer(name);
   if(!buffer)return playFallback(name,ctx,{loop});
+
   stopStorySfx();
   const source=ctx.createBufferSource();
   const gain=ctx.createGain();
-  gain.gain.value=loop?0.22:1;
+  const now=ctx.currentTime;
   source.buffer=buffer;
   source.loop=loop;
+
+  // Real rain is ambience. Keep it quiet, fade it in, and avoid any hard
+  // transient at the very beginning of a short source clip.
+  if(name==='rain'&&loop){
+   const safeStart=Math.min(0.18,Math.max(0,buffer.duration*0.08));
+   const safeEnd=Math.max(safeStart+0.35,buffer.duration-Math.min(0.12,buffer.duration*0.05));
+   if(safeEnd>safeStart+0.2){
+    source.loopStart=safeStart;
+    source.loopEnd=safeEnd;
+   }
+   gain.gain.setValueAtTime(0.0001,now);
+   gain.gain.exponentialRampToValueAtTime(0.085,now+0.9);
+  }else{
+   gain.gain.value=loop?0.18:0.85;
+  }
+
   source.connect(gain);
   gain.connect(ctx.destination);
   source.onended=()=>{if(activeSource===source)activeSource=null;};
   activeSource=source;
-  source.start(0);
+  source.start(0,name==='rain'&&loop?Math.min(0.18,Math.max(0,buffer.duration*0.08)):0);
   return true;
  }catch(error){
   console.warn('Story SFX playback blocked or failed.',error);
