@@ -7,7 +7,7 @@ import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
-import { renderStory } from '../modules/story-loader.js?v=71';
+import { renderStory } from '../modules/story-loader.js?v=72';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
@@ -15,7 +15,6 @@ import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=60';
-import { playStorySfx } from '../audio/story-sfx.js?v=8';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
@@ -43,21 +42,6 @@ function render(state) {
   const view = routes[state.screen] || renderWelcome;
   view(root, store);
 }
-
-root.addEventListener('click', event => {
-  const startButton = event.target.closest?.('[data-start]');
-  if (!startButton || startButton.disabled) return;
-  const current = store.getState();
-  if (
-    current.screen === 'menu' &&
-    current.learningLevel === 'l1' &&
-    current.mode === 'story' &&
-    current.selectedStory === 'fantasy-1' &&
-    current.audioOn
-  ) {
-    void playStorySfx('rain', { enabled: true });
-  }
-}, true);
 
 store.subscribe(render);
 render(store.getState());
