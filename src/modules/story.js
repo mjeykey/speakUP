@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=3';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=4';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -85,7 +85,7 @@ export function renderStory(root,store){
    await playStorySfx(current.sound,{
     enabled:true,
     loop:current.sound==='rain',
-    volume:current.sound==='rain'?0.08:0.30
+    volume:current.sound==='rain'?0.12:0.30
    });
    if(token!==renderToken){stopStorySfx();return;}
   }
