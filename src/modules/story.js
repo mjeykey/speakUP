@@ -2,13 +2,12 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=7';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=9';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function learningItems(text,nativeText){
  const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -82,7 +81,7 @@ export function renderStory(root,store){
   if(soundButton){
    soundButton.onclick=async()=>{
     stopSpeech();
-    const ok=await playStorySfx(currentSound,{enabled:true});
+    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain'});
     if(soundStatus)soundStatus.textContent=ok?`✓ Sound läuft: ${currentSound}`:`Sound konnte nicht gestartet werden: ${currentSound}`;
    };
   }
@@ -95,9 +94,7 @@ export function renderStory(root,store){
   if(phaseIndex===0){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
    if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&store.getState().audioOn){
-    const played=await playStorySfx(current.sound,{enabled:true});
-    if(played)await wait(1200);
-    stopStorySfx();
+    await playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain'});
    }
    await speak(current.native,nativeVoice,{enabled:store.getState().audioOn,rate:.88});
   }else if(phaseIndex===1){
