@@ -3,7 +3,7 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let activeAudio = null;
 let activeName = '';
 let stopTimer = 0;
-let rainDataUrl = '';
+let rainObjectUrl = '';
 let rainPreloadPromise = null;
 const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64', import.meta.url).href;
 
@@ -12,8 +12,18 @@ function staticSource(name) {
   return STORY_SFX_ASSETS[name] || '';
 }
 
+function base64ToBlobUrl(base64) {
+  const clean = String(base64 || '').replace(/\s+/g, '');
+  if (!clean) throw new Error('Rain asset is empty');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  const blob = new Blob([bytes], { type: 'audio/mpeg' });
+  return URL.createObjectURL(blob);
+}
+
 function preloadRain() {
-  if (rainDataUrl) return Promise.resolve(true);
+  if (rainObjectUrl) return Promise.resolve(true);
   if (!rainPreloadPromise) {
     rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'force-cache' })
       .then(response => {
@@ -21,9 +31,7 @@ function preloadRain() {
         return response.text();
       })
       .then(base64 => {
-        const clean = base64.trim();
-        if (!clean) throw new Error('Rain asset is empty');
-        rainDataUrl = `data:audio/mpeg;base64,${clean}`;
+        rainObjectUrl = base64ToBlobUrl(base64);
         return true;
       })
       .catch(error => {
@@ -38,7 +46,7 @@ function preloadRain() {
 void preloadRain();
 
 export function isStorySfxReady(name) {
-  if (name === 'rain') return Boolean(rainDataUrl);
+  if (name === 'rain') return Boolean(rainObjectUrl);
   return Boolean(staticSource(name));
 }
 
@@ -52,7 +60,7 @@ export async function preloadStorySfx(name) {
 }
 
 export function getStorySfxSrc(name) {
-  if (name === 'rain') return rainDataUrl || '';
+  if (name === 'rain') return rainObjectUrl || '';
   return staticSource(name);
 }
 
@@ -74,7 +82,7 @@ export function stopStorySfx() {
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return Promise.resolve(false);
 
-  const src = name === 'rain' ? rainDataUrl : staticSource(name);
+  const src = name === 'rain' ? rainObjectUrl : staticSource(name);
   if (!src) {
     console.warn('Story SFX is not ready.', name);
     return Promise.resolve(false);
@@ -82,10 +90,12 @@ export function playStorySfx(name, { enabled = true, loop = false, volume, testD
 
   stopStorySfx();
 
-  const audio = new Audio(src);
+  const audio = new Audio();
   audio.preload = 'auto';
+  audio.src = src;
   audio.loop = Boolean(loop);
-  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.20 : 0.62);
+  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.28 : 0.62);
+  audio.setAttribute('playsinline', '');
   activeAudio = audio;
   activeName = name;
 
