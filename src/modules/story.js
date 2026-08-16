@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=5';
+import { isStorySfxPlaying, playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=6';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -78,10 +78,11 @@ export function renderStory(root,store){
  }
 
  async function playScene(text,voice,current,audioEnabled,rate,token){
-  stopScene();
+  const keepGestureRain = storyId==='fantasy-1' && current.sound==='rain' && isStorySfxPlaying('rain');
+  if (keepGestureRain) stopSpeech(); else stopScene();
   if(token!==renderToken)return;
 
-  if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled){
+  if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled&&!keepGestureRain){
    await playStorySfx(current.sound,{
     enabled:true,
     loop:current.sound==='rain',
@@ -96,8 +97,9 @@ export function renderStory(root,store){
 
  async function renderPhase(){
   const token=++renderToken;
-  stopScene();
   const current=page();
+  const keepGestureRain = storyId==='fantasy-1' && pageIndex===0 && phaseIndex===0 && current.sound==='rain' && isStorySfxPlaying('rain');
+  if (keepGestureRain) stopSpeech(); else stopScene();
   const audioEnabled=Boolean(store.getState().audioOn);
 
   if(phaseIndex===0){
