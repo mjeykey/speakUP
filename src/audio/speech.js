@@ -82,14 +82,29 @@ function createUtterance(text, language, rate, pitch = 1) {
   return utterance;
 }
 
-function playUtterance(utterance, runId, onBoundary) {
+function playUtterance(utterance, runId, onBoundary, { keepAlive = false } = {}) {
   return new Promise(resolve => {
     if (!synth || !utterance || runId !== speechRunId) return resolve(false);
+    let keepAliveTimer = 0;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearInterval(keepAliveTimer);
+      resolve(runId === speechRunId);
+    };
     if (onBoundary) utterance.onboundary = onBoundary;
-    utterance.onend = () => resolve(runId === speechRunId);
-    utterance.onerror = () => resolve(runId === speechRunId);
-    if (runId !== speechRunId) return resolve(false);
-    synth.resume?.(); synth.speak(utterance);
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    if (keepAlive && isMobileSpeechDevice) {
+      keepAliveTimer = window.setInterval(() => {
+        if (runId !== speechRunId || settled) return window.clearInterval(keepAliveTimer);
+        if (synth.paused) synth.resume?.();
+      }, 3000);
+    }
+    if (runId !== speechRunId) return finish();
+    synth.resume?.();
+    synth.speak(utterance);
   });
 }
 
@@ -110,12 +125,10 @@ export function speak(textOrRequest, language, options = {}) {
   return (async () => {
     await ensureVoices(runId);
     if (runId !== speechRunId) return;
-    if (isMobileSpeechDevice) { await sleep(20); if (runId !== speechRunId) return; synth.resume?.(); }
-
-    // Story/default narration is deliberately one utterance. Browser TTS already
-    // handles punctuation naturally; splitting every sentence created audible gaps.
+    // One continuous utterance keeps narration natural. Do not split at punctuation:
+    // Android TTS already provides natural sentence rhythm and splitting causes gaps.
     const utterance = createUtterance(value, selectedLanguage, rate, pitch);
-    await playUtterance(utterance, runId);
+    await playUtterance(utterance, runId, null, { keepAlive: true });
   })();
 }
 
