@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { isStorySfxPlaying, playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=7';
+import { getStorySfxStatus, isStorySfxPlaying, playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=8';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -55,12 +55,25 @@ export function renderStory(root,store){
  let renderToken=0;
  const page=()=>story.pages[pageIndex];
  const stopScene=()=>{stopSpeech();stopStorySfx();};
- const leave=()=>{renderToken+=1;stopScene();store.setState({screen:'menu'});};
+ const updateAudioStatus=event=>{
+  const box=root.querySelector('[data-audio-status]');
+  if(!box)return;
+  const s=event?.detail||getStorySfxStatus();
+  box.textContent=`Regen-Diagnose: ${s.state}${s.detail?` · ${s.detail}`:''}`;
+ };
+ if(storyId==='fantasy-1')window.addEventListener('story-sfx-status',updateAudioStatus);
+ const leave=()=>{
+  renderToken+=1;
+  if(storyId==='fantasy-1')window.removeEventListener('story-sfx-status',updateAudioStatus);
+  stopScene();
+  store.setState({screen:'menu'});
+ };
  const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
 
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
+  const diagnostic=storyId==='fantasy-1'?`<p data-audio-status style="font-size:.82rem;opacity:.8;margin:8px 0 12px">Regen-Diagnose: ${escapeHtml(getStorySfxStatus().state)}${getStorySfxStatus().detail?` · ${escapeHtml(getStorySfxStatus().detail)}`:''}</p>`:'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -70,6 +83,7 @@ export function renderStory(root,store){
     <h1>${story.emoji} ${escapeHtml(story.title)}</h1>
     <p class="story-subtitle">${escapeHtml(story.subtitle)}</p>
     <p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>
+    ${diagnostic}
     ${content}
    </div></section>`;
   root.querySelector('[data-menu]').onclick=leave;
