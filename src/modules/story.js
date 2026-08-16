@@ -2,12 +2,13 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=9';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=10';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
+const continuousNarration=value=>String(value||'').replace(/[,.;:!?]+/g,' — ').replace(/\s+/g,' ').trim();
 
 function learningItems(text,nativeText){
  const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -96,10 +97,12 @@ export function renderStory(root,store){
    if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&store.getState().audioOn){
     await playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain'});
    }
-   await speak(current.native,nativeVoice,{enabled:store.getState().audioOn,rate:.88});
+   const narration=storyId==='fantasy-1'?continuousNarration(current.native):current.native;
+   await speak(narration,nativeVoice,{enabled:store.getState().audioOn,rate:.88});
   }else if(phaseIndex===1){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
-   await speak(current.learning,learningVoice,{enabled:store.getState().audioOn,rate:.62});
+   const narration=storyId==='fantasy-1'?continuousNarration(current.learning):current.learning;
+   await speak(narration,learningVoice,{enabled:store.getState().audioOn,rate:.62});
   }else if(phaseIndex===2){
    solved=Math.min(solved,current.items.length);
    const item=current.items[solved];
@@ -118,7 +121,8 @@ export function renderStory(root,store){
    });
   }else{
    shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
-   await speak(current.learning,learningVoice,{enabled:store.getState().audioOn,rate:.62});
+   const narration=storyId==='fantasy-1'?continuousNarration(current.learning):current.learning;
+   await speak(narration,learningVoice,{enabled:store.getState().audioOn,rate:.62});
   }
  }
 
