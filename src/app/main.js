@@ -1,13 +1,13 @@
 import { createStore } from './state.js?v=57';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=74';
+import { renderMenu } from '../modules/menu.js?v=75';
 import { renderWords } from '../modules/words-matrix.js?v=1';
 import { renderMemory } from '../modules/memory-matrix.js?v=2';
 import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
-import { renderStory } from '../modules/story-loader.js?v=76';
+import { renderStory } from '../modules/story-loader.js?v=77';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
