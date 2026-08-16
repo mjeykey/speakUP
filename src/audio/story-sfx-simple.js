@@ -1,17 +1,37 @@
 import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
-import { RAIN_LOOP_ASSET } from './rain-loop-asset.js?v=1';
 
 let activeAudio = null;
 let stopTimer = 0;
+let rainDataUrlPromise = null;
+const RAIN_B64_PATH = '../../assets/audio/rain-loop.mp3.b64';
 
-function resolveSource(name) {
+function staticSource(name) {
   if (!name || name === 'none') return '';
-  if (name === 'rain') return RAIN_LOOP_ASSET || STORY_SFX_ASSETS.rain || STORY_SFX_ASSETS.thunder || '';
   return STORY_SFX_ASSETS[name] || '';
 }
 
+async function resolveSource(name) {
+  if (!name || name === 'none') return '';
+  if (name !== 'rain') return staticSource(name);
+
+  if (!rainDataUrlPromise) {
+    rainDataUrlPromise = fetch(RAIN_B64_PATH, { cache: 'force-cache' })
+      .then(response => {
+        if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
+        return response.text();
+      })
+      .then(base64 => `data:audio/mpeg;base64,${base64.trim()}`)
+      .catch(error => {
+        rainDataUrlPromise = null;
+        console.warn('Rain asset failed to load.', error);
+        return STORY_SFX_ASSETS.rain || STORY_SFX_ASSETS.thunder || '';
+      });
+  }
+  return rainDataUrlPromise;
+}
+
 export function getStorySfxSrc(name) {
-  return resolveSource(name);
+  return name === 'rain' ? RAIN_B64_PATH : staticSource(name);
 }
 
 export function stopStorySfx() {
@@ -27,7 +47,7 @@ export function stopStorySfx() {
 
 export async function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return false;
-  const src = resolveSource(name);
+  const src = await resolveSource(name);
   if (!src) return false;
 
   stopStorySfx();
