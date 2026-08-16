@@ -3,6 +3,9 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let audioContext = null;
 let activePlayer = null;
 let testStopTimer = 0;
+let rainDataUrlPromise = null;
+
+const RAIN_B64_PATH = 'assets/audio/rain-loop.mp3.b64';
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -13,13 +16,31 @@ function ensureAudioContext() {
   return audioContext;
 }
 
-function resolveSource(name) {
+function staticSource(name) {
   if (!name || name === 'none') return '';
   return STORY_SFX_ASSETS[name] || '';
 }
 
+async function resolvePlayableSource(name) {
+  if (name !== 'rain') return staticSource(name);
+  if (!rainDataUrlPromise) {
+    rainDataUrlPromise = fetch(RAIN_B64_PATH, { cache: 'force-cache' })
+      .then(response => {
+        if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
+        return response.text();
+      })
+      .then(base64 => `data:audio/mpeg;base64,${base64.trim()}`)
+      .catch(error => {
+        rainDataUrlPromise = null;
+        console.warn('Real rain asset could not be loaded.', error);
+        return '';
+      });
+  }
+  return rainDataUrlPromise;
+}
+
 export function getStorySfxSrc(name) {
-  return resolveSource(name);
+  return name === 'rain' ? RAIN_B64_PATH : staticSource(name);
 }
 
 function disconnectPlayer(player) {
@@ -58,7 +79,6 @@ function createMixedPlayer(src, { loop = false, volume = 0.2 } = {}) {
   const audio = new Audio(src);
   audio.preload = 'auto';
   audio.loop = loop;
-  audio.crossOrigin = 'anonymous';
 
   const source = ctx.createMediaElementSource(audio);
   const gain = ctx.createGain();
@@ -78,7 +98,7 @@ export async function playStorySfx(name, {
 } = {}) {
   if (!enabled || !name || name === 'none') return false;
 
-  const src = resolveSource(name);
+  const src = await resolvePlayableSource(name);
   if (!src) {
     console.warn('No real Story SFX asset found for', name);
     return false;
@@ -96,7 +116,7 @@ export async function playStorySfx(name, {
     const isAmbience = name === 'rain' || name === 'wind' || name === 'soft-wind' || name === 'dawn-wind' || name === 'water';
     const player = createMixedPlayer(src, {
       loop,
-      volume: Number.isFinite(volume) ? volume : (isAmbience ? 0.12 : 0.32)
+      volume: Number.isFinite(volume) ? volume : (isAmbience ? 0.1 : 0.3)
     });
     if (!player) return false;
 
