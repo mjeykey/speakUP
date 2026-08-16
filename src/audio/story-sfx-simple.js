@@ -1,6 +1,7 @@
 import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 
 let activeAudio = null;
+let activeName = '';
 let stopTimer = 0;
 let rainDataUrl = '';
 let rainPreloadPromise = null;
@@ -34,13 +35,15 @@ function preloadRain() {
   return rainPreloadPromise;
 }
 
-// Start loading immediately, but Story Mode will not allow the Fantasy scene
-// to start until the rain bytes are actually ready.
 void preloadRain();
 
 export function isStorySfxReady(name) {
   if (name === 'rain') return Boolean(rainDataUrl);
   return Boolean(staticSource(name));
+}
+
+export function isStorySfxPlaying(name) {
+  return Boolean(activeAudio && !activeAudio.paused && activeName === name);
 }
 
 export async function preloadStorySfx(name) {
@@ -56,12 +59,16 @@ export function getStorySfxSrc(name) {
 export function stopStorySfx() {
   window.clearTimeout(stopTimer);
   stopTimer = 0;
-  if (!activeAudio) return;
+  if (!activeAudio) {
+    activeName = '';
+    return;
+  }
   try {
     activeAudio.pause();
     activeAudio.currentTime = 0;
   } catch (_) {}
   activeAudio = null;
+  activeName = '';
 }
 
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
@@ -80,12 +87,16 @@ export function playStorySfx(name, { enabled = true, loop = false, volume, testD
   audio.loop = Boolean(loop);
   audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.20 : 0.62);
   activeAudio = audio;
+  activeName = name;
 
   const playback = audio.play();
   const result = playback && typeof playback.then === 'function'
     ? playback.then(() => true).catch(error => {
         console.warn('Story SFX playback failed.', name, error);
-        if (activeAudio === audio) activeAudio = null;
+        if (activeAudio === audio) {
+          activeAudio = null;
+          activeName = '';
+        }
         return false;
       })
     : Promise.resolve(true);
