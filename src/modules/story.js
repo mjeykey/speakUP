@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=12';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx-simple.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -84,7 +84,7 @@ export function renderStory(root,store){
     renderToken+=1;
     stopSpeech();
     stopStorySfx();
-    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain',testDurationMs:currentSound==='rain'?4500:0});
+    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain',testDurationMs:currentSound==='rain'?4500:1800});
     if(soundStatus)soundStatus.textContent=ok?`✓ Echter Effekt läuft: ${currentSound}`:`Kein echter Sound verfügbar: ${currentSound}`;
    };
   }
@@ -96,7 +96,7 @@ export function renderStory(root,store){
    soundStarted=await playStorySfx(current.sound,{
     enabled:true,
     loop:current.sound==='rain',
-    volume:current.sound==='rain'?0.085:undefined
+    volume:current.sound==='rain'?0.10:0.42
    });
   }
   if(token!==renderToken){stopStorySfx();return;}
