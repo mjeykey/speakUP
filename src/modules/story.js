@@ -2,13 +2,13 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=10';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=11';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
-const continuousNarration=value=>String(value||'').replace(/[,.;:!?]+/g,' — ').replace(/\s+/g,' ').trim();
+const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function learningItems(text,nativeText){
  const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -53,15 +53,16 @@ export function renderStory(root,store){
  let phaseIndex=Math.min(Math.max(Number(saved?.phaseIndex)||0,0),PHASES.length-1);
  let solved=Math.max(Number(saved?.solved)||0,0);
  let locked=false;
+ let renderToken=0;
  const page=()=>story.pages[pageIndex];
- const leave=()=>{stopSpeech();stopStorySfx();store.setState({screen:'menu'});};
+ const leave=()=>{renderToken+=1;stopSpeech();stopStorySfx();store.setState({screen:'menu'});};
  const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
 
  function shell(content){
   const atStart=pageIndex===0&&phaseIndex===0;
   const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
   const currentSound=page().sound&&page().sound!=='none'?page().sound:'rain';
-  const soundControl=storyId==='fantasy-1'?`<button type="button" data-story-sfx style="display:block;margin:8px auto 14px;padding:12px 18px;border-radius:999px;font-size:1rem">🔊 Effekt abspielen</button><div data-story-sfx-status style="font-size:.8rem;opacity:.75;margin-top:-8px;margin-bottom:10px">Effekt: ${escapeHtml(currentSound)}</div>`:'';
+  const soundControl=storyId==='fantasy-1'?`<button type="button" data-story-sfx style="display:block;margin:8px auto 14px;padding:12px 18px;border-radius:999px;font-size:1rem">🔊 Effekt testen</button><div data-story-sfx-status style="font-size:.8rem;opacity:.75;margin-top:-8px;margin-bottom:10px">Effekt: ${escapeHtml(currentSound)}</div>`:'';
   root.innerHTML=`<section class="screen story-screen">
    <button class="menu-button" data-menu>Menu</button>
    <button class="story-arrow story-arrow-left" data-prev ${atStart?'disabled':''}>←</button>
@@ -81,28 +82,38 @@ export function renderStory(root,store){
   const soundStatus=root.querySelector('[data-story-sfx-status]');
   if(soundButton){
    soundButton.onclick=async()=>{
+    renderToken+=1;
     stopSpeech();
-    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain'});
-    if(soundStatus)soundStatus.textContent=ok?`✓ Sound läuft: ${currentSound}`:`Sound konnte nicht gestartet werden: ${currentSound}`;
+    stopStorySfx();
+    const ok=await playStorySfx(currentSound,{enabled:true,durationMs:currentSound==='rain'?2600:1300});
+    if(soundStatus)soundStatus.textContent=ok?`✓ Echter Effekt abgespielt: ${currentSound}`:`Kein echter Sound verfügbar: ${currentSound}`;
    };
   }
  }
 
  async function renderPhase(){
+  const token=++renderToken;
   stopSpeech();
   stopStorySfx();
   const current=page();
+  const audioEnabled=Boolean(store.getState().audioOn);
+
   if(phaseIndex===0){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-   if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&store.getState().audioOn){
-    await playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain'});
+
+   // Mobile-safe sequence: real scene sound first, then narration. We do not
+   // overlap media audio with Android speechSynthesis because that can steal
+   // audio focus and stop the narrator after the first sentence.
+   if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled){
+    await playStorySfx(current.sound,{enabled:true,durationMs:current.sound==='rain'?2200:1050});
+    if(token!==renderToken)return;
+    await wait(180);
    }
-   const narration=storyId==='fantasy-1'?continuousNarration(current.native):current.native;
-   await speak(narration,nativeVoice,{enabled:store.getState().audioOn,rate:.88});
+   if(token!==renderToken)return;
+   await speak(current.native,nativeVoice,{enabled:audioEnabled,rate:.88});
   }else if(phaseIndex===1){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
-   const narration=storyId==='fantasy-1'?continuousNarration(current.learning):current.learning;
-   await speak(narration,learningVoice,{enabled:store.getState().audioOn,rate:.62});
+   await speak(current.learning,learningVoice,{enabled:audioEnabled,rate:.62});
   }else if(phaseIndex===2){
    solved=Math.min(solved,current.items.length);
    const item=current.items[solved];
@@ -121,12 +132,13 @@ export function renderStory(root,store){
    });
   }else{
    shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
-   const narration=storyId==='fantasy-1'?continuousNarration(current.learning):current.learning;
-   await speak(narration,learningVoice,{enabled:store.getState().audioOn,rate:.62});
+   await speak(current.learning,learningVoice,{enabled:audioEnabled,rate:.62});
   }
  }
 
  function navigate(direction){
+  renderToken+=1;
+  stopSpeech();
   stopStorySfx();
   if(direction>0){
    if(phaseIndex===2&&solved<page().items.length)return;
