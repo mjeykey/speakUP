@@ -2,13 +2,12 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=54';
-import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=11';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=12';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
-const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function learningItems(text,nativeText){
  const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -85,10 +84,24 @@ export function renderStory(root,store){
     renderToken+=1;
     stopSpeech();
     stopStorySfx();
-    const ok=await playStorySfx(currentSound,{enabled:true,durationMs:currentSound==='rain'?2600:1300});
-    if(soundStatus)soundStatus.textContent=ok?`✓ Echter Effekt abgespielt: ${currentSound}`:`Kein echter Sound verfügbar: ${currentSound}`;
+    const ok=await playStorySfx(currentSound,{enabled:true,loop:currentSound==='rain',testDurationMs:currentSound==='rain'?4500:0});
+    if(soundStatus)soundStatus.textContent=ok?`✓ Echter Effekt läuft: ${currentSound}`:`Kein echter Sound verfügbar: ${currentSound}`;
    };
   }
+ }
+
+ async function narrateWithSceneSound(text,voice,current,audioEnabled,rate,token){
+  let soundStarted=false;
+  if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled){
+   soundStarted=await playStorySfx(current.sound,{
+    enabled:true,
+    loop:current.sound==='rain',
+    volume:current.sound==='rain'?0.085:undefined
+   });
+  }
+  if(token!==renderToken){stopStorySfx();return;}
+  await speak(text,voice,{enabled:audioEnabled,rate});
+  if(token===renderToken&&soundStarted)stopStorySfx();
  }
 
  async function renderPhase(){
@@ -100,17 +113,7 @@ export function renderStory(root,store){
 
   if(phaseIndex===0){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-
-   // Mobile-safe sequence: real scene sound first, then narration. We do not
-   // overlap media audio with Android speechSynthesis because that can steal
-   // audio focus and stop the narrator after the first sentence.
-   if(storyId==='fantasy-1'&&current.sound&&current.sound!=='none'&&audioEnabled){
-    await playStorySfx(current.sound,{enabled:true,durationMs:current.sound==='rain'?2200:1050});
-    if(token!==renderToken)return;
-    await wait(180);
-   }
-   if(token!==renderToken)return;
-   await speak(current.native,nativeVoice,{enabled:audioEnabled,rate:.88});
+   await narrateWithSceneSound(current.native,nativeVoice,current,audioEnabled,.88,token);
   }else if(phaseIndex===1){
    shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
    await speak(current.learning,learningVoice,{enabled:audioEnabled,rate:.62});
