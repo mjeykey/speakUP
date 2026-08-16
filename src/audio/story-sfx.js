@@ -1,13 +1,20 @@
 import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 
-let activeAudio = null;
-let stopTimer = 0;
+let audioContext = null;
+let activePlayer = null;
+let testStopTimer = 0;
+
+function ensureAudioContext() {
+  if (!audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    audioContext = new AudioContextClass();
+  }
+  return audioContext;
+}
 
 function resolveSource(name) {
   if (!name || name === 'none') return '';
-  if (name === 'rain') {
-    return STORY_SFX_ASSETS.rain || STORY_SFX_ASSETS.thunder || '';
-  }
   return STORY_SFX_ASSETS[name] || '';
 }
 
@@ -15,22 +22,60 @@ export function getStorySfxSrc(name) {
   return resolveSource(name);
 }
 
-export function stopStorySfx() {
-  window.clearTimeout(stopTimer);
-  stopTimer = 0;
-  if (!activeAudio) return;
+function disconnectPlayer(player) {
+  if (!player) return;
   try {
-    activeAudio.pause();
-    activeAudio.currentTime = 0;
+    player.audio.pause();
+    player.audio.currentTime = 0;
   } catch (_) {}
-  activeAudio = null;
+  try { player.source.disconnect(); } catch (_) {}
+  try { player.gain.disconnect(); } catch (_) {}
 }
 
-function wait(ms) {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
+export function stopStorySfx() {
+  window.clearTimeout(testStopTimer);
+  testStopTimer = 0;
+  if (!activePlayer) return;
+  disconnectPlayer(activePlayer);
+  activePlayer = null;
 }
 
-export async function playStorySfx(name, { enabled = true, durationMs } = {}) {
+export async function unlockStorySfx() {
+  const ctx = ensureAudioContext();
+  if (!ctx) return false;
+  try {
+    if (ctx.state === 'suspended') await ctx.resume();
+    return ctx.state === 'running';
+  } catch (_) {
+    return false;
+  }
+}
+
+function createMixedPlayer(src, { loop = false, volume = 0.2 } = {}) {
+  const ctx = ensureAudioContext();
+  if (!ctx) return null;
+
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.loop = loop;
+  audio.crossOrigin = 'anonymous';
+
+  const source = ctx.createMediaElementSource(audio);
+  const gain = ctx.createGain();
+  gain.gain.value = volume;
+
+  source.connect(gain);
+  gain.connect(ctx.destination);
+
+  return { audio, source, gain };
+}
+
+export async function playStorySfx(name, {
+  enabled = true,
+  loop = false,
+  volume,
+  testDurationMs = 0
+} = {}) {
   if (!enabled || !name || name === 'none') return false;
 
   const src = resolveSource(name);
@@ -39,43 +84,49 @@ export async function playStorySfx(name, { enabled = true, durationMs } = {}) {
     return false;
   }
 
-  stopStorySfx();
-
-  const audio = new Audio(src);
-  audio.preload = 'auto';
-  audio.loop = false;
-  audio.volume = name === 'rain' ? 0.34 : 0.62;
-  activeAudio = audio;
+  const ctx = ensureAudioContext();
+  if (!ctx) return false;
 
   try {
-    await audio.play();
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (ctx.state !== 'running') return false;
+
+    stopStorySfx();
+
+    const isAmbience = name === 'rain' || name === 'wind' || name === 'soft-wind' || name === 'dawn-wind' || name === 'water';
+    const player = createMixedPlayer(src, {
+      loop,
+      volume: Number.isFinite(volume) ? volume : (isAmbience ? 0.12 : 0.32)
+    });
+    if (!player) return false;
+
+    activePlayer = player;
+
+    player.audio.addEventListener('ended', () => {
+      if (activePlayer === player && !player.audio.loop) {
+        disconnectPlayer(player);
+        activePlayer = null;
+      }
+    }, { once: true });
+
+    await player.audio.play();
+
+    if (testDurationMs > 0) {
+      testStopTimer = window.setTimeout(() => {
+        if (activePlayer === player) stopStorySfx();
+      }, testDurationMs);
+    }
+
+    return true;
   } catch (error) {
     console.warn('Story SFX playback failed.', name, error);
-    if (activeAudio === audio) activeAudio = null;
+    stopStorySfx();
     return false;
   }
-
-  const cueLength = Number.isFinite(durationMs)
-    ? Math.max(250, durationMs)
-    : (name === 'rain' ? 2200 : 1100);
-
-  await Promise.race([
-    wait(cueLength),
-    new Promise(resolve => {
-      audio.addEventListener('ended', resolve, { once: true });
-      audio.addEventListener('error', resolve, { once: true });
-    })
-  ]);
-
-  if (activeAudio === audio) {
-    try { audio.pause(); } catch (_) {}
-    activeAudio = null;
-  }
-  return true;
 }
 
-export async function unlockStorySfx() {
-  // Kept for compatibility. Playback is now started only from user-driven
-  // Story Mode navigation and no longer relies on a persistent WebAudio loop.
-  return true;
+if (typeof window !== 'undefined') {
+  const prime = () => { void unlockStorySfx(); };
+  window.addEventListener('pointerdown', prime, { once: true, capture: true });
+  window.addEventListener('touchstart', prime, { once: true, capture: true, passive: true });
 }
