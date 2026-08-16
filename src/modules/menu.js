@@ -37,11 +37,10 @@ export function renderMenu(root, store) {
   const waitingForL2 = learningLevel === 'l2' && !state.selectedL2Topic;
   const waitingForL3 = learningLevel === 'l3' && !state.selectedL3Topic;
   const fantasyNeedsRain = learningLevel === 'l1' && state.mode === 'story' && state.selectedStory === 'fantasy-1' && !isStorySfxReady('rain');
-  const waiting = waitingForStory || waitingForL2 || waitingForL3 || fantasyNeedsRain;
+  const waiting = waitingForStory || waitingForL2 || waitingForL3;
 
   let startLabel = 'Start';
   if (waitingForStory) startLabel = 'Geschichte wählen';
-  else if (fantasyNeedsRain) startLabel = 'Regen wird geladen …';
   else if (learningLevel === 'l1' && state.mode === 'story') startLabel = '▶ Geschichte starten';
   else if (waitingForL2 || waitingForL3) startLabel = 'Thema wählen';
   else if (learningLevel === 'l2') startLabel = 'L2 starten';
@@ -69,10 +68,7 @@ export function renderMenu(root, store) {
   </div></section>`;
 
   if (fantasyNeedsRain) {
-    void preloadStorySfx('rain').then(ok => {
-      const current = store.getState();
-      if (ok && current.screen === 'menu' && current.mode === 'story' && current.selectedStory === 'fantasy-1') renderMenu(root, store);
-    });
+    void preloadStorySfx('rain');
   }
 
   const levelRoot = root.querySelector('[data-learning-levels]');
@@ -152,8 +148,7 @@ export function renderMenu(root, store) {
     }
     if (current.mode === 'story' && !current.selectedStory) return;
     if (current.mode === 'story' && current.selectedStory === 'fantasy-1') {
-      if (!isStorySfxReady('rain')) return;
-      playStorySfx('rain', { enabled:Boolean(current.audioOn), loop:true, volume:0.28 });
+      if (isStorySfxReady('rain')) playStorySfx('rain', { enabled:Boolean(current.audioOn), loop:true, volume:0.28 });
       store.setState({ screen:'story' });
       return;
     }
