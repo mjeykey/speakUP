@@ -6,7 +6,7 @@ let stopTimer = 0;
 let rainObjectUrl = '';
 let rainPreloadPromise = null;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-beautiful-short.mp3.b64?v=2', import.meta.url).href;
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=4', import.meta.url).href;
 
 function setStatus(name,state,detail='') {
   status = { name, state, detail };
