@@ -1,7 +1,8 @@
-import { STORIES } from '../data/content.js?v=4';
+import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
+import { playStorySfx, stopStorySfx } from '../audio/story-sfx.js?v=8';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
@@ -36,6 +37,7 @@ export function renderMenu(root, store) {
   const waitingForL2 = learningLevel === 'l2' && !state.selectedL2Topic;
   const waitingForL3 = learningLevel === 'l3' && !state.selectedL3Topic;
   const waiting = waitingForStory || waitingForL2 || waitingForL3;
+  const fantasySelected = learningLevel === 'l1' && state.mode === 'story' && state.selectedStory === 'fantasy-1';
 
   let startLabel = 'Start';
   if (waitingForStory) startLabel = 'Geschichte wählen';
@@ -52,11 +54,16 @@ export function renderMenu(root, store) {
     ? L3_TOPIC_GROUPS.map(group => `<div class="knowledge-topic-group"><h2>${group.title}</h2><div class="card-grid knowledge-topic-grid">${group.topics.map(topic => topicButton(topic, state.selectedL3Topic === topic.id, 'data-l3-topic')).join('')}</div></div>`).join('')
     : '';
 
+  const fantasySoundTest = fantasySelected
+    ? `<div style="margin:14px auto 4px;text-align:center"><button type="button" class="primary-button" data-fantasy-sfx-test style="padding:12px 18px">🔊 Fantasy-Ton testen</button><div data-fantasy-sfx-status style="font-size:.85rem;margin-top:7px;opacity:.8">Direkter Test: Regen</div></div>`
+    : '';
+
   root.innerHTML = `<section class="screen menu-screen"><div class="menu-panel">
     <h1>SpeakUP</h1>
     <h2>Level</h2><div class="card-grid learning-level-grid" data-learning-levels></div>
     ${learningLevel === 'l1' ? '<h2>Übung</h2><div class="card-grid" data-modes></div>' : ''}
     ${learningLevel === 'l1' && state.mode === 'story' ? '<h2>Geschichte wählen</h2><div class="story-grid" data-stories></div>' : ''}
+    ${fantasySoundTest}
     ${l2Topics}${l3Topics}
     <h2>Einstellungen</h2>
     <button class="menu-card effects-menu-card" data-effects><span>Effekte</span><small>Effekt für die Übungen auswählen.</small></button>
@@ -127,6 +134,17 @@ export function renderMenu(root, store) {
     button.onclick = () => store.setState({ selectedStory:story.id });
     stories.appendChild(button);
   });
+
+  const fantasyTestButton = root.querySelector('[data-fantasy-sfx-test]');
+  if (fantasyTestButton) {
+    fantasyTestButton.onclick = async () => {
+      stopStorySfx();
+      const status = root.querySelector('[data-fantasy-sfx-status]');
+      if (status) status.textContent = 'Ton wird gestartet …';
+      const ok = await playStorySfx('rain', { enabled:true });
+      if (status) status.textContent = ok ? '✓ Regen läuft' : '✕ Ton konnte nicht gestartet werden';
+    };
+  }
 
   root.querySelector('[data-start]').onclick = () => {
     const current = store.getState();

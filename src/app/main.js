@@ -1,6 +1,6 @@
 import { createStore } from './state.js?v=57';
 import { renderWelcome } from '../modules/welcome.js?v=52';
-import { renderMenu } from '../modules/menu.js?v=73';
+import { renderMenu } from '../modules/menu.js?v=74';
 import { renderWords } from '../modules/words-matrix.js?v=1';
 import { renderMemory } from '../modules/memory-matrix.js?v=2';
 import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
@@ -15,7 +15,7 @@ import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=60';
-import { playStorySfx } from '../audio/story-sfx.js?v=7';
+import { playStorySfx } from '../audio/story-sfx.js?v=8';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
