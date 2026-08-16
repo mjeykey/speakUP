@@ -12,7 +12,7 @@ function staticSource(name) {
 }
 
 function preloadRain() {
-  if (rainDataUrl) return Promise.resolve(rainDataUrl);
+  if (rainDataUrl) return Promise.resolve(true);
   if (!rainPreloadPromise) {
     rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'force-cache' })
       .then(response => {
@@ -20,21 +20,33 @@ function preloadRain() {
         return response.text();
       })
       .then(base64 => {
-        rainDataUrl = `data:audio/mpeg;base64,${base64.trim()}`;
-        return rainDataUrl;
+        const clean = base64.trim();
+        if (!clean) throw new Error('Rain asset is empty');
+        rainDataUrl = `data:audio/mpeg;base64,${clean}`;
+        return true;
       })
       .catch(error => {
         console.warn('Rain asset failed to preload.', error);
         rainPreloadPromise = null;
-        return '';
+        return false;
       });
   }
   return rainPreloadPromise;
 }
 
-// Important for Android: load the rain bytes before the user starts the story.
-// audio.play() can then run immediately inside the user's click gesture.
+// Start loading immediately, but Story Mode will not allow the Fantasy scene
+// to start until the rain bytes are actually ready.
 void preloadRain();
+
+export function isStorySfxReady(name) {
+  if (name === 'rain') return Boolean(rainDataUrl);
+  return Boolean(staticSource(name));
+}
+
+export async function preloadStorySfx(name) {
+  if (name === 'rain') return preloadRain();
+  return Boolean(staticSource(name));
+}
 
 export function getStorySfxSrc(name) {
   if (name === 'rain') return rainDataUrl || '';
@@ -55,12 +67,9 @@ export function stopStorySfx() {
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return Promise.resolve(false);
 
-  // Do not fetch here. Waiting for a network/file fetch during the click handler
-  // loses Android's transient user activation and the browser can block playback.
   const src = name === 'rain' ? rainDataUrl : staticSource(name);
   if (!src) {
-    if (name === 'rain') void preloadRain();
-    console.warn('Story SFX not ready yet.', name);
+    console.warn('Story SFX is not ready.', name);
     return Promise.resolve(false);
   }
 
@@ -69,7 +78,7 @@ export function playStorySfx(name, { enabled = true, loop = false, volume, testD
   const audio = new Audio(src);
   audio.preload = 'auto';
   audio.loop = Boolean(loop);
-  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.10 : 0.62);
+  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.20 : 0.62);
   activeAudio = audio;
 
   const playback = audio.play();
@@ -91,6 +100,5 @@ export function playStorySfx(name, { enabled = true, loop = false, volume, testD
 }
 
 export async function unlockStorySfx() {
-  await preloadRain();
-  return true;
+  return preloadRain();
 }
