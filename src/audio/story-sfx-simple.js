@@ -6,7 +6,7 @@ let stopTimer = 0;
 let rainObjectUrl = '';
 let rainPreloadPromise = null;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-beautiful-short.mp3.b64?v=1', import.meta.url).href;
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64', import.meta.url).href;
 
 function setStatus(name,state,detail='') {
   status = { name, state, detail };
@@ -27,7 +27,7 @@ function preloadRain() {
   if (rainObjectUrl) return Promise.resolve(true);
   setStatus('rain','loading','MP3 wird geladen');
   if (!rainPreloadPromise) {
-    rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'no-store' })
+    rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'force-cache' })
       .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.text(); })
       .then(base64 => { rainObjectUrl = base64ToBlobUrl(base64); setStatus('rain','ready','MP3 bereit'); return true; })
       .catch(error => { console.warn('Rain asset failed to preload.', error); rainPreloadPromise = null; setStatus('rain','error',`Laden fehlgeschlagen: ${error?.message || error}`); return false; });
