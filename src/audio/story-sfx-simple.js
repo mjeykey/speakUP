@@ -3,7 +3,7 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let activeAudio = null;
 let stopTimer = 0;
 let rainDataUrlPromise = null;
-const RAIN_B64_PATH = '../../assets/audio/rain-loop.mp3.b64';
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64', import.meta.url).href;
 
 function staticSource(name) {
   if (!name || name === 'none') return '';
@@ -15,7 +15,7 @@ async function resolveSource(name) {
   if (name !== 'rain') return staticSource(name);
 
   if (!rainDataUrlPromise) {
-    rainDataUrlPromise = fetch(RAIN_B64_PATH, { cache: 'force-cache' })
+    rainDataUrlPromise = fetch(RAIN_B64_URL, { cache: 'force-cache' })
       .then(response => {
         if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
         return response.text();
@@ -31,7 +31,7 @@ async function resolveSource(name) {
 }
 
 export function getStorySfxSrc(name) {
-  return name === 'rain' ? RAIN_B64_PATH : staticSource(name);
+  return name === 'rain' ? RAIN_B64_URL : staticSource(name);
 }
 
 export function stopStorySfx() {
