@@ -3,9 +3,11 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let activeAudio = null;
 let activeName = '';
 let rainAudio = null;
+let rainObjectUrl = '';
+let rainLoadPromise = null;
 let stopTimer = 0;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_URL = new URL('../../assets/audio/rain-natural-20s.ogg?v=2', import.meta.url).href;
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=2', import.meta.url).href;
 
 function setStatus(name,state,detail='') {
   status={name,state,detail};
@@ -15,29 +17,55 @@ function setStatus(name,state,detail='') {
 export function getStorySfxStatus(){ return {...status}; }
 function staticSource(name){ return (!name||name==='none') ? '' : (STORY_SFX_ASSETS[name]||''); }
 
-function ensureRainAudio(){
-  if(rainAudio) return rainAudio;
-  const audio=new Audio(RAIN_URL);
-  audio.preload='auto';
-  audio.loop=true;
-  audio.setAttribute('playsinline','');
-  rainAudio=audio;
-  return audio;
+function makeMp3Url(base64Text){
+  const clean=String(base64Text||'').replace(/\s+/g,'');
+  const binary=atob(clean);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i+=1) bytes[i]=binary.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
 }
 
-export function isStorySfxReady(name){ return name==='rain' ? true : !!staticSource(name); }
+function prepareRain(){
+  if(rainAudio) return Promise.resolve(true);
+  if(rainLoadPromise) return rainLoadPromise;
+  setStatus('rain','loading','Regen wird vorbereitet');
+  rainLoadPromise=fetch(RAIN_B64_URL,{cache:'reload'})
+    .then(response=>{
+      if(!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.text();
+    })
+    .then(text=>{
+      rainObjectUrl=makeMp3Url(text);
+      const audio=new Audio(rainObjectUrl);
+      audio.preload='auto';
+      audio.loop=true;
+      audio.volume=0.38;
+      audio.setAttribute('playsinline','');
+      audio.load();
+      rainAudio=audio;
+      setStatus('rain','ready','Regen bereit');
+      return true;
+    })
+    .catch(error=>{
+      rainLoadPromise=null;
+      setStatus('rain','error',String(error));
+      console.warn('Rain preparation failed',error);
+      return false;
+    });
+  return rainLoadPromise;
+}
+
+// Prepare the independent rain track as soon as the module loads, so the
+// story click only has to start an already-created HTMLAudioElement.
+void prepareRain();
+
+export function isStorySfxReady(name){ return name==='rain' ? !!rainAudio : !!staticSource(name); }
 export function isStorySfxPlaying(name){
   if(name==='rain') return !!(rainAudio && !rainAudio.paused);
   return !!(activeAudio&&!activeAudio.paused&&activeName===name);
 }
-export async function preloadStorySfx(name){
-  if(name==='rain'){
-    ensureRainAudio().load();
-    return true;
-  }
-  return !!staticSource(name);
-}
-export function getStorySfxSrc(name){ return name==='rain'?RAIN_URL:staticSource(name); }
+export async function preloadStorySfx(name){ return name==='rain'?prepareRain():!!staticSource(name); }
+export function getStorySfxSrc(name){ return name==='rain'?(rainObjectUrl||RAIN_B64_URL):staticSource(name); }
 
 function stopRain(){
   if(!rainAudio) return;
@@ -47,30 +75,45 @@ function stopRain(){
 export function stopStorySfx(name='all'){
   clearTimeout(stopTimer);
   stopTimer=0;
-  if(name==='rain' || name==='all') stopRain();
-  if(name!=='rain' && activeAudio){
+  if(name==='rain'||name==='all') stopRain();
+  if(name!=='rain'&&activeAudio){
     try{activeAudio.pause();activeAudio.currentTime=0;}catch(_){}
     activeAudio=null;
     activeName='';
   }
 }
 
-async function playRain(volume){
-  const audio=ensureRainAudio();
-  audio.volume=Math.max(0,Math.min(1,Number.isFinite(volume)?volume:0.36));
-  audio.loop=true;
+function startPreparedRain(volume){
+  if(!rainAudio) return null;
+  rainAudio.volume=Math.max(0,Math.min(1,Number.isFinite(volume)?volume:0.38));
+  rainAudio.loop=true;
   try{
-    if(audio.paused){
-      const p=audio.play();
-      if(p&&typeof p.then==='function') await p;
+    const playback=rainAudio.play();
+    if(playback&&typeof playback.then==='function'){
+      return playback.then(()=>{
+        setStatus('rain','playing','Regen läuft');
+        return true;
+      }).catch(error=>{
+        console.warn('Rain play failed',error);
+        setStatus('rain','error',String(error));
+        return false;
+      });
     }
     setStatus('rain','playing','Regen läuft');
-    return true;
+    return Promise.resolve(true);
   }catch(error){
     console.warn('Rain play failed',error);
     setStatus('rain','error',String(error));
-    return false;
+    return Promise.resolve(false);
   }
+}
+
+function playRain(volume){
+  // Important for Android: when the track is already prepared, call play()
+  // immediately in the current user-interaction stack with no preceding await.
+  const immediate=startPreparedRain(volume);
+  if(immediate) return immediate;
+  return prepareRain().then(ok=>ok?startPreparedRain(volume):false);
 }
 
 function playHtml(src,volume,loop){
@@ -86,33 +129,27 @@ function playHtml(src,volume,loop){
     : Promise.resolve(true);
 }
 
-export async function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){
-  if(!enabled||!name||name==='none') return false;
-
+export function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){
+  if(!enabled||!name||name==='none') return Promise.resolve(false);
   if(name==='rain'){
-    const result=await playRain(volume);
-    if(testDurationMs>0){
-      stopTimer=setTimeout(()=>stopStorySfx('rain'),testDurationMs);
-    }
+    const result=playRain(volume);
+    if(testDurationMs>0) stopTimer=setTimeout(()=>stopStorySfx('rain'),testDurationMs);
     return result;
   }
 
   const src=staticSource(name);
-  if(!src) return false;
+  if(!src) return Promise.resolve(false);
   if(activeAudio){
     try{activeAudio.pause();activeAudio.currentTime=0;}catch(_){}
   }
   activeName=name;
   const selectedVolume=Number.isFinite(volume)?Math.max(0,Math.min(1,volume)):0.62;
-  const result=await playHtml(src,selectedVolume,loop);
-  if(!result&&activeName===name) activeName='';
-  if(testDurationMs>0){
-    stopTimer=setTimeout(()=>{if(activeName===name)stopStorySfx();},testDurationMs);
-  }
-  return result;
+  const result=playHtml(src,selectedVolume,loop);
+  if(testDurationMs>0) stopTimer=setTimeout(()=>{if(activeName===name)stopStorySfx();},testDurationMs);
+  return result.then(ok=>{if(!ok&&activeName===name)activeName='';return ok;});
 }
 
 export async function unlockStorySfx(){
-  ensureRainAudio();
+  await prepareRain();
   return true;
 }
