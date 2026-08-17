@@ -7,7 +7,7 @@ let rainObjectUrl = '';
 let rainLoadPromise = null;
 let stopTimer = 0;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=2', import.meta.url).href;
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=3', import.meta.url).href;
 
 function setStatus(name,state,detail='') {
   status={name,state,detail};
@@ -38,7 +38,7 @@ function prepareRain(){
       rainObjectUrl=makeMp3Url(text);
       const audio=new Audio(rainObjectUrl);
       audio.preload='auto';
-      audio.loop=true;
+      audio.loop=false;
       audio.volume=0.38;
       audio.setAttribute('playsinline','');
       audio.load();
@@ -55,13 +55,11 @@ function prepareRain(){
   return rainLoadPromise;
 }
 
-// Prepare the independent rain track as soon as the module loads, so the
-// story click only has to start an already-created HTMLAudioElement.
 void prepareRain();
 
 export function isStorySfxReady(name){ return name==='rain' ? !!rainAudio : !!staticSource(name); }
 export function isStorySfxPlaying(name){
-  if(name==='rain') return !!(rainAudio && !rainAudio.paused);
+  if(name==='rain') return !!(rainAudio && !rainAudio.paused && !rainAudio.ended);
   return !!(activeAudio&&!activeAudio.paused&&activeName===name);
 }
 export async function preloadStorySfx(name){ return name==='rain'?prepareRain():!!staticSource(name); }
@@ -86,12 +84,13 @@ export function stopStorySfx(name='all'){
 function startPreparedRain(volume){
   if(!rainAudio) return null;
   rainAudio.volume=Math.max(0,Math.min(1,Number.isFinite(volume)?volume:0.38));
-  rainAudio.loop=true;
+  rainAudio.loop=false;
   try{
+    if(rainAudio.ended || rainAudio.currentTime >= rainAudio.duration) rainAudio.currentTime=0;
     const playback=rainAudio.play();
     if(playback&&typeof playback.then==='function'){
       return playback.then(()=>{
-        setStatus('rain','playing','Regen läuft');
+        setStatus('rain','playing','Regen läuft einmal');
         return true;
       }).catch(error=>{
         console.warn('Rain play failed',error);
@@ -99,7 +98,7 @@ function startPreparedRain(volume){
         return false;
       });
     }
-    setStatus('rain','playing','Regen läuft');
+    setStatus('rain','playing','Regen läuft einmal');
     return Promise.resolve(true);
   }catch(error){
     console.warn('Rain play failed',error);
@@ -109,8 +108,6 @@ function startPreparedRain(volume){
 }
 
 function playRain(volume){
-  // Important for Android: when the track is already prepared, call play()
-  // immediately in the current user-interaction stack with no preceding await.
   const immediate=startPreparedRain(volume);
   if(immediate) return immediate;
   return prepareRain().then(ok=>ok?startPreparedRain(volume):false);
