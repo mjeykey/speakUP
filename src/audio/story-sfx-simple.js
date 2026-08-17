@@ -5,6 +5,7 @@ let activeName = '';
 let stopTimer = 0;
 let rainObjectUrl = '';
 let rainPreloadPromise = null;
+let rainLoopTimer = 0;
 let status = { name:'', state:'idle', detail:'' };
 const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=4', import.meta.url).href;
 
@@ -41,6 +42,7 @@ export async function preloadStorySfx(name) { if (name === 'rain') return preloa
 export function getStorySfxSrc(name) { if (name === 'rain') return rainObjectUrl || ''; return staticSource(name); }
 export function stopStorySfx() {
   window.clearTimeout(stopTimer); stopTimer = 0;
+  window.clearInterval(rainLoopTimer); rainLoopTimer = 0;
   if (!activeAudio) { activeName = ''; return; }
   try { activeAudio.pause(); activeAudio.currentTime = 0; } catch (_) {}
   activeAudio = null; activeName = ''; setStatus(status.name || 'rain','stopped','Audio gestoppt');
@@ -50,11 +52,24 @@ export function playStorySfx(name, { enabled = true, loop = false, volume, testD
   const src = name === 'rain' ? rainObjectUrl : staticSource(name);
   if (!src) { console.warn('Story SFX is not ready.', name); setStatus(name,'not-ready','Soundquelle fehlt'); return Promise.resolve(false); }
   stopStorySfx();
-  const audio = new Audio(); audio.preload = 'auto'; audio.src = src; audio.loop = Boolean(loop);
+  const audio = new Audio();
+  audio.preload = 'auto';
+  audio.src = src;
+  const manualRainLoop = name === 'rain' && Boolean(loop);
+  audio.loop = manualRainLoop ? false : Boolean(loop);
   audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : (name === 'rain' ? 0.28 : 0.62);
   audio.setAttribute('playsinline', ''); activeAudio = audio; activeName = name;
+  if (manualRainLoop) {
+    rainLoopTimer = window.setInterval(() => {
+      if (activeAudio !== audio || audio.paused || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+      const restartBeforeEnd = Math.min(0.12, Math.max(0.04, audio.duration * 0.08));
+      if (audio.currentTime >= audio.duration - restartBeforeEnd) {
+        try { audio.currentTime = 0.01; } catch (_) {}
+      }
+    }, 20);
+  }
   const playback = audio.play();
-  const result = playback && typeof playback.then === 'function' ? playback.then(() => true).catch(error => { console.warn('Story SFX playback failed.', name, error); if (activeAudio === audio) { activeAudio = null; activeName = ''; } return false; }) : Promise.resolve(true);
+  const result = playback && typeof playback.then === 'function' ? playback.then(() => true).catch(error => { console.warn('Story SFX playback failed.', name, error); if (activeAudio === audio) { activeAudio = null; activeName = ''; } window.clearInterval(rainLoopTimer); rainLoopTimer = 0; return false; }) : Promise.resolve(true);
   if (testDurationMs > 0) stopTimer = window.setTimeout(() => { if (activeAudio === audio) stopStorySfx(); }, testDurationMs);
   return result;
 }
