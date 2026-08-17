@@ -11,7 +11,11 @@ let rainContext = null;
 let rainSource = null;
 let rainGain = null;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=6', import.meta.url).href;
+const RAIN_B64_URLS = [
+  new URL('../../assets/audio/rain-full-6k-p1.b64?v=1', import.meta.url).href,
+  new URL('../../assets/audio/rain-full-6k-p2.b64?v=1', import.meta.url).href,
+  new URL('../../assets/audio/rain-full-6k-p3.b64?v=1', import.meta.url).href
+];
 
 function setStatus(name,state,detail='') { status={name,state,detail}; window.dispatchEvent(new CustomEvent('story-sfx-status',{detail:status})); }
 export function getStorySfxStatus(){ return {...status}; }
@@ -39,24 +43,24 @@ async function decodeRain(){
 }
 function preloadRain(){
   if(rainObjectUrl&&rainArrayBuffer) return Promise.resolve(true);
-  setStatus('rain','loading','MP3 wird geladen');
+  setStatus('rain','loading','Regen wird geladen');
   if(!rainPreloadPromise){
-    rainPreloadPromise=fetch(RAIN_B64_URL,{cache:'reload'})
-      .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();})
-      .then(async b=>{
-        const bytes=base64ToBytes(b);
+    rainPreloadPromise=Promise.all(RAIN_B64_URLS.map(url=>fetch(url,{cache:'reload'}).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();})))
+      .then(async parts=>{
+        const bytes=base64ToBytes(parts.join(''));
         rainArrayBuffer=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
-        rainObjectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
-        await decodeRain();
-        setStatus('rain','ready','MP3 bereit');
+        rainObjectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/ogg; codecs=opus'}));
+        const decoded=await decodeRain();
+        if(!decoded) throw new Error('Full rain audio could not be decoded');
+        setStatus('rain','ready',`Regen bereit · ${decoded.duration.toFixed(1)} s`);
         return true;
       })
-      .catch(e=>{rainPreloadPromise=null;setStatus('rain','error',String(e));return false;});
+      .catch(e=>{rainPreloadPromise=null;setStatus('rain','error',String(e));console.warn('Full rain failed to load',e);return false;});
   }
   return rainPreloadPromise;
 }
 void preloadRain();
-export function isStorySfxReady(name){ return name==='rain'?!!rainObjectUrl:!!staticSource(name); }
+export function isStorySfxReady(name){ return name==='rain'?!!rainAudioBuffer:!!staticSource(name); }
 export function isStorySfxPlaying(name){
   if(name==='rain'&&activeName==='rain'&&rainSource) return true;
   return !!(activeAudio&&!activeAudio.paused&&activeName===name);
@@ -83,10 +87,10 @@ async function playSeamlessRain(volume){
     const gain=context.createGain();
     source.buffer=buffer;
     source.loop=true;
-    const trim=Math.min(0.0025,Math.max(0.001,buffer.duration*0.001));
+    const trim=Math.min(0.006,Math.max(0.002,buffer.duration*0.0001));
     source.loopStart=trim;
-    source.loopEnd=Math.max(trim+0.1,buffer.duration-trim);
-    gain.gain.value=Math.min(1,volume*1.18);
+    source.loopEnd=Math.max(trim+1,buffer.duration-trim);
+    gain.gain.value=Math.min(1,volume*1.15);
     source.connect(gain);gain.connect(context.destination);
     rainSource=source;rainGain=gain;
     source.start(0,source.loopStart);
@@ -99,6 +103,7 @@ function playHtml(src,volume,loop){
 }
 export async function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){
   if(!enabled||!name||name==='none')return false;
+  if(name==='rain'&&!rainObjectUrl) await preloadRain();
   const src=name==='rain'?rainObjectUrl:staticSource(name);if(!src)return false;
   stopStorySfx();
   const v=Number.isFinite(volume)?Math.max(0,Math.min(1,volume)):(name==='rain'?.28:.62);
