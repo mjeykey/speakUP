@@ -83,10 +83,10 @@ async function playSeamlessRain(volume){
     const gain=context.createGain();
     source.buffer=buffer;
     source.loop=true;
-    const trim=Math.min(0.035,Math.max(0.006,buffer.duration*0.008));
+    const trim=Math.min(0.0025,Math.max(0.001,buffer.duration*0.001));
     source.loopStart=trim;
-    source.loopEnd=Math.max(trim+0.05,buffer.duration-trim);
-    gain.gain.value=volume;
+    source.loopEnd=Math.max(trim+0.1,buffer.duration-trim);
+    gain.gain.value=Math.min(1,volume*1.18);
     source.connect(gain);gain.connect(context.destination);
     rainSource=source;rainGain=gain;
     source.start(0,source.loopStart);
