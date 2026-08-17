@@ -11,7 +11,7 @@ let rainFadeTimer = 0;
 let rainCrossfading = false;
 let rainTargetVolume = 0.28;
 let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-beautiful-short.mp3.b64?v=5', import.meta.url).href;
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=6', import.meta.url).href;
 
 function setStatus(name,state,detail='') {
   status = { name, state, detail };
@@ -32,7 +32,7 @@ function preloadRain() {
   if (rainObjectUrl) return Promise.resolve(true);
   setStatus('rain','loading','MP3 wird geladen');
   if (!rainPreloadPromise) {
-    rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'force-cache' })
+    rainPreloadPromise = fetch(RAIN_B64_URL, { cache: 'reload' })
       .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.text(); })
       .then(base64 => { rainObjectUrl = base64ToBlobUrl(base64); setStatus('rain','ready','MP3 bereit'); return true; })
       .catch(error => { console.warn('Rain asset failed to preload.', error); rainPreloadPromise = null; setStatus('rain','error',`Laden fehlgeschlagen: ${error?.message || error}`); return false; });
@@ -75,8 +75,8 @@ function beginRainCrossfade() {
   try { incoming.currentTime = 0.01; } catch (_) {}
   incoming.volume = 0;
 
-  const fadeMs = 420;
-  const stepMs = 28;
+  const fadeMs = 260;
+  const stepMs = 26;
   const steps = Math.max(1, Math.round(fadeMs / stepMs));
   let step = 0;
   window.clearInterval(rainFadeTimer);
@@ -125,7 +125,7 @@ function startDualRainLoop(primary, secondary) {
       const current = activeAudio;
       if (!current || current.paused || activeName !== 'rain' || !standbyAudio || rainCrossfading) return;
       if (!Number.isFinite(current.duration) || current.duration <= 0) return;
-      const overlap = Math.min(0.5, Math.max(0.28, current.duration * 0.18));
+      const overlap = Math.min(0.32, Math.max(0.16, current.duration * 0.12));
       if (current.currentTime >= current.duration - overlap) beginRainCrossfade();
     }, 24);
     return true;
