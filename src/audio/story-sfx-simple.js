@@ -1,79 +1,22 @@
 import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 
-let activeAudio = null;
-let standbyAudio = null;
-let activeName = '';
-let stopTimer = 0;
-let rainObjectUrl = '';
-let rainPreloadPromise = null;
-let rainLoopTimer = 0;
-let rainFadeTimer = 0;
-let rainCrossfading = false;
-let rainTargetVolume = 0.28;
-let status = { name:'', state:'idle', detail:'' };
-const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=6', import.meta.url).href;
-
-function setStatus(name,state,detail='') { status={name,state,detail}; window.dispatchEvent(new CustomEvent('story-sfx-status',{detail:status})); }
+let activeAudio=null,standbyAudio=null,activeName='',stopTimer=0,rainObjectUrl='',rainPreloadPromise=null,rainLoopTimer=0,rainFadeTimer=0,rainCrossfading=false,rainTargetVolume=.28;
+let status={name:'',state:'idle',detail:''};
+const RAIN_B64_URL=new URL('../../assets/audio/rain-loop.mp3.b64?v=6',import.meta.url).href;
+function setStatus(name,state,detail=''){status={name,state,detail};window.dispatchEvent(new CustomEvent('story-sfx-status',{detail:status}));}
 export function getStorySfxStatus(){return{...status};}
-function staticSource(name){if(!name||name==='none')return'';return STORY_SFX_ASSETS[name]||'';}
-function base64ToBlobUrl(base64){const clean=String(base64||'').replace(/\s+/g,'');if(!clean)throw new Error('Rain asset is empty');const binary=atob(clean);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i+=1)bytes[i]=binary.charCodeAt(i);return URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));}
-function preloadRain(){if(rainObjectUrl)return Promise.resolve(true);setStatus('rain','loading','MP3 wird geladen');if(!rainPreloadPromise){rainPreloadPromise=fetch(RAIN_B64_URL,{cache:'reload'}).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();}).then(b=>{rainObjectUrl=base64ToBlobUrl(b);setStatus('rain','ready','MP3 bereit');return true;}).catch(e=>{console.warn('Rain asset failed to preload.',e);rainPreloadPromise=null;setStatus('rain','error',`Laden fehlgeschlagen: ${e?.message||e}`);return false;});}return rainPreloadPromise;}
+function staticSource(name){return(!name||name==='none')?'':(STORY_SFX_ASSETS[name]||'');}
+function base64ToBlobUrl(base64){const clean=String(base64||'').replace(/\s+/g,'');if(!clean)throw new Error('Rain asset is empty');const binary=atob(clean),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));}
+function preloadRain(){if(rainObjectUrl)return Promise.resolve(true);setStatus('rain','loading','MP3 wird geladen');if(!rainPreloadPromise)rainPreloadPromise=fetch(RAIN_B64_URL,{cache:'reload'}).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();}).then(b=>{rainObjectUrl=base64ToBlobUrl(b);setStatus('rain','ready','MP3 bereit');return true;}).catch(e=>{rainPreloadPromise=null;setStatus('rain','error',String(e));return false;});return rainPreloadPromise;}
 void preloadRain();
-export function isStorySfxReady(name){return name==='rain'?Boolean(rainObjectUrl):Boolean(staticSource(name));}
-export function isStorySfxPlaying(name){return Boolean(activeAudio&&!activeAudio.paused&&activeName===name);}
-export async function preloadStorySfx(name){return name==='rain'?preloadRain():Boolean(staticSource(name));}
+export function isStorySfxReady(name){return name==='rain'?!!rainObjectUrl:!!staticSource(name);}
+export function isStorySfxPlaying(name){return !!(activeAudio&&!activeAudio.paused&&activeName===name);}
+export async function preloadStorySfx(name){return name==='rain'?preloadRain():!!staticSource(name);}
 export function getStorySfxSrc(name){return name==='rain'?(rainObjectUrl||''):staticSource(name);}
-function clearRainLoop(){clearInterval(rainLoopTimer);rainLoopTimer=0;clearInterval(rainFadeTimer);rainFadeTimer=0;rainCrossfading=false;}
-function pauseAndReset(audio){if(!audio)return;try{audio.pause();audio.currentTime=0;}catch(_){}}
-export function stopStorySfx(){clearTimeout(stopTimer);stopTimer=0;clearRainLoop();pauseAndReset(activeAudio);if(standbyAudio&&standbyAudio!==activeAudio)pauseAndReset(standbyAudio);activeAudio=null;standbyAudio=null;activeName='';setStatus(status.name||'rain','stopped','Audio gestoppt');}
-
-function beginRainCrossfade(){
-  if(rainCrossfading||!activeAudio||!standbyAudio||activeName!=='rain')return;
-  rainCrossfading=true;
-  const outgoing=activeAudio;
-  const incoming=standbyAudio;
-  try{incoming.currentTime=0;}catch(_){}
-  incoming.volume=0;
-  const start=incoming.play();
-  Promise.resolve(start).then(()=>{
-    const fadeMs=650,stepMs=25,steps=Math.ceil(fadeMs/stepMs);let step=0;
-    clearInterval(rainFadeTimer);
-    rainFadeTimer=setInterval(()=>{
-      if(activeName!=='rain'){clearRainLoop();return;}
-      step+=1;const p=Math.min(1,step/steps);
-      try{outgoing.volume=rainTargetVolume*(1-p);incoming.volume=rainTargetVolume*p;}catch(_){}
-      if(p>=1){clearInterval(rainFadeTimer);rainFadeTimer=0;pauseAndReset(outgoing);activeAudio=incoming;standbyAudio=outgoing;rainCrossfading=false;}
-    },stepMs);
-  }).catch(error=>{console.warn('Rain handoff failed.',error);rainCrossfading=false;});
-}
-
-function startDualRainLoop(primary,secondary){
-  activeAudio=primary;standbyAudio=secondary;
-  primary.loop=false;secondary.loop=false;
-  primary.volume=rainTargetVolume;secondary.volume=0;
-  const first=primary.play();
-  const firstResult=first&&typeof first.then==='function'?first:Promise.resolve();
-  return firstResult.then(()=>{
-    rainLoopTimer=setInterval(()=>{
-      const current=activeAudio;
-      if(!current||current.paused||activeName!=='rain'||!standbyAudio||rainCrossfading)return;
-      if(!Number.isFinite(current.duration)||current.duration<=0)return;
-      const overlap=Math.min(0.85,Math.max(0.65,current.duration*0.28));
-      if(current.currentTime>=current.duration-overlap)beginRainCrossfade();
-    },20);
-    return true;
-  });
-}
-
-export function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){
-  if(!enabled||!name||name==='none'){setStatus(name||'none','disabled','Audio ist ausgeschaltet');return Promise.resolve(false);}
-  const src=name==='rain'?rainObjectUrl:staticSource(name);if(!src){console.warn('Story SFX is not ready.',name);setStatus(name,'not-ready','Soundquelle fehlt');return Promise.resolve(false);}
-  stopStorySfx();const selectedVolume=Number.isFinite(volume)?Math.max(0,Math.min(1,volume)):(name==='rain'?0.28:0.62);activeName=name;
-  if(name==='rain'&&Boolean(loop)){
-    rainTargetVolume=selectedVolume;const primary=new Audio(),secondary=new Audio();for(const audio of[primary,secondary]){audio.preload='auto';audio.src=src;audio.setAttribute('playsinline','');}
-    const result=startDualRainLoop(primary,secondary).then(()=>true).catch(error=>{console.warn('Story rain playback failed.',error);clearRainLoop();pauseAndReset(primary);pauseAndReset(secondary);if(activeName==='rain'){activeAudio=null;standbyAudio=null;activeName='';}return false;});
-    if(testDurationMs>0)stopTimer=setTimeout(()=>{if(activeName==='rain')stopStorySfx();},testDurationMs);return result;
-  }
-  const audio=new Audio();audio.preload='auto';audio.src=src;audio.loop=Boolean(loop);audio.volume=selectedVolume;audio.setAttribute('playsinline','');activeAudio=audio;standbyAudio=null;const playback=audio.play();const result=playback&&typeof playback.then==='function'?playback.then(()=>true).catch(error=>{console.warn('Story SFX playback failed.',name,error);if(activeAudio===audio){activeAudio=null;activeName='';}return false;}):Promise.resolve(true);if(testDurationMs>0)stopTimer=setTimeout(()=>{if(activeAudio===audio)stopStorySfx();},testDurationMs);return result;
-}
+function clearRainLoop(){clearInterval(rainLoopTimer);clearInterval(rainFadeTimer);rainLoopTimer=rainFadeTimer=0;rainCrossfading=false;}
+function pauseAndReset(a){if(!a)return;try{a.pause();a.currentTime=0;}catch(_){}}
+export function stopStorySfx(){clearTimeout(stopTimer);clearRainLoop();pauseAndReset(activeAudio);if(standbyAudio!==activeAudio)pauseAndReset(standbyAudio);activeAudio=standbyAudio=null;activeName='';}
+function crossfade(){if(rainCrossfading||!activeAudio||!standbyAudio||activeName!=='rain')return;rainCrossfading=true;const out=activeAudio,inc=standbyAudio;const fadeMs=900,stepMs=25,steps=Math.ceil(fadeMs/stepMs);let n=0;clearInterval(rainFadeTimer);rainFadeTimer=setInterval(()=>{n++;const p=Math.min(1,n/steps);try{out.volume=rainTargetVolume*(1-p);inc.volume=rainTargetVolume*p;}catch(_){}if(p>=1){clearInterval(rainFadeTimer);rainFadeTimer=0;activeAudio=inc;standbyAudio=out;rainCrossfading=false;}},stepMs);}
+function startDualRainLoop(a,b){activeAudio=a;standbyAudio=b;for(const x of[a,b]){x.loop=true;x.preload='auto';x.volume=0;}a.volume=rainTargetVolume;try{b.currentTime=.55;}catch(_){}const p1=a.play(),p2=b.play();return Promise.all([p1,p2]).then(()=>{rainLoopTimer=setInterval(()=>{const cur=activeAudio;if(!cur||cur.paused||!standbyAudio||rainCrossfading||activeName!=='rain'||!Number.isFinite(cur.duration)||cur.duration<=0)return;const edge=Math.max(.95,Math.min(1.35,cur.duration*.34));if(cur.currentTime>=cur.duration-edge)crossfade();},20);return true;});}
+export function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){if(!enabled||!name||name==='none')return Promise.resolve(false);const src=name==='rain'?rainObjectUrl:staticSource(name);if(!src)return Promise.resolve(false);stopStorySfx();const v=Number.isFinite(volume)?Math.max(0,Math.min(1,volume)):(name==='rain'?.28:.62);activeName=name;if(name==='rain'&&loop){rainTargetVolume=v;const a=new Audio(src),b=new Audio(src);for(const x of[a,b])x.setAttribute('playsinline','');const result=startDualRainLoop(a,b).then(()=>true).catch(e=>{console.warn('Rain playback failed',e);stopStorySfx();return false;});if(testDurationMs>0)stopTimer=setTimeout(stopStorySfx,testDurationMs);return result;}const a=new Audio(src);a.preload='auto';a.loop=!!loop;a.volume=v;a.setAttribute('playsinline','');activeAudio=a;return a.play().then(()=>true).catch(()=>false);}
 export async function unlockStorySfx(){return preloadRain();}
