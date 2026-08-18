@@ -5,6 +5,8 @@ let activePlayer = null;
 let rainAudio = null;
 let rainShouldContinue = false;
 let bellAudio = null;
+let bellMp3Url = '';
+let bellMp3UrlPromise = null;
 let testStopTimer = 0;
 let playRequestId = 0;
 let rainRequestId = 0;
@@ -14,7 +16,10 @@ const decodedBuffers = new Map();
 const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-const BELL_MP3_URL = STORY_SFX_ASSETS.bell || '';
+// The user's uploaded 50-second Tsar church-bell recording, stored losslessly as four Base64 text parts in this repository.
+const BELL_MP3_PART_URLS = [0, 1, 2, 3].map(index =>
+  `https://raw.githubusercontent.com/mjeykey/speakUP/main/.bell-upload/part0${index}.b64`
+);
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -28,6 +33,29 @@ function ensureAudioContext() {
 function staticSource(name) {
   if (!name || name === 'none') return '';
   return STORY_SFX_ASSETS[name] || '';
+}
+
+async function getBellMp3Url() {
+  if (bellMp3Url) return bellMp3Url;
+  if (bellMp3UrlPromise) return bellMp3UrlPromise;
+
+  bellMp3UrlPromise = Promise.all(BELL_MP3_PART_URLS.map(async url => {
+    const response = await fetch(url, { cache: 'force-cache' });
+    if (!response.ok) throw new Error(`Church bell part HTTP ${response.status}`);
+    return (await response.text()).trim();
+  })).then(parts => {
+    const binary = atob(parts.join(''));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    bellMp3Url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+    return bellMp3Url;
+  }).catch(error => {
+    bellMp3UrlPromise = null;
+    console.warn('Uploaded church bell MP3 could not be rebuilt.', error);
+    return '';
+  });
+
+  return bellMp3UrlPromise;
 }
 
 async function sourceArrayBuffer(name) {
@@ -123,11 +151,13 @@ function stopBellAudio() {
   try { audio.currentTime = 0; } catch (_) {}
 }
 
-function playBell(volume) {
-  if (!BELL_MP3_URL) return Promise.resolve(false);
+async function playBell(volume) {
   stopBellAudio();
   const requestId = ++bellRequestId;
-  const audio = new Audio(BELL_MP3_URL);
+  const sourceUrl = await getBellMp3Url();
+  if (!sourceUrl || requestId !== bellRequestId) return false;
+
+  const audio = new Audio(sourceUrl);
   audio.preload = 'auto';
   audio.loop = false;
   audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
@@ -140,14 +170,14 @@ function playBell(volume) {
   };
   audio.onerror = () => {
     if (bellRequestId !== requestId || bellAudio !== audio) return;
-    console.warn('Story bell MP3 playback failed.');
+    console.warn('Uploaded church bell MP3 playback failed.');
     bellAudio = null;
   };
   return audio.play()
     .then(() => bellRequestId === requestId && bellAudio === audio)
     .catch(error => {
       if (bellRequestId === requestId && bellAudio === audio) bellAudio = null;
-      console.warn('Story bell MP3 playback failed.', error);
+      console.warn('Uploaded church bell MP3 playback failed.', error);
       return false;
     });
 }
@@ -195,12 +225,12 @@ async function playWarningBell(volume) {
 
 export function getStorySfxSrc(name) {
   if (name === 'rain') return RAIN_MP3_URL;
-  if (name === 'bell') return BELL_MP3_URL;
+  if (name === 'bell') return bellMp3Url;
   return staticSource(name);
 }
 export function isStorySfxReady(name) {
   if (name === 'rain') return Boolean(rainAudio);
-  if (name === 'bell') return Boolean(BELL_MP3_URL);
+  if (name === 'bell') return Boolean(bellMp3Url);
   if (name === 'warning-bell') return true;
   return decodedBuffers.has(name);
 }
@@ -211,7 +241,7 @@ export function isStorySfxPlaying(name) {
 }
 export async function preloadStorySfx(name) {
   if (name === 'rain') return true;
-  if (name === 'bell') return Boolean(BELL_MP3_URL);
+  if (name === 'bell') return Boolean(await getBellMp3Url());
   if (name === 'warning-bell') return true;
   return Boolean(await loadBuffer(name));
 }
@@ -295,7 +325,10 @@ export async function playStorySfx(name, { enabled = true, loop = false, volume,
 }
 
 if (typeof window !== 'undefined') {
-  const prime = () => { void unlockStorySfx(); };
+  const prime = () => {
+    void unlockStorySfx();
+    void getBellMp3Url();
+  };
   window.addEventListener('pointerdown', prime, { once: true, capture: true });
   window.addEventListener('touchstart', prime, { once: true, capture: true, passive: true });
 }
