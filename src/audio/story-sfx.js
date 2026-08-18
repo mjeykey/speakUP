@@ -7,7 +7,8 @@ let playRequestId = 0;
 
 const decodedBuffers = new Map();
 const loadingBuffers = new Map();
-const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=4', import.meta.url).href;
+// Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
+const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -34,9 +35,9 @@ function base64ToArrayBuffer(base64Text) {
 
 async function sourceArrayBuffer(name) {
   if (name === 'rain') {
-    const response = await fetch(RAIN_B64_URL, { cache: 'force-cache' });
+    const response = await fetch(RAIN_MP3_URL, { cache: 'force-cache' });
     if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
-    return base64ToArrayBuffer(await response.text());
+    return response.arrayBuffer();
   }
   const src = staticSource(name);
   if (!src) throw new Error(`No Story SFX asset for ${name}`);
@@ -59,7 +60,7 @@ async function loadBuffer(name) {
   return promise;
 }
 
-export function getStorySfxSrc(name) { return name === 'rain' ? RAIN_B64_URL : staticSource(name); }
+export function getStorySfxSrc(name) { return name === 'rain' ? RAIN_MP3_URL : staticSource(name); }
 export function isStorySfxReady(name) { return decodedBuffers.has(name); }
 export function isStorySfxPlaying(name) { return Boolean(activePlayer && (!name || activePlayer.name === name)); }
 export async function preloadStorySfx(name) { return Boolean(await loadBuffer(name)); }
