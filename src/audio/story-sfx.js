@@ -38,7 +38,7 @@ async function sourceArrayBuffer(name) {
 }
 
 async function loadBuffer(name) {
-  if (!name || name === 'none' || name === 'rain' || name === 'bell') return null;
+  if (!name || name === 'none' || name === 'rain' || name === 'bell' || name === 'warning-bell') return null;
   if (decodedBuffers.has(name)) return decodedBuffers.get(name);
   if (loadingBuffers.has(name)) return loadingBuffers.get(name);
   const ctx = ensureAudioContext();
@@ -76,8 +76,6 @@ function playRain(volume, continueUntilStopped = false) {
   const selectedVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.10;
   const audio = new Audio(RAIN_MP3_URL);
   audio.preload = 'auto';
-  // Keep the exact playback mode that was proven to work on the device.
-  // Repeating is handled only after the file ends, not by the browser loop flag.
   audio.loop = false;
   audio.volume = selectedVolume;
   rainAudio = audio;
@@ -154,10 +152,52 @@ function playBell(volume) {
     });
 }
 
+async function playWarningBell(volume) {
+  const ctx = ensureAudioContext();
+  if (!ctx) return false;
+  try {
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (ctx.state !== 'running') return false;
+    stopActivePlayer();
+    const selectedVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.55;
+    const nodes = [];
+    const start = ctx.currentTime + 0.015;
+    [0, 0.42, 0.84].forEach(delay => {
+      [760, 1140].forEach((frequency, harmonicIndex) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = harmonicIndex === 0 ? 'triangle' : 'sine';
+        oscillator.frequency.setValueAtTime(frequency, start + delay);
+        gain.gain.setValueAtTime(0.0001, start + delay);
+        gain.gain.exponentialRampToValueAtTime(selectedVolume * (harmonicIndex === 0 ? 0.30 : 0.13), start + delay + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.30);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start(start + delay);
+        oscillator.stop(start + delay + 0.32);
+        nodes.push(oscillator, gain);
+      });
+    });
+    const player = { name: 'warning-bell', nodes };
+    activePlayer = player;
+    window.setTimeout(() => {
+      if (activePlayer !== player) return;
+      nodes.forEach(node => { try { node.disconnect(); } catch (_) {} });
+      activePlayer = null;
+    }, 1300);
+    return true;
+  } catch (error) {
+    console.warn('Story warning bell playback failed.', error);
+    stopActivePlayer();
+    return false;
+  }
+}
+
 export function getStorySfxSrc(name) { return name === 'rain' ? RAIN_MP3_URL : staticSource(name); }
 export function isStorySfxReady(name) {
   if (name === 'rain') return Boolean(rainAudio);
   if (name === 'bell') return Boolean(staticSource('bell'));
+  if (name === 'warning-bell') return true;
   return decodedBuffers.has(name);
 }
 export function isStorySfxPlaying(name) {
@@ -166,7 +206,9 @@ export function isStorySfxPlaying(name) {
   return Boolean(activePlayer && (!name || activePlayer.name === name));
 }
 export async function preloadStorySfx(name) {
-  if (name === 'rain' || name === 'bell') return Boolean(name === 'rain' ? RAIN_MP3_URL : staticSource('bell'));
+  if (name === 'rain') return true;
+  if (name === 'bell') return Boolean(staticSource('bell'));
+  if (name === 'warning-bell') return true;
   return Boolean(await loadBuffer(name));
 }
 
@@ -174,6 +216,13 @@ function stopActivePlayer() {
   if (!activePlayer) return;
   const player = activePlayer;
   activePlayer = null;
+  if (Array.isArray(player.nodes)) {
+    player.nodes.forEach(node => {
+      try { node.stop?.(0); } catch (_) {}
+      try { node.disconnect?.(); } catch (_) {}
+    });
+    return;
+  }
   try { player.source.onended = null; } catch (_) {}
   try { player.source.stop(0); } catch (_) {}
   try { player.source.disconnect(); } catch (_) {}
@@ -200,8 +249,8 @@ export async function playStorySfx(name, { enabled = true, loop = false, volume,
   if (!enabled || !name || name === 'none') return false;
 
   if (name === 'rain') return playRain(volume, loop);
-  // Bell uses a direct HTMLAudio element like the older mobile-safe Story SFX engine.
   if (name === 'bell') return playBell(volume);
+  if (name === 'warning-bell') return playWarningBell(volume);
 
   const requestId = ++playRequestId;
   const ctx = ensureAudioContext();
