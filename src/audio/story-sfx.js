@@ -17,9 +17,9 @@ const decodedBuffers = new Map();
 const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-// The user's uploaded Tsar church-bell recording, stored as Base64 text parts in this repository.
-const BELL_MP3_PART_URLS = [0, 1, 2, 3].map(index =>
-  `https://raw.githubusercontent.com/mjeykey/speakUP/main/.bell-upload/part0${index}.b64`
+// Exact uploaded 50.04 s Tsar church-bell recording, stored as 17 Base64 parts in this repository.
+const BELL_MP3_PART_URLS = Array.from({ length: 17 }, (_, index) =>
+  `https://raw.githubusercontent.com/mjeykey/speakUP/main/.bell-tsar/p${String(index).padStart(2, '0')}.b64`
 );
 
 function ensureAudioContext() {
@@ -213,19 +213,21 @@ function startBellAudio(sourceUrl, volume, requestId) {
 function playBell(volume) {
   stopBellAudio();
   const requestId = ++bellRequestId;
-  // Critical mobile path: when the recording is already rebuilt, play() is called
-  // synchronously from the user's Story navigation gesture, before any await.
+  // When already rebuilt, play() stays inside the user's Story navigation gesture.
   if (bellMp3Url) return startBellAudio(bellMp3Url, volume, requestId);
   return getBellMp3Url().then(sourceUrl => startBellAudio(sourceUrl, volume, requestId));
 }
 
 function primeBellFromGesture() {
+  if (bellPrimed) return;
   const audio = ensureBellAudio();
   if (!bellMp3Url) {
     void getBellMp3Url();
     return;
   }
-  if (bellPrimed || (audio && !audio.paused && !audio.ended)) return;
+
+  const primeRequestId = bellRequestId;
+  bellPrimed = true;
   try {
     if (audio.src !== bellMp3Url) {
       audio.src = bellMp3Url;
@@ -235,17 +237,22 @@ function primeBellFromGesture() {
     audio.volume = 0;
     const playback = audio.play();
     Promise.resolve(playback).then(() => {
+      // A real bell may have started from the same tap. Never pause it here.
+      if (bellRequestId !== primeRequestId || !audio.muted) return;
       try { audio.pause(); audio.currentTime = 0; } catch (_) {}
       audio.muted = false;
       audio.volume = 0.90;
-      bellPrimed = true;
     }).catch(() => {
-      audio.muted = false;
-      audio.volume = 0.90;
+      if (bellRequestId === primeRequestId && audio.muted) {
+        audio.muted = false;
+        audio.volume = 0.90;
+        bellPrimed = false;
+      }
     });
   } catch (_) {
     audio.muted = false;
     audio.volume = 0.90;
+    bellPrimed = false;
   }
 }
 
@@ -393,8 +400,8 @@ export async function playStorySfx(name, { enabled = true, loop = false, volume,
 }
 
 if (typeof window !== 'undefined') {
-  // Build the long church-bell recording immediately so Story page 5 does not
-  // have to wait for network/atob work after the user's navigation click.
+  // Build the exact uploaded church-bell recording immediately so page 5 can
+  // start it synchronously from the user's navigation gesture.
   void getBellMp3Url();
   const prime = () => {
     void unlockStorySfx();
