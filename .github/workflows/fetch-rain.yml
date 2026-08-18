@@ -1,4 +1,4 @@
-name: Restore exact rain source
+name: Fetch full rain audio
 
 on:
   push:
@@ -11,76 +11,40 @@ permissions:
   contents: write
 
 jobs:
-  restore-rain:
+  fetch-rain:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Restore exact 41.82-second rain source
+      - name: Download full JuliusH rain MP3 from Pixabay
         shell: python
         run: |
-          import base64
-          import hashlib
-          import pathlib
-          import urllib.request
-
-          url = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3'
-          expected_mp3_sha256 = '06cb051221127bfa6f56ca93c33e3e3c7f67d3e5fae48d205579d48d55bf1d9a'
-          expected_mp3_git_blob = 'ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592'
-          expected_b64_sha256 = '19f50eb43698ac09640c71a90f87b84e50c3d332c9f7e40c2345d2f57ce9bc63'
-          expected_b64_git_blob = '3cce9b59c016ce9e67a53b662bc24f7325c6fce1'
-
-          req = urllib.request.Request(url, headers={'User-Agent': 'speakUP-rain-restore'})
-          data = urllib.request.urlopen(req, timeout=60).read()
-
-          sha256 = hashlib.sha256(data).hexdigest()
-          git_blob = hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest()
-          if sha256 != expected_mp3_sha256 or git_blob != expected_mp3_git_blob:
-              raise SystemExit(f'Exact MP3 verification failed: sha256={sha256} git_blob={git_blob}')
-
-          payload = base64.b64encode(data).decode('ascii')
-          b64_bytes = payload.encode('ascii')
-          b64_sha256 = hashlib.sha256(b64_bytes).hexdigest()
-          b64_git_blob = hashlib.sha1(f'blob {len(b64_bytes)}\0'.encode() + b64_bytes).hexdigest()
-          if b64_sha256 != expected_b64_sha256 or b64_git_blob != expected_b64_git_blob:
-              raise SystemExit(f'Base64 verification failed: sha256={b64_sha256} git_blob={b64_git_blob}')
-
-          pathlib.Path('assets/audio/rain-loop.mp3.b64').write_text(payload, encoding='ascii')
-
-          story_path = pathlib.Path('src/audio/story-sfx.js')
-          story = story_path.read_text(encoding='utf-8')
-          old = "../../assets/audio/rain-loop.mp3.b64?v=4"
-          new = "../../assets/audio/rain-loop.mp3.b64?v=5"
-          guard = "source.loop = name === 'rain' ? false : Boolean(loop);"
-          if old not in story:
-              raise SystemExit('Expected rain source v=4 not found; refusing broader code changes')
-          if guard not in story:
-              raise SystemExit('Existing rain loop=false guard missing; refusing source-only restore')
-          story_path.write_text(story.replace(old, new, 1), encoding='utf-8')
-
-          print(f'Exact MP3 verified: {len(data)} bytes; git_blob={git_blob}')
-          print(f'Exact Base64 verified: {len(payload)} chars; git_blob={b64_git_blob}')
-
-      - name: Restore helper files and commit only final rain change
+          import re, pathlib, urllib.request
+          page = 'https://pixabay.com/sound-effects/nature-rain-on-roof-or-window-nature-sounds-8312/'
+          req = urllib.request.Request(page, headers={'User-Agent':'Mozilla/5.0'})
+          html = urllib.request.urlopen(req, timeout=30).read().decode('utf-8', 'ignore')
+          urls = re.findall(r'https://cdn\.pixabay\.com/[^\"\']+?\.mp3(?:\?[^\"\']*)?', html)
+          if not urls:
+              raise SystemExit('No Pixabay MP3 URL found on page')
+          candidates = [u.replace('\\u0026','&') for u in urls]
+          url = next((u for u in candidates if '8312' in u or 'rain' in u.lower()), candidates[0])
+          out = pathlib.Path('assets/audio/rain-full.mp3')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          req2 = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0','Referer':'https://pixabay.com/'})
+          data = urllib.request.urlopen(req2, timeout=60).read()
+          if len(data) < 100000:
+              raise SystemExit(f'Download too small: {len(data)} bytes from {url}')
+          out.write_bytes(data)
+          print(f'Downloaded {len(data)} bytes from {url}')
+      - name: Commit full rain audio
         shell: bash
         run: |
           set -euo pipefail
-          BASELINE=28b44ebc1e86f27315602fa1d037c27122629209
-          git show "$BASELINE:.github/workflows/fetch-rain.yml" > .github/workflows/fetch-rain.yml
-          git show "$BASELINE:.fetch-rain-trigger" > .fetch-rain-trigger
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/audio/rain-loop.mp3.b64 src/audio/story-sfx.js .github/workflows/fetch-rain.yml .fetch-rain-trigger
-
-          test "$(git hash-object assets/audio/rain-loop.mp3.b64)" = "3cce9b59c016ce9e67a53b662bc24f7325c6fce1"
-          grep -Fq "../../assets/audio/rain-loop.mp3.b64?v=5" src/audio/story-sfx.js
-          grep -Fq "source.loop = name === 'rain' ? false : Boolean(loop);" src/audio/story-sfx.js
-
-          git diff --cached --stat
-          git diff --cached -- src/audio/story-sfx.js
-          git commit -m "Restore full 41.82-second rain source"
-          git push
+          git add assets/audio/rain-full.mp3
+          if git diff --cached --quiet; then
+            echo "Rain audio already current"
+          else
+            git commit -m "Add full 42-second rain audio"
+            git push
+          fi
