@@ -5,6 +5,7 @@ let activePlayer = null;
 let rainAudio = null;
 let rainShouldContinue = false;
 let bellAudio = null;
+let bellPrimed = false;
 let bellMp3Url = '';
 let bellMp3UrlPromise = null;
 let testStopTimer = 0;
@@ -16,7 +17,7 @@ const decodedBuffers = new Map();
 const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-// The user's uploaded 50-second Tsar church-bell recording, stored losslessly as four Base64 text parts in this repository.
+// The user's uploaded Tsar church-bell recording, stored as Base64 text parts in this repository.
 const BELL_MP3_PART_URLS = [0, 1, 2, 3].map(index =>
   `https://raw.githubusercontent.com/mjeykey/speakUP/main/.bell-upload/part0${index}.b64`
 );
@@ -48,6 +49,11 @@ async function getBellMp3Url() {
     const bytes = new Uint8Array(binary.length);
     for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
     bellMp3Url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+    const audio = ensureBellAudio();
+    if (audio.src !== bellMp3Url) {
+      audio.src = bellMp3Url;
+      audio.load();
+    }
     return bellMp3Url;
   }).catch(error => {
     bellMp3UrlPromise = null;
@@ -140,10 +146,27 @@ function playRain(volume, continueUntilStopped = false) {
     });
 }
 
+function ensureBellAudio() {
+  if (bellAudio && bellAudio.isConnected) return bellAudio;
+  const audio = document.createElement('audio');
+  audio.setAttribute('playsinline', '');
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = 0.90;
+  audio.style.position = 'fixed';
+  audio.style.width = '1px';
+  audio.style.height = '1px';
+  audio.style.opacity = '0';
+  audio.style.pointerEvents = 'none';
+  audio.style.left = '-9999px';
+  document.body.appendChild(audio);
+  bellAudio = audio;
+  return audio;
+}
+
 function stopBellAudio() {
   bellRequestId += 1;
   const audio = bellAudio;
-  bellAudio = null;
   if (!audio) return;
   audio.onended = null;
   audio.onerror = null;
@@ -151,35 +174,79 @@ function stopBellAudio() {
   try { audio.currentTime = 0; } catch (_) {}
 }
 
-async function playBell(volume) {
-  stopBellAudio();
-  const requestId = ++bellRequestId;
-  const sourceUrl = await getBellMp3Url();
-  if (!sourceUrl || requestId !== bellRequestId) return false;
-
-  const audio = new Audio(sourceUrl);
-  audio.preload = 'auto';
-  audio.loop = false;
-  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
-  bellAudio = audio;
-  audio.onended = () => {
-    if (bellRequestId !== requestId || bellAudio !== audio) return;
+function startBellAudio(sourceUrl, volume, requestId) {
+  if (!sourceUrl || requestId !== bellRequestId) return Promise.resolve(false);
+  const audio = ensureBellAudio();
+  try {
     audio.onended = null;
     audio.onerror = null;
-    bellAudio = null;
-  };
-  audio.onerror = () => {
-    if (bellRequestId !== requestId || bellAudio !== audio) return;
-    console.warn('Uploaded church bell MP3 playback failed.');
-    bellAudio = null;
-  };
-  return audio.play()
-    .then(() => bellRequestId === requestId && bellAudio === audio)
-    .catch(error => {
-      if (bellRequestId === requestId && bellAudio === audio) bellAudio = null;
-      console.warn('Uploaded church bell MP3 playback failed.', error);
-      return false;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.muted = false;
+    audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
+    if (audio.src !== sourceUrl) {
+      audio.src = sourceUrl;
+      audio.load();
+    }
+    audio.onended = () => {
+      if (bellRequestId !== requestId || bellAudio !== audio) return;
+      audio.onended = null;
+      audio.onerror = null;
+    };
+    audio.onerror = () => {
+      if (bellRequestId !== requestId || bellAudio !== audio) return;
+      console.warn('Uploaded church bell MP3 playback failed.');
+    };
+    const playback = audio.play();
+    return Promise.resolve(playback)
+      .then(() => bellRequestId === requestId && bellAudio === audio)
+      .catch(error => {
+        console.warn('Uploaded church bell MP3 playback failed.', error);
+        return false;
+      });
+  } catch (error) {
+    console.warn('Uploaded church bell MP3 playback failed.', error);
+    return Promise.resolve(false);
+  }
+}
+
+function playBell(volume) {
+  stopBellAudio();
+  const requestId = ++bellRequestId;
+  // Critical mobile path: when the recording is already rebuilt, play() is called
+  // synchronously from the user's Story navigation gesture, before any await.
+  if (bellMp3Url) return startBellAudio(bellMp3Url, volume, requestId);
+  return getBellMp3Url().then(sourceUrl => startBellAudio(sourceUrl, volume, requestId));
+}
+
+function primeBellFromGesture() {
+  const audio = ensureBellAudio();
+  if (!bellMp3Url) {
+    void getBellMp3Url();
+    return;
+  }
+  if (bellPrimed || (audio && !audio.paused && !audio.ended)) return;
+  try {
+    if (audio.src !== bellMp3Url) {
+      audio.src = bellMp3Url;
+      audio.load();
+    }
+    audio.muted = true;
+    audio.volume = 0;
+    const playback = audio.play();
+    Promise.resolve(playback).then(() => {
+      try { audio.pause(); audio.currentTime = 0; } catch (_) {}
+      audio.muted = false;
+      audio.volume = 0.90;
+      bellPrimed = true;
+    }).catch(() => {
+      audio.muted = false;
+      audio.volume = 0.90;
     });
+  } catch (_) {
+    audio.muted = false;
+    audio.volume = 0.90;
+  }
 }
 
 async function playWarningBell(volume) {
@@ -236,7 +303,7 @@ export function isStorySfxReady(name) {
 }
 export function isStorySfxPlaying(name) {
   if (name === 'rain') return Boolean(rainAudio && !rainAudio.paused && !rainAudio.ended);
-  if (name === 'bell') return Boolean(bellAudio && !bellAudio.paused && !bellAudio.ended);
+  if (name === 'bell') return Boolean(bellAudio && !bellAudio.paused && !bellAudio.ended && !bellAudio.muted);
   return Boolean(activePlayer && (!name || activePlayer.name === name));
 }
 export async function preloadStorySfx(name) {
@@ -273,8 +340,9 @@ export function stopStorySfx() {
 }
 
 export async function unlockStorySfx() {
+  ensureBellAudio();
   const ctx = ensureAudioContext();
-  if (!ctx) return false;
+  if (!ctx) return true;
   try { if (ctx.state === 'suspended') await ctx.resume(); return ctx.state === 'running'; }
   catch (_) { return false; }
 }
@@ -325,10 +393,13 @@ export async function playStorySfx(name, { enabled = true, loop = false, volume,
 }
 
 if (typeof window !== 'undefined') {
+  // Build the long church-bell recording immediately so Story page 5 does not
+  // have to wait for network/atob work after the user's navigation click.
+  void getBellMp3Url();
   const prime = () => {
     void unlockStorySfx();
-    void getBellMp3Url();
+    primeBellFromGesture();
   };
-  window.addEventListener('pointerdown', prime, { once: true, capture: true });
-  window.addEventListener('touchstart', prime, { once: true, capture: true, passive: true });
+  window.addEventListener('pointerdown', prime, { capture: true });
+  window.addEventListener('touchstart', prime, { capture: true, passive: true });
 }
