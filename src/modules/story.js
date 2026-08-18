@@ -6,7 +6,7 @@ import { isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
-const CHURCH_BELL_PAGES=new Set([4,5,6]);
+const CHURCH_BELL_PAGES=new Set([4,5,6,7]);
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 function learningItems(text,nativeText){const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);const words=[...new Set(clean(text))].slice(0,3);const hints=clean(nativeText);while(words.length<3)words.push(clean(text)[words.length]||'story');return words.map((answer,index)=>({answer,hint:hints[index]||answer}));}
