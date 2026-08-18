@@ -60,13 +60,13 @@ function stopRainAudio() {
   try { audio.removeAttribute('src'); audio.load(); } catch (_) {}
 }
 
-function playRain(volume) {
+function playRain(volume, loop = true) {
   if (rainAudio && !rainAudio.paused && !rainAudio.ended) return Promise.resolve(true);
   stopRainAudio();
   const requestId = ++rainRequestId;
   const audio = new Audio(RAIN_MP3_URL);
   audio.preload = 'auto';
-  audio.loop = false;
+  audio.loop = Boolean(loop);
   audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.10;
   rainAudio = audio;
 
@@ -130,9 +130,9 @@ export async function unlockStorySfx() {
 export async function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return false;
 
-  // Mermaid/Scene-Studio pattern: rain is its own HTMLAudio track.
-  // It never shares the narrator/player lifecycle and always plays exactly once.
-  if (name === 'rain') return playRain(volume);
+  // Rain is an independent HTMLAudio ambience track. It may loop while the
+  // current story page stays open; story.js stops it on the actual page change.
+  if (name === 'rain') return playRain(volume, loop);
 
   const requestId = ++playRequestId;
   const ctx = ensureAudioContext();
