@@ -3,15 +3,17 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let audioContext = null;
 let activePlayer = null;
 let testStopTimer = 0;
-let rainDataUrlPromise = null;
+let playRequestId = 0;
 
-const RAIN_B64_PATH = 'assets/audio/rain-loop.mp3.b64';
+const decodedBuffers = new Map();
+const loadingBuffers = new Map();
+const RAIN_B64_URL = new URL('../../assets/audio/rain-loop.mp3.b64?v=4', import.meta.url).href;
 
 function ensureAudioContext() {
   if (!audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return null;
-    audioContext = new AudioContextClass();
+    audioContext = new AudioContextClass({ latencyHint: 'interactive' });
   }
   return audioContext;
 }
@@ -21,44 +23,87 @@ function staticSource(name) {
   return STORY_SFX_ASSETS[name] || '';
 }
 
-async function resolvePlayableSource(name) {
-  if (name !== 'rain') return staticSource(name);
-  if (!rainDataUrlPromise) {
-    rainDataUrlPromise = fetch(RAIN_B64_PATH, { cache: 'force-cache' })
-      .then(response => {
-        if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
-        return response.text();
-      })
-      .then(base64 => `data:audio/mpeg;base64,${base64.trim()}`)
-      .catch(error => {
-        rainDataUrlPromise = null;
-        console.warn('Real rain asset could not be loaded.', error);
-        return '';
-      });
+function base64ToArrayBuffer(base64Text) {
+  const clean = String(base64Text || '').replace(/\s+/g, '');
+  if (!clean) throw new Error('Story SFX base64 asset is empty');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
   }
-  return rainDataUrlPromise;
+  return bytes.buffer;
+}
+
+async function sourceArrayBuffer(name) {
+  if (name === 'rain') {
+    const response = await fetch(RAIN_B64_URL, { cache: 'force-cache' });
+    if (!response.ok) throw new Error(`Rain asset HTTP ${response.status}`);
+    return base64ToArrayBuffer(await response.text());
+  }
+
+  const src = staticSource(name);
+  if (!src) throw new Error(`No Story SFX asset for ${name}`);
+  const response = await fetch(src);
+  if (!response.ok) throw new Error(`Story SFX HTTP ${response.status}`);
+  return response.arrayBuffer();
+}
+
+async function loadBuffer(name) {
+  if (!name || name === 'none') return null;
+  if (decodedBuffers.has(name)) return decodedBuffers.get(name);
+  if (loadingBuffers.has(name)) return loadingBuffers.get(name);
+
+  const ctx = ensureAudioContext();
+  if (!ctx) return null;
+
+  const promise = sourceArrayBuffer(name)
+    .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer.slice(0)))
+    .then(buffer => {
+      decodedBuffers.set(name, buffer);
+      loadingBuffers.delete(name);
+      return buffer;
+    })
+    .catch(error => {
+      loadingBuffers.delete(name);
+      console.warn('Story SFX preload failed.', name, error);
+      return null;
+    });
+
+  loadingBuffers.set(name, promise);
+  return promise;
 }
 
 export function getStorySfxSrc(name) {
-  return name === 'rain' ? RAIN_B64_PATH : staticSource(name);
+  return name === 'rain' ? RAIN_B64_URL : staticSource(name);
 }
 
-function disconnectPlayer(player) {
-  if (!player) return;
-  try {
-    player.audio.pause();
-    player.audio.currentTime = 0;
-  } catch (_) {}
+export function isStorySfxReady(name) {
+  return decodedBuffers.has(name);
+}
+
+export function isStorySfxPlaying(name) {
+  return Boolean(activePlayer && (!name || activePlayer.name === name));
+}
+
+export async function preloadStorySfx(name) {
+  return Boolean(await loadBuffer(name));
+}
+
+function stopActivePlayer() {
+  if (!activePlayer) return;
+  const player = activePlayer;
+  activePlayer = null;
+  try { player.source.onended = null; } catch (_) {}
+  try { player.source.stop(0); } catch (_) {}
   try { player.source.disconnect(); } catch (_) {}
   try { player.gain.disconnect(); } catch (_) {}
 }
 
 export function stopStorySfx() {
+  playRequestId += 1;
   window.clearTimeout(testStopTimer);
   testStopTimer = 0;
-  if (!activePlayer) return;
-  disconnectPlayer(activePlayer);
-  activePlayer = null;
+  stopActivePlayer();
 }
 
 export async function unlockStorySfx() {
@@ -72,24 +117,6 @@ export async function unlockStorySfx() {
   }
 }
 
-function createMixedPlayer(src, { loop = false, volume = 0.2 } = {}) {
-  const ctx = ensureAudioContext();
-  if (!ctx) return null;
-
-  const audio = new Audio(src);
-  audio.preload = 'auto';
-  audio.loop = loop;
-
-  const source = ctx.createMediaElementSource(audio);
-  const gain = ctx.createGain();
-  gain.gain.value = volume;
-
-  source.connect(gain);
-  gain.connect(ctx.destination);
-
-  return { audio, source, gain };
-}
-
 export async function playStorySfx(name, {
   enabled = true,
   loop = false,
@@ -98,38 +125,45 @@ export async function playStorySfx(name, {
 } = {}) {
   if (!enabled || !name || name === 'none') return false;
 
-  const src = await resolvePlayableSource(name);
-  if (!src) {
-    console.warn('No real Story SFX asset found for', name);
-    return false;
-  }
-
+  const requestId = ++playRequestId;
   const ctx = ensureAudioContext();
   if (!ctx) return false;
 
   try {
     if (ctx.state === 'suspended') await ctx.resume();
-    if (ctx.state !== 'running') return false;
+    if (ctx.state !== 'running' || requestId !== playRequestId) return false;
 
-    stopStorySfx();
+    const buffer = await loadBuffer(name);
+    if (!buffer || requestId !== playRequestId) return false;
 
+    stopActivePlayer();
+    window.clearTimeout(testStopTimer);
+    testStopTimer = 0;
+
+    const source = ctx.createBufferSource();
+    const gain = ctx.createGain();
     const isAmbience = name === 'rain' || name === 'wind' || name === 'soft-wind' || name === 'dawn-wind' || name === 'water';
-    const player = createMixedPlayer(src, {
-      loop,
-      volume: Number.isFinite(volume) ? volume : (isAmbience ? 0.1 : 0.3)
-    });
-    if (!player) return false;
+    const selectedVolume = Number.isFinite(volume)
+      ? Math.max(0, Math.min(1, volume))
+      : (isAmbience ? 0.10 : 0.30);
 
+    source.buffer = buffer;
+    source.loop = Boolean(loop);
+    gain.gain.setValueAtTime(selectedVolume, ctx.currentTime);
+    source.connect(gain);
+    gain.connect(ctx.destination);
+
+    const player = { name, source, gain };
     activePlayer = player;
 
-    player.audio.addEventListener('ended', () => {
-      if (activePlayer === player && !player.audio.loop) {
-        disconnectPlayer(player);
-        activePlayer = null;
-      }
-    }, { once: true });
+    source.onended = () => {
+      if (activePlayer !== player || source.loop) return;
+      try { source.disconnect(); } catch (_) {}
+      try { gain.disconnect(); } catch (_) {}
+      activePlayer = null;
+    };
 
-    await player.audio.play();
+    source.start(0);
 
     if (testDurationMs > 0) {
       testStopTimer = window.setTimeout(() => {
@@ -140,7 +174,7 @@ export async function playStorySfx(name, {
     return true;
   } catch (error) {
     console.warn('Story SFX playback failed.', name, error);
-    stopStorySfx();
+    if (requestId === playRequestId) stopStorySfx();
     return false;
   }
 }
