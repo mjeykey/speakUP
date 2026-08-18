@@ -4,9 +4,11 @@ let audioContext = null;
 let activePlayer = null;
 let rainAudio = null;
 let rainShouldContinue = false;
+let bellAudio = null;
 let testStopTimer = 0;
 let playRequestId = 0;
 let rainRequestId = 0;
+let bellRequestId = 0;
 
 const decodedBuffers = new Map();
 const loadingBuffers = new Map();
@@ -36,7 +38,7 @@ async function sourceArrayBuffer(name) {
 }
 
 async function loadBuffer(name) {
-  if (!name || name === 'none' || name === 'rain') return null;
+  if (!name || name === 'none' || name === 'rain' || name === 'bell') return null;
   if (decodedBuffers.has(name)) return decodedBuffers.get(name);
   if (loadingBuffers.has(name)) return loadingBuffers.get(name);
   const ctx = ensureAudioContext();
@@ -111,14 +113,60 @@ function playRain(volume, continueUntilStopped = false) {
     });
 }
 
+function stopBellAudio() {
+  bellRequestId += 1;
+  const audio = bellAudio;
+  bellAudio = null;
+  if (!audio) return;
+  audio.onended = null;
+  audio.onerror = null;
+  try { audio.pause(); } catch (_) {}
+  try { audio.currentTime = 0; } catch (_) {}
+}
+
+function playBell(volume) {
+  const src = staticSource('bell');
+  if (!src) return Promise.resolve(false);
+  stopBellAudio();
+  const requestId = ++bellRequestId;
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.loop = false;
+  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
+  bellAudio = audio;
+  audio.onended = () => {
+    if (bellRequestId !== requestId || bellAudio !== audio) return;
+    audio.onended = null;
+    audio.onerror = null;
+    bellAudio = null;
+  };
+  audio.onerror = () => {
+    if (bellRequestId !== requestId || bellAudio !== audio) return;
+    console.warn('Story bell playback failed.');
+    bellAudio = null;
+  };
+  return audio.play()
+    .then(() => bellRequestId === requestId && bellAudio === audio)
+    .catch(error => {
+      if (bellRequestId === requestId && bellAudio === audio) bellAudio = null;
+      console.warn('Story bell playback failed.', error);
+      return false;
+    });
+}
+
 export function getStorySfxSrc(name) { return name === 'rain' ? RAIN_MP3_URL : staticSource(name); }
-export function isStorySfxReady(name) { return name === 'rain' ? Boolean(rainAudio) : decodedBuffers.has(name); }
+export function isStorySfxReady(name) {
+  if (name === 'rain') return Boolean(rainAudio);
+  if (name === 'bell') return Boolean(staticSource('bell'));
+  return decodedBuffers.has(name);
+}
 export function isStorySfxPlaying(name) {
   if (name === 'rain') return Boolean(rainAudio && !rainAudio.paused && !rainAudio.ended);
+  if (name === 'bell') return Boolean(bellAudio && !bellAudio.paused && !bellAudio.ended);
   return Boolean(activePlayer && (!name || activePlayer.name === name));
 }
 export async function preloadStorySfx(name) {
-  if (name === 'rain') return true;
+  if (name === 'rain' || name === 'bell') return Boolean(name === 'rain' ? RAIN_MP3_URL : staticSource('bell'));
   return Boolean(await loadBuffer(name));
 }
 
@@ -138,6 +186,7 @@ export function stopStorySfx() {
   testStopTimer = 0;
   stopActivePlayer();
   stopRainAudio();
+  stopBellAudio();
 }
 
 export async function unlockStorySfx() {
@@ -150,10 +199,9 @@ export async function unlockStorySfx() {
 export async function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return false;
 
-  // Rain keeps the proven one-shot HTMLAudio playback. When requested as
-  // ambience, it restarts only after the full recording ends and continues
-  // until story.js explicitly stops it on the real page change.
   if (name === 'rain') return playRain(volume, loop);
+  // Bell uses a direct HTMLAudio element like the older mobile-safe Story SFX engine.
+  if (name === 'bell') return playBell(volume);
 
   const requestId = ++playRequestId;
   const ctx = ensureAudioContext();
