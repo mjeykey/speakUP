@@ -14,7 +14,7 @@ const decodedBuffers = new Map();
 const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-const BELL_MP3_URL = new URL('../../assets/audio/bell.mp3', import.meta.url).href;
+const BELL_MP3_URL = STORY_SFX_ASSETS.bell || '';
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -124,6 +124,7 @@ function stopBellAudio() {
 }
 
 function playBell(volume) {
+  if (!BELL_MP3_URL) return Promise.resolve(false);
   stopBellAudio();
   const requestId = ++bellRequestId;
   const audio = new Audio(BELL_MP3_URL);
@@ -199,7 +200,7 @@ export function getStorySfxSrc(name) {
 }
 export function isStorySfxReady(name) {
   if (name === 'rain') return Boolean(rainAudio);
-  if (name === 'bell') return true;
+  if (name === 'bell') return Boolean(BELL_MP3_URL);
   if (name === 'warning-bell') return true;
   return decodedBuffers.has(name);
 }
@@ -209,7 +210,9 @@ export function isStorySfxPlaying(name) {
   return Boolean(activePlayer && (!name || activePlayer.name === name));
 }
 export async function preloadStorySfx(name) {
-  if (name === 'rain' || name === 'bell' || name === 'warning-bell') return true;
+  if (name === 'rain') return true;
+  if (name === 'bell') return Boolean(BELL_MP3_URL);
+  if (name === 'warning-bell') return true;
   return Boolean(await loadBuffer(name));
 }
 
