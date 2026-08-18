@@ -3,6 +3,7 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let audioContext = null;
 let activePlayer = null;
 let rainAudio = null;
+let rainShouldContinue = false;
 let testStopTimer = 0;
 let playRequestId = 0;
 let rainRequestId = 0;
@@ -49,6 +50,7 @@ async function loadBuffer(name) {
 }
 
 function stopRainAudio() {
+  rainShouldContinue = false;
   rainRequestId += 1;
   const audio = rainAudio;
   rainAudio = null;
@@ -60,14 +62,22 @@ function stopRainAudio() {
   try { audio.removeAttribute('src'); audio.load(); } catch (_) {}
 }
 
-function playRain(volume, loop = true) {
-  if (rainAudio && !rainAudio.paused && !rainAudio.ended) return Promise.resolve(true);
+function playRain(volume, continueUntilStopped = false) {
+  if (rainAudio && !rainAudio.paused && !rainAudio.ended) {
+    rainShouldContinue = rainShouldContinue || Boolean(continueUntilStopped);
+    return Promise.resolve(true);
+  }
+
   stopRainAudio();
+  rainShouldContinue = Boolean(continueUntilStopped);
   const requestId = ++rainRequestId;
+  const selectedVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.10;
   const audio = new Audio(RAIN_MP3_URL);
   audio.preload = 'auto';
-  audio.loop = Boolean(loop);
-  audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.10;
+  // Keep the exact playback mode that was proven to work on the device.
+  // Repeating is handled only after the file ends, not by the browser loop flag.
+  audio.loop = false;
+  audio.volume = selectedVolume;
   rainAudio = audio;
 
   audio.onended = () => {
@@ -75,17 +85,27 @@ function playRain(volume, loop = true) {
     audio.onended = null;
     audio.onerror = null;
     rainAudio = null;
+    if (!rainShouldContinue) return;
+    window.setTimeout(() => {
+      if (rainRequestId !== requestId || !rainShouldContinue || rainAudio) return;
+      void playRain(selectedVolume, true);
+    }, 0);
   };
+
   audio.onerror = () => {
     if (rainRequestId !== requestId || rainAudio !== audio) return;
     console.warn('Story rain playback failed.');
+    rainShouldContinue = false;
     rainAudio = null;
   };
 
   return audio.play()
     .then(() => rainRequestId === requestId && rainAudio === audio)
     .catch(error => {
-      if (rainRequestId === requestId && rainAudio === audio) rainAudio = null;
+      if (rainRequestId === requestId && rainAudio === audio) {
+        rainShouldContinue = false;
+        rainAudio = null;
+      }
       console.warn('Story rain playback failed.', error);
       return false;
     });
@@ -130,8 +150,9 @@ export async function unlockStorySfx() {
 export async function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return false;
 
-  // Rain is an independent HTMLAudio ambience track. It may loop while the
-  // current story page stays open; story.js stops it on the actual page change.
+  // Rain keeps the proven one-shot HTMLAudio playback. When requested as
+  // ambience, it restarts only after the full recording ends and continues
+  // until story.js explicitly stops it on the real page change.
   if (name === 'rain') return playRain(volume, loop);
 
   const requestId = ++playRequestId;
