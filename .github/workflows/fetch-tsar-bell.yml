@@ -16,22 +16,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Fetch SoundReality Tsar bell and record verification
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           import hashlib, html as htmlmod, pathlib, re, urllib.parse, urllib.request
 
           page = 'https://pixabay.com/sound-effects/film-special-effects-tsar-bell-sound-simulation-292699/'
           target_sha = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58'
           target_size = 1601280
           report = []
+          raw = ''
 
-          req = urllib.request.Request(page, headers={'User-Agent':'Mozilla/5.0'})
-          raw = urllib.request.urlopen(req, timeout=30).read().decode('utf-8', 'ignore')
-          text = htmlmod.unescape(raw).replace('\\u0026', '&').replace('\\/', '/')
-          text = urllib.parse.unquote(text)
-          urls = re.findall(r'https://cdn\.pixabay\.com/[^\"\'<> ]+?\.mp3(?:\?[^\"\'<> ]*)?', text)
-          urls = list(dict.fromkeys(urls))
-          report.append(f'page_bytes={len(raw.encode("utf-8"))}')
+          try:
+              req = urllib.request.Request(page, headers={'User-Agent':'Mozilla/5.0'})
+              raw = urllib.request.urlopen(req, timeout=30).read().decode('utf-8', 'ignore')
+              report.append(f'page_bytes={len(raw.encode("utf-8"))}')
+          except Exception as exc:
+              report.append(f'PAGE_FETCH_ERROR={exc!r}')
+
+          urls = []
+          if raw:
+              text = htmlmod.unescape(raw).replace('\\u0026', '&').replace('\\/', '/')
+              text = urllib.parse.unquote(text)
+              urls = re.findall(r'https://cdn\.pixabay\.com/[^\"\'<> ]+?\.mp3(?:\?[^\"\'<> ]*)?', text)
+              urls = list(dict.fromkeys(urls))
           report.append(f'candidate_urls={len(urls)}')
 
           preferred = [u for u in urls if '292699' in u or 'tsar' in u.lower() or 'bell' in u.lower()]
@@ -55,7 +63,7 @@ jobs:
               except Exception as exc:
                   report.append(f'{i}: ERROR {url}: {exc!r}')
 
-          if not urls:
+          if raw and not urls:
               interesting = [line.strip() for line in raw.splitlines() if '292699' in line or '.mp3' in line or 'cdn.pixabay' in line]
               report.append('NO_DIRECT_URLS')
               report.extend(interesting[:30])
@@ -72,6 +80,7 @@ jobs:
 
           pathlib.Path('.tsar-bell-report.txt').write_text('\n'.join(report) + '\n', encoding='utf-8')
           print('\n'.join(report))
+          PY
 
       - name: Commit Tsar bell candidate and report
         shell: bash
