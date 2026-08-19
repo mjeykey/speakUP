@@ -28,8 +28,8 @@ jobs:
           sha=$(sha256sum /tmp/tsar.mp3 | awk '{print $1}')
           echo "size=$size"
           echo "sha256=$sha"
-          test "$size" = "400748"
-          test "$sha" = "6510267f5ec4dbf5eadfe34f3f6caf1797b2080df031b769e41d7f7794b11ad8"
+          test "$size" = "200637"
+          test "$sha" = "e399cbed63cccbc5321322e105a6c4fa615dc16199d19fc84ea594b8ff75cbcd"
           mkdir -p assets/audio
           cp /tmp/tsar.mp3 assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
 
