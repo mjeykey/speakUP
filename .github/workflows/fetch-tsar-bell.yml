@@ -15,74 +15,169 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch SoundReality Tsar bell and record verification
+
+      - name: Install browser helper
         shell: bash
         run: |
-          python - <<'PY'
-          import hashlib, html as htmlmod, pathlib, re, urllib.parse, urllib.request
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
 
-          page = 'https://pixabay.com/sound-effects/film-special-effects-tsar-bell-sound-simulation-292699/'
-          target_sha = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58'
-          target_size = 1601280
-          report = []
-          raw = ''
+      - name: Fetch and verify the exact uploaded Tsar bell
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const path = require('path');
 
-          try:
-              req = urllib.request.Request(page, headers={'User-Agent':'Mozilla/5.0'})
-              raw = urllib.request.urlopen(req, timeout=30).read().decode('utf-8', 'ignore')
-              report.append(f'page_bytes={len(raw.encode("utf-8"))}')
-          except Exception as exc:
-              report.append(f'PAGE_FETCH_ERROR={exc!r}')
+          const PAGE_URL = 'https://pixabay.com/sound-effects/film-special-effects-tsar-bell-sound-simulation-292699/';
+          const TARGET_SHA = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58';
+          const TARGET_SIZE = 1601280;
+          const OUT = 'assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3';
+          const report = [];
+          const candidates = new Set();
+          const add = value => {
+            if (!value || typeof value !== 'string') return;
+            const clean = value.replace(/\\u0026/g, '&').replace(/\\\//g, '/');
+            if (/\.mp3(?:\?|$)/i.test(clean)) candidates.add(clean);
+          };
+          const sha256 = data => crypto.createHash('sha256').update(data).digest('hex');
 
-          urls = []
-          if raw:
-              text = htmlmod.unescape(raw).replace('\\u0026', '&').replace('\\/', '/')
-              text = urllib.parse.unquote(text)
-              urls = re.findall(r'https://cdn\.pixabay\.com/[^\"\'<> ]+?\.mp3(?:\?[^\"\'<> ]*)?', text)
-              urls = list(dict.fromkeys(urls))
-          report.append(f'candidate_urls={len(urls)}')
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+              locale: 'en-US',
+              extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' }
+            });
+            const page = await context.newPage();
 
-          preferred = [u for u in urls if '292699' in u or 'tsar' in u.lower() or 'bell' in u.lower()]
-          candidates = preferred + [u for u in urls if u not in preferred]
-          chosen = None
-          exact = False
+            page.on('request', request => add(request.url()));
+            page.on('response', response => {
+              const url = response.url();
+              const type = response.headers()['content-type'] || '';
+              if (/audio|mpeg/i.test(type) || /\.mp3(?:\?|$)/i.test(url)) add(url);
+            });
 
-          for i, url in enumerate(candidates[:40]):
-              try:
-                  req2 = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0','Referer':'https://pixabay.com/'})
-                  data = urllib.request.urlopen(req2, timeout=60).read()
-                  sha = hashlib.sha256(data).hexdigest()
-                  report.append(f'{i}: size={len(data)} sha256={sha} url={url}')
-                  if sha == target_sha and len(data) == target_size:
-                      chosen = data
-                      exact = True
-                      report.append('MATCH=EXACT_USER_UPLOAD')
-                      break
-                  if chosen is None and len(data) > 100000 and ('292699' in url or 'tsar' in url.lower() or 'bell' in url.lower()):
-                      chosen = data
-              except Exception as exc:
-                  report.append(f'{i}: ERROR {url}: {exc!r}')
+            try {
+              const response = await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
+              report.push(`page_status=${response ? response.status() : 'none'}`);
+              report.push(`page_title=${await page.title()}`);
+              await page.waitForTimeout(7000);
 
-          if raw and not urls:
-              interesting = [line.strip() for line in raw.splitlines() if '292699' in line or '.mp3' in line or 'cdn.pixabay' in line]
-              report.append('NO_DIRECT_URLS')
-              report.extend(interesting[:30])
+              const media = await page.locator('audio, source').evaluateAll(nodes => nodes.flatMap(node => [
+                node.src,
+                node.currentSrc,
+                node.getAttribute && node.getAttribute('src')
+              ]).filter(Boolean));
+              media.forEach(add);
 
-          if chosen is not None:
-              out = pathlib.Path('assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3')
-              out.parent.mkdir(parents=True, exist_ok=True)
-              out.write_bytes(chosen)
-              report.append(f'written_size={len(chosen)}')
-              report.append(f'written_sha256={hashlib.sha256(chosen).hexdigest()}')
-              report.append(f'exact={exact}')
-          else:
-              report.append('written_size=0')
+              const links = await page.locator('a').evaluateAll(nodes => nodes.map(node => node.href).filter(Boolean));
+              links.forEach(add);
 
-          pathlib.Path('.tsar-bell-report.txt').write_text('\n'.join(report) + '\n', encoding='utf-8')
-          print('\n'.join(report))
-          PY
+              const html = await page.content();
+              const matches = html.match(/https:\/\/[^\"'<>\\ ]+?\.mp3(?:\?[^\"'<>\\ ]*)?/gi) || [];
+              matches.forEach(add);
 
-      - name: Commit Tsar bell candidate and report
+              const playSelectors = [
+                'button[aria-label*="play" i]',
+                'button[title*="play" i]',
+                '[role="button"][aria-label*="play" i]'
+              ];
+              for (const selector of playSelectors) {
+                const button = page.locator(selector).first();
+                if (await button.count()) {
+                  try {
+                    await button.click({ timeout: 5000 });
+                    await page.waitForTimeout(5000);
+                    report.push(`clicked_play=${selector}`);
+                    break;
+                  } catch (error) {
+                    report.push(`play_click_error=${String(error).slice(0,180)}`);
+                  }
+                }
+              }
+
+              const mediaAfter = await page.locator('audio, source').evaluateAll(nodes => nodes.flatMap(node => [
+                node.src,
+                node.currentSrc,
+                node.getAttribute && node.getAttribute('src')
+              ]).filter(Boolean));
+              mediaAfter.forEach(add);
+
+              report.push(`candidate_count=${candidates.size}`);
+              let exact = null;
+              let index = 0;
+              for (const url of candidates) {
+                try {
+                  const response = await context.request.get(url, {
+                    headers: { Referer: PAGE_URL },
+                    timeout: 120000
+                  });
+                  const body = await response.body();
+                  const hash = sha256(body);
+                  report.push(`${index}: status=${response.status()} size=${body.length} sha256=${hash} url=${url}`);
+                  if (body.length === TARGET_SIZE && hash === TARGET_SHA) {
+                    exact = body;
+                    report.push('MATCH=EXACT_CHAT_UPLOAD');
+                    break;
+                  }
+                } catch (error) {
+                  report.push(`${index}: fetch_error=${String(error).slice(0,300)} url=${url}`);
+                }
+                index += 1;
+              }
+
+              if (!exact) {
+                try {
+                  const downloadButton = page.getByText(/^download$/i).first();
+                  if (await downloadButton.count()) {
+                    const downloadPromise = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
+                    await downloadButton.click({ timeout: 8000 }).catch(() => {});
+                    const download = await downloadPromise;
+                    if (download) {
+                      const tmp = await download.path();
+                      if (tmp) {
+                        const body = fs.readFileSync(tmp);
+                        const hash = sha256(body);
+                        report.push(`download_event size=${body.length} sha256=${hash}`);
+                        if (body.length === TARGET_SIZE && hash === TARGET_SHA) {
+                          exact = body;
+                          report.push('MATCH=EXACT_CHAT_UPLOAD_VIA_DOWNLOAD');
+                        }
+                      }
+                    }
+                  }
+                } catch (error) {
+                  report.push(`download_error=${String(error).slice(0,300)}`);
+                }
+              }
+
+              if (exact) {
+                fs.mkdirSync(path.dirname(OUT), { recursive: true });
+                fs.writeFileSync(OUT, exact);
+                report.push(`written_size=${exact.length}`);
+                report.push(`written_sha256=${sha256(exact)}`);
+              } else {
+                report.push('written_size=0');
+              }
+            } catch (error) {
+              report.push(`BROWSER_ERROR=${String(error).slice(0,1000)}`);
+              report.push('written_size=0');
+            } finally {
+              await browser.close();
+              fs.writeFileSync('.tsar-bell-report.txt', report.join('\n') + '\n');
+              console.log(report.join('\n'));
+            }
+          })().catch(error => {
+            fs.writeFileSync('.tsar-bell-report.txt', `FATAL=${String(error)}\nwritten_size=0\n`);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Commit only an exact match and the diagnostic report
         shell: bash
         run: |
           set -euo pipefail
@@ -90,11 +185,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .tsar-bell-report.txt
           if [ -f assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 ]; then
+            actual_size=$(stat -c%s assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3)
+            actual_sha=$(sha256sum assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 | awk '{print $1}')
+            test "$actual_size" = "1601280"
+            test "$actual_sha" = "969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58"
             git add assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
           fi
           if git diff --cached --quiet; then
-            echo "No Tsar bell diagnostic changes"
+            echo "No Tsar bell changes"
           else
-            git commit -m "Fetch and verify SoundReality Tsar bell audio"
+            git commit -m "Fetch exact uploaded Tsar bell audio"
             git push
           fi
