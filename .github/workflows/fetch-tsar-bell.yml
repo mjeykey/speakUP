@@ -1,10 +1,10 @@
-name: Install exact uploaded Tsar bell
+name: Install uploaded Tsar bell
 
 on:
   push:
     branches: [main]
     paths:
-      - '.bell-upload/**'
+      - '.bell-upload/READY'
   workflow_dispatch:
 
 permissions:
@@ -18,22 +18,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Rebuild exact uploaded MP3
+      - name: Rebuild uploaded bell MP3
         shell: bash
         run: |
           set -euo pipefail
-          test -d .bell-upload
+          test -f .bell-upload/READY
           cat .bell-upload/part*.b64 | tr -d '\n\r ' | base64 -d > /tmp/tsar.mp3
           size=$(wc -c < /tmp/tsar.mp3 | tr -d ' ')
           sha=$(sha256sum /tmp/tsar.mp3 | awk '{print $1}')
           echo "size=$size"
           echo "sha256=$sha"
-          test "$size" = "1601280"
-          test "$sha" = "969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58"
+          test "$size" = "400748"
+          test "$sha" = "6510267f5ec4dbf5eadfe34f3f6caf1797b2080df031b769e41d7f7794b11ad8"
           mkdir -p assets/audio
           cp /tmp/tsar.mp3 assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
 
-      - name: Commit exact user MP3 and remove transport chunks
+      - name: Commit bell and remove transport chunks
         shell: bash
         run: |
           set -euo pipefail
@@ -41,5 +41,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
           git rm -r .bell-upload
-          git commit -m "Install exact uploaded Tsar bell MP3"
+          git commit -m "Install uploaded Tsar bell MP3"
           git push
