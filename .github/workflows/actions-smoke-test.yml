@@ -1,0 +1,26 @@
+name: Actions smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .actions-smoke-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'actions-ok\n' > .actions-smoke-proof
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .actions-smoke-proof
+          git commit -m "Prove GitHub Actions execution"
+          git push
