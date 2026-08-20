@@ -16,7 +16,8 @@ const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 // Exact verified 50.04 s user-uploaded Tsar church-bell recording.
-const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3', import.meta.url).href;
+// The version query is tied to the verified upload so browsers cannot reuse an older bell cached at the same path.
+const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd2', import.meta.url).href;
 let bellMp3Url = BELL_MP3_URL;
 
 function ensureAudioContext() {
