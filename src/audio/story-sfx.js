@@ -6,8 +6,6 @@ let rainAudio = null;
 let rainShouldContinue = false;
 let bellAudio = null;
 let bellPrimed = false;
-let bellMp3Url = '';
-let bellMp3UrlPromise = null;
 let testStopTimer = 0;
 let playRequestId = 0;
 let rainRequestId = 0;
@@ -17,10 +15,9 @@ const decodedBuffers = new Map();
 const loadingBuffers = new Map();
 // Exact 41.822031 s Library recording; immutable source commit, Git blob ddbc829ff6d8e4d3b64b2a5e65d6945a216e2592.
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-// Exact uploaded 50.04 s Tsar church-bell recording, stored as 17 Base64 parts in this repository.
-const BELL_MP3_PART_URLS = Array.from({ length: 17 }, (_, index) =>
-  `https://raw.githubusercontent.com/mjeykey/speakUP/main/.bell-tsar/p${String(index).padStart(2, '0')}.b64`
-);
+// Exact verified 50.04 s user-uploaded Tsar church-bell recording.
+const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3', import.meta.url).href;
+let bellMp3Url = BELL_MP3_URL;
 
 function ensureAudioContext() {
   if (!audioContext) {
@@ -37,31 +34,15 @@ function staticSource(name) {
 }
 
 async function getBellMp3Url() {
-  if (bellMp3Url) return bellMp3Url;
-  if (bellMp3UrlPromise) return bellMp3UrlPromise;
-
-  bellMp3UrlPromise = Promise.all(BELL_MP3_PART_URLS.map(async url => {
-    const response = await fetch(url, { cache: 'force-cache' });
-    if (!response.ok) throw new Error(`Church bell part HTTP ${response.status}`);
-    return (await response.text()).trim();
-  })).then(parts => {
-    const binary = atob(parts.join(''));
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-    bellMp3Url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+  bellMp3Url = BELL_MP3_URL;
+  if (typeof document !== 'undefined' && document.body) {
     const audio = ensureBellAudio();
-    if (audio.src !== bellMp3Url) {
-      audio.src = bellMp3Url;
+    if (audio.src !== BELL_MP3_URL) {
+      audio.src = BELL_MP3_URL;
       audio.load();
     }
-    return bellMp3Url;
-  }).catch(error => {
-    bellMp3UrlPromise = null;
-    console.warn('Uploaded church bell MP3 could not be rebuilt.', error);
-    return '';
-  });
-
-  return bellMp3UrlPromise;
+  }
+  return BELL_MP3_URL;
 }
 
 async function sourceArrayBuffer(name) {
@@ -153,6 +134,7 @@ function ensureBellAudio() {
   audio.preload = 'auto';
   audio.loop = false;
   audio.volume = 0.90;
+  audio.src = BELL_MP3_URL;
   audio.style.position = 'fixed';
   audio.style.width = '1px';
   audio.style.height = '1px';
@@ -213,9 +195,8 @@ function startBellAudio(sourceUrl, volume, requestId) {
 function playBell(volume) {
   stopBellAudio();
   const requestId = ++bellRequestId;
-  // When already rebuilt, play() stays inside the user's Story navigation gesture.
-  if (bellMp3Url) return startBellAudio(bellMp3Url, volume, requestId);
-  return getBellMp3Url().then(sourceUrl => startBellAudio(sourceUrl, volume, requestId));
+  // Direct verified MP3 keeps play() inside the user's Story navigation gesture.
+  return startBellAudio(BELL_MP3_URL, volume, requestId);
 }
 
 function primeBellFromGesture() {
@@ -299,12 +280,12 @@ async function playWarningBell(volume) {
 
 export function getStorySfxSrc(name) {
   if (name === 'rain') return RAIN_MP3_URL;
-  if (name === 'bell') return bellMp3Url;
+  if (name === 'bell') return BELL_MP3_URL;
   return staticSource(name);
 }
 export function isStorySfxReady(name) {
   if (name === 'rain') return Boolean(rainAudio);
-  if (name === 'bell') return Boolean(bellMp3Url);
+  if (name === 'bell') return Boolean(BELL_MP3_URL);
   if (name === 'warning-bell') return true;
   return decodedBuffers.has(name);
 }
@@ -400,7 +381,7 @@ export async function playStorySfx(name, { enabled = true, loop = false, volume,
 }
 
 if (typeof window !== 'undefined') {
-  // Build the exact uploaded church-bell recording immediately so page 5 can
+  // Preload the exact verified church-bell MP3 so page 5 can
   // start it synchronously from the user's navigation gesture.
   void getBellMp3Url();
   const prime = () => {
