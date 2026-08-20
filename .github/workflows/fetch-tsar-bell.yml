@@ -1,4 +1,4 @@
-name: Fetch exact uploaded Tsar bell
+name: Wire verified Tsar bell
 
 on:
   push:
@@ -11,118 +11,108 @@ permissions:
   contents: write
 
 jobs:
-  fetch-exact-bell:
+  wire-verified-bell:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fetch Pixabay page with browser and verify exact MP3
+      - name: Verify exact user MP3
         shell: bash
         run: |
           set -euo pipefail
-          TARGET_SIZE=1601280
-          TARGET_SHA=969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58
-          PAGE1='https://pixabay.com/sound-effects/film-special-effects-tsar-bell-sound-simulation-292699/'
-          PAGE2='https://pixabay.com/sound-effects/tsar-bell-sound-simulation-292699/'
-          REPORT=.tsar-bell-browser-report.txt
-          : > "$REPORT"
+          FILE='assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3'
+          test -f "$FILE"
+          test "$(wc -c < "$FILE" | tr -d ' ')" = '1601280'
+          test "$(sha256sum "$FILE" | awk '{print $1}')" = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58'
+          echo 'Exact uploaded Tsar bell verified.'
 
-          CHROME=''
-          for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
-            if command -v "$candidate" >/dev/null 2>&1; then CHROME="$candidate"; break; fi
-          done
-          if [ -z "$CHROME" ]; then
-            echo 'CHROME_NOT_FOUND' | tee -a "$REPORT"
-            exit 0
-          fi
-          echo "chrome=$CHROME" | tee -a "$REPORT"
-
-          rm -f /tmp/pixabay-*.html /tmp/candidates.txt /tmp/exact.mp3
-          for page in "$PAGE1" "$PAGE2"; do
-            out="/tmp/pixabay-$(date +%s%N).html"
-            echo "PAGE=$page" | tee -a "$REPORT"
-            "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-              --user-agent='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' \
-              --virtual-time-budget=12000 --dump-dom "$page" > "$out" 2>/tmp/chrome.err || true
-            echo "dom_bytes=$(wc -c < "$out" | tr -d ' ')" | tee -a "$REPORT"
-            head -c 500 /tmp/chrome.err | tr '\n' ' ' | sed 's/^/chrome_err=/' | tee -a "$REPORT" || true
-            echo >> "$REPORT"
-          done
-
+      - name: Wire Story Mode directly to verified MP3
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
-          import html, pathlib, re, urllib.parse
-          urls=[]
-          for p in pathlib.Path('/tmp').glob('pixabay-*.html'):
-              text=p.read_text('utf-8','ignore')
-              text=html.unescape(text).replace('\\u0026','&').replace('\\/','/')
-              text=urllib.parse.unquote(text)
-              patterns=[
-                  r'https://cdn\.pixabay\.com/[^\"\'<>\\ ]+?\.mp3(?:\?[^\"\'<>\\ ]*)?',
-                  r'https://[^\"\'<>\\ ]*pixabay[^\"\'<>\\ ]+?\.mp3(?:\?[^\"\'<>\\ ]*)?'
-              ]
-              for pat in patterns:
-                  urls.extend(re.findall(pat,text))
-          clean=[]
-          for u in urls:
-              u=u.rstrip('),]}')
-              if u not in clean: clean.append(u)
-          clean.sort(key=lambda u: (not ('292699' in u or 'tsar' in u.lower() or 'bell' in u.lower()), len(u)))
-          pathlib.Path('/tmp/candidates.txt').write_text('\n'.join(clean)+'\n',encoding='utf-8')
-          print('candidate_count',len(clean))
-          for u in clean[:30]: print(u)
+          from pathlib import Path
+          import re
+
+          path = Path('src/audio/story-sfx.js')
+          text = path.read_text(encoding='utf-8')
+
+          text, count = re.subn(
+              r"let bellMp3Url = '';\nlet bellMp3UrlPromise = null;\n",
+              "const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3', import.meta.url).href;\nlet bellMp3Url = BELL_MP3_URL;\n",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('bell URL state replacement failed')
+
+          text, count = re.subn(
+              r"// Exact uploaded 50\.04 s Tsar church-bell recording, stored as 17 Base64 parts in this repository\.\nconst BELL_MP3_PART_URLS = Array\.from\(\{ length: 17 \}, \(_, index\) =>\n  `https://raw\.githubusercontent\.com/mjeykey/speakUP/main/\.bell-tsar/p\$\{String\(index\)\.padStart\(2, '0'\)\}\.b64`\n\);\n",
+              "// Exact verified 50.04 s user-uploaded Tsar church-bell recording.\n",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('old 17-part bell definition replacement failed')
+
+          direct = '''async function getBellMp3Url() {
+  const audio = ensureBellAudio();
+  bellMp3Url = BELL_MP3_URL;
+  if (audio.src !== BELL_MP3_URL) {
+    audio.src = BELL_MP3_URL;
+    audio.load();
+  }
+  return BELL_MP3_URL;
+}
+
+async function sourceArrayBuffer'''
+          text, count = re.subn(
+              r"async function getBellMp3Url\(\) \{.*?\n\}\n\nasync function sourceArrayBuffer",
+              direct,
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if count != 1:
+              raise SystemExit('bell rebuild function replacement failed')
+
+          text = text.replace(
+              "// When already rebuilt, play() stays inside the user's Story navigation gesture.",
+              "// Direct verified MP3 keeps play() inside the user's Story navigation gesture."
+          )
+          text = text.replace(
+              "// Build the exact uploaded church-bell recording immediately so page 5 can\n  // start it synchronously from the user's navigation gesture.",
+              "// Preload the exact verified church-bell MP3 so page 5 can\n  // start it synchronously from the user's navigation gesture."
+          )
+          path.write_text(text, encoding='utf-8')
+
+          def bump(path_string, pattern):
+              p = Path(path_string)
+              value = p.read_text(encoding='utf-8')
+              match = re.search(pattern, value)
+              if not match:
+                  raise SystemExit(f'cache version not found in {path_string}')
+              old = int(match.group(1))
+              value = value[:match.start(1)] + str(old + 1) + value[match.end(1):]
+              p.write_text(value, encoding='utf-8')
+              print(f'{path_string}: {old} -> {old + 1}')
+
+          bump('src/modules/story.js', r"story-sfx\.js\?v=(\d+)")
+          bump('src/modules/story-loader.js', r"story\.js\?v=(\d+)")
+          bump('src/app/main.js', r"story-loader\.js\?v=(\d+)")
+          bump('index.html', r"src/app/main\.js\?v=(\d+)")
           PY
 
-          COUNT=$(grep -c '^https://' /tmp/candidates.txt 2>/dev/null || true)
-          echo "candidate_count=$COUNT" | tee -a "$REPORT"
-          head -n 30 /tmp/candidates.txt >> "$REPORT" 2>/dev/null || true
+          rm -rf .bell-upload .bell-tsar
 
-          i=0
-          while IFS= read -r url; do
-            [ -n "$url" ] || continue
-            i=$((i+1))
-            tmp="/tmp/candidate-$i.mp3"
-            rm -f "$tmp"
-            curl -L --fail --silent --show-error --max-time 60 \
-              -A 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' \
-              -e 'https://pixabay.com/' "$url" -o "$tmp" || continue
-            size=$(wc -c < "$tmp" | tr -d ' ')
-            sha=$(sha256sum "$tmp" | awk '{print $1}')
-            echo "$i size=$size sha256=$sha url=$url" | tee -a "$REPORT"
-            if [ "$size" = "$TARGET_SIZE" ] && [ "$sha" = "$TARGET_SHA" ]; then
-              mv "$tmp" /tmp/exact.mp3
-              echo 'MATCH=EXACT_USER_UPLOAD' | tee -a "$REPORT"
-              break
-            fi
-          done < /tmp/candidates.txt
-
-          if [ -f /tmp/exact.mp3 ]; then
-            mkdir -p assets/audio
-            cp /tmp/exact.mp3 assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
-            echo "verified_size=$(wc -c < /tmp/exact.mp3 | tr -d ' ')" >> "$REPORT"
-            echo "verified_sha256=$(sha256sum /tmp/exact.mp3 | awk '{print $1}')" >> "$REPORT"
-          else
-            echo 'MATCH=NONE' | tee -a "$REPORT"
-          fi
-
-      - name: Commit exact match or diagnostic report
+      - name: Commit direct exact bell wiring
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .tsar-bell-browser-report.txt
-          if [ -f assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 ]; then
-            git add assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
-          fi
-          if git diff --cached --quiet; then
-            echo 'No changes to commit'
-          else
-            if [ -f assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 ]; then
-              git commit -m 'Install exact uploaded Tsar bell MP3'
-            else
-              git commit -m 'Report exact Tsar bell browser fetch'
-            fi
-            git push
-          fi
+          git add -A
+          git commit -m 'Use exact uploaded Tsar bell directly on Story pages 5-8'
+          git push
