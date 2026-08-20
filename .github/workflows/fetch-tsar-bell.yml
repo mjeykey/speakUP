@@ -1,45 +1,128 @@
-name: Install uploaded Tsar bell
+name: Fetch exact uploaded Tsar bell
 
 on:
   push:
     branches: [main]
     paths:
-      - '.bell-upload/READY'
+      - '.fetch-tsar-bell-trigger'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  install-tsar-bell:
+  fetch-exact-bell:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Rebuild uploaded bell MP3
+      - name: Fetch Pixabay page with browser and verify exact MP3
         shell: bash
         run: |
           set -euo pipefail
-          test -f .bell-upload/READY
-          cat .bell-upload/part*.b64 | tr -d '\n\r ' | base64 -d > /tmp/tsar.mp3
-          size=$(wc -c < /tmp/tsar.mp3 | tr -d ' ')
-          sha=$(sha256sum /tmp/tsar.mp3 | awk '{print $1}')
-          echo "size=$size"
-          echo "sha256=$sha"
-          test "$size" = "200637"
-          test "$sha" = "e399cbed63cccbc5321322e105a6c4fa615dc16199d19fc84ea594b8ff75cbcd"
-          mkdir -p assets/audio
-          cp /tmp/tsar.mp3 assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
+          TARGET_SIZE=1601280
+          TARGET_SHA=969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58
+          PAGE1='https://pixabay.com/sound-effects/film-special-effects-tsar-bell-sound-simulation-292699/'
+          PAGE2='https://pixabay.com/sound-effects/tsar-bell-sound-simulation-292699/'
+          REPORT=.tsar-bell-browser-report.txt
+          : > "$REPORT"
 
-      - name: Commit bell and remove transport chunks
+          CHROME=''
+          for candidate in google-chrome-stable google-chrome chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then CHROME="$candidate"; break; fi
+          done
+          if [ -z "$CHROME" ]; then
+            echo 'CHROME_NOT_FOUND' | tee -a "$REPORT"
+            exit 0
+          fi
+          echo "chrome=$CHROME" | tee -a "$REPORT"
+
+          rm -f /tmp/pixabay-*.html /tmp/candidates.txt /tmp/exact.mp3
+          for page in "$PAGE1" "$PAGE2"; do
+            out="/tmp/pixabay-$(date +%s%N).html"
+            echo "PAGE=$page" | tee -a "$REPORT"
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+              --user-agent='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' \
+              --virtual-time-budget=12000 --dump-dom "$page" > "$out" 2>/tmp/chrome.err || true
+            echo "dom_bytes=$(wc -c < "$out" | tr -d ' ')" | tee -a "$REPORT"
+            head -c 500 /tmp/chrome.err | tr '\n' ' ' | sed 's/^/chrome_err=/' | tee -a "$REPORT" || true
+            echo >> "$REPORT"
+          done
+
+          python - <<'PY'
+          import html, pathlib, re, urllib.parse
+          urls=[]
+          for p in pathlib.Path('/tmp').glob('pixabay-*.html'):
+              text=p.read_text('utf-8','ignore')
+              text=html.unescape(text).replace('\\u0026','&').replace('\\/','/')
+              text=urllib.parse.unquote(text)
+              patterns=[
+                  r'https://cdn\.pixabay\.com/[^\"\'<>\\ ]+?\.mp3(?:\?[^\"\'<>\\ ]*)?',
+                  r'https://[^\"\'<>\\ ]*pixabay[^\"\'<>\\ ]+?\.mp3(?:\?[^\"\'<>\\ ]*)?'
+              ]
+              for pat in patterns:
+                  urls.extend(re.findall(pat,text))
+          clean=[]
+          for u in urls:
+              u=u.rstrip('),]}')
+              if u not in clean: clean.append(u)
+          clean.sort(key=lambda u: (not ('292699' in u or 'tsar' in u.lower() or 'bell' in u.lower()), len(u)))
+          pathlib.Path('/tmp/candidates.txt').write_text('\n'.join(clean)+'\n',encoding='utf-8')
+          print('candidate_count',len(clean))
+          for u in clean[:30]: print(u)
+          PY
+
+          COUNT=$(grep -c '^https://' /tmp/candidates.txt 2>/dev/null || true)
+          echo "candidate_count=$COUNT" | tee -a "$REPORT"
+          head -n 30 /tmp/candidates.txt >> "$REPORT" 2>/dev/null || true
+
+          i=0
+          while IFS= read -r url; do
+            [ -n "$url" ] || continue
+            i=$((i+1))
+            tmp="/tmp/candidate-$i.mp3"
+            rm -f "$tmp"
+            curl -L --fail --silent --show-error --max-time 60 \
+              -A 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' \
+              -e 'https://pixabay.com/' "$url" -o "$tmp" || continue
+            size=$(wc -c < "$tmp" | tr -d ' ')
+            sha=$(sha256sum "$tmp" | awk '{print $1}')
+            echo "$i size=$size sha256=$sha url=$url" | tee -a "$REPORT"
+            if [ "$size" = "$TARGET_SIZE" ] && [ "$sha" = "$TARGET_SHA" ]; then
+              mv "$tmp" /tmp/exact.mp3
+              echo 'MATCH=EXACT_USER_UPLOAD' | tee -a "$REPORT"
+              break
+            fi
+          done < /tmp/candidates.txt
+
+          if [ -f /tmp/exact.mp3 ]; then
+            mkdir -p assets/audio
+            cp /tmp/exact.mp3 assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
+            echo "verified_size=$(wc -c < /tmp/exact.mp3 | tr -d ' ')" >> "$REPORT"
+            echo "verified_sha256=$(sha256sum /tmp/exact.mp3 | awk '{print $1}')" >> "$REPORT"
+          else
+            echo 'MATCH=NONE' | tee -a "$REPORT"
+          fi
+
+      - name: Commit exact match or diagnostic report
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
-          git rm -r .bell-upload
-          git commit -m "Install uploaded Tsar bell MP3"
-          git push
+          git add .tsar-bell-browser-report.txt
+          if [ -f assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 ]; then
+            git add assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3
+          fi
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+          else
+            if [ -f assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3 ]; then
+              git commit -m 'Install exact uploaded Tsar bell MP3'
+            else
+              git commit -m 'Report exact Tsar bell browser fetch'
+            fi
+            git push
+          fi
