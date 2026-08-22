@@ -11,7 +11,7 @@ const DOOR_CREAK_PAGES=new Set([2]);
 const BELL_HEADSTART_MS=1800;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DEBUG_BUILD='B169';
+const DEBUG_BUILD='B170';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -109,7 +109,6 @@ export function renderStory(root,store){
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
-    if(current.sound==='door-creak'&&phaseIndex!==0)return;
     if(isStorySfxPlaying(current.sound))return;
     const start=()=>{
       if(token!==renderToken)return;
@@ -149,6 +148,7 @@ export function renderStory(root,store){
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
       if(current.sound!=='rain'&&current.sound!=='bell'&&current.sound!=='door-creak')stopAmbience();
+      ensureAmbience(current,audioEnabled,token);
       solved=Math.min(solved,current.items.length);
       const item=current.items[solved];
       const options=shuffle(current.items.map(entry=>entry.answer));
@@ -166,6 +166,7 @@ export function renderStory(root,store){
       });
     }else{
       if(current.sound!=='rain'&&current.sound!=='bell'&&current.sound!=='door-creak')stopAmbience();
+      ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }
