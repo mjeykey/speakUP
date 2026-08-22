@@ -5,9 +5,30 @@ let activeName = '';
 let rainAudio = null;
 let bellAudio = null;
 let stopTimer = 0;
+let bellStatus = { state: 'idle', detail: '' };
 
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean1', import.meta.url).href;
+const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean3', import.meta.url).href;
+
+function setBellStatus(state, detail = '') {
+  bellStatus = { state, detail };
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('speakup-bell-status', { detail: bellStatus }));
+  }
+}
+
+export function getStorySfxStatus() {
+  const audio = bellAudio;
+  return {
+    ...bellStatus,
+    src: BELL_MP3_URL,
+    paused: audio ? audio.paused : null,
+    readyState: audio ? audio.readyState : null,
+    networkState: audio ? audio.networkState : null,
+    currentTime: audio ? audio.currentTime : null,
+    errorCode: audio?.error?.code || null
+  };
+}
 
 function staticSource(name) {
   if (!name || name === 'none' || name === 'bell' || name === 'warning-bell' || name === 'rain') return '';
@@ -28,8 +49,12 @@ function ensureBellAudio() {
   audio.style.opacity = '0';
   audio.style.pointerEvents = 'none';
   audio.style.left = '-9999px';
+  audio.oncanplay = () => setBellStatus('ready', `readyState=${audio.readyState}`);
+  audio.onerror = () => setBellStatus('media-error', `code=${audio.error?.code || 'unknown'} readyState=${audio.readyState} networkState=${audio.networkState}`);
   document.body.appendChild(audio);
   bellAudio = audio;
+  setBellStatus('created', `readyState=${audio.readyState}`);
+  audio.load();
   return audio;
 }
 
@@ -50,11 +75,18 @@ function playBell(volume = 0.90) {
       audio.src = BELL_MP3_URL;
       audio.load();
     }
-    return Promise.resolve(audio.play()).then(() => true).catch(error => {
+    setBellStatus('play-request', `readyState=${audio.readyState} networkState=${audio.networkState}`);
+    const playback = audio.play();
+    return Promise.resolve(playback).then(() => {
+      setBellStatus('playing', `readyState=${audio.readyState}`);
+      return true;
+    }).catch(error => {
+      setBellStatus('blocked', `${error?.name || 'Error'}: ${error?.message || String(error)}`);
       console.warn('Tsar bell playback failed.', error);
       return false;
     });
   } catch (error) {
+    setBellStatus('exception', `${error?.name || 'Error'}: ${error?.message || String(error)}`);
     console.warn('Tsar bell playback failed.', error);
     return Promise.resolve(false);
   }
@@ -168,8 +200,6 @@ export async function unlockStorySfx() {
 
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return Promise.resolve(false);
-
-  // Page 2 keeps the separate warning-bell mapping, but the old synthetic oscillator is intentionally removed.
   if (name === 'warning-bell') return Promise.resolve(false);
   if (name === 'bell') return playBell(volume);
   if (name === 'rain') return playRain(volume, loop);
