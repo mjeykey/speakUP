@@ -6,15 +6,11 @@ let rainAudio = null;
 let bellAudio = null;
 let bellBlobUrl = '';
 let bellPreparePromise = null;
-let doorAudio = null;
-let doorBlobUrl = '';
-let doorPreparePromise = null;
 let stopTimer = 0;
 let bellStatus = { state: 'idle', detail: '' };
 
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4', import.meta.url).href;
-const DOOR_AUDIO_URL = new URL('../../assets/9.%20Aug.,%2019.40%E2%80%8B.m4a?v=door-real-1', import.meta.url).href;
 
 function setBellStatus(state, detail = '') {
   bellStatus = { state, detail };
@@ -43,10 +39,6 @@ export function setStorySfxVolume(name, volume) {
     bellAudio.volume = normalized;
     return true;
   }
-  if (name === 'door-creak' && doorAudio) {
-    doorAudio.volume = normalized;
-    return true;
-  }
   if (name === 'rain' && rainAudio) {
     rainAudio.volume = normalized;
     return true;
@@ -59,7 +51,7 @@ export function setStorySfxVolume(name, volume) {
 }
 
 function staticSource(name) {
-  if (!name || name === 'none' || name === 'bell' || name === 'warning-bell' || name === 'rain' || name === 'door-creak') return '';
+  if (!name || name === 'none' || name === 'bell' || name === 'warning-bell' || name === 'rain') return '';
   return STORY_SFX_ASSETS[name] || '';
 }
 
@@ -121,13 +113,11 @@ async function prepareBellAudio() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
       setBellStatus('fetched', `${blob.size} bytes`);
-
       if (bellBlobUrl) URL.revokeObjectURL(bellBlobUrl);
       bellBlobUrl = URL.createObjectURL(blob);
       audio.src = bellBlobUrl;
       audio.load();
       setBellStatus('loading-media', `readyState=${audio.readyState}`);
-
       const ready = await waitForBellCanPlay(audio);
       if (!ready) {
         setBellStatus('not-ready', `readyState=${audio.readyState} networkState=${audio.networkState}`);
@@ -156,16 +146,13 @@ function stopBell() {
 async function playBell(volume = 0.90) {
   const audio = ensureBellAudio();
   try {
-    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      await prepareBellAudio();
-    }
+    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) await prepareBellAudio();
     audio.pause();
     audio.currentTime = 0;
     audio.muted = false;
     audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
     setBellStatus('play-request', `readyState=${audio.readyState} networkState=${audio.networkState}`);
-    const playback = audio.play();
-    return Promise.resolve(playback).then(() => {
+    return Promise.resolve(audio.play()).then(() => {
       setBellStatus('playing', `readyState=${audio.readyState}`);
       return true;
     }).catch(error => {
@@ -176,100 +163,6 @@ async function playBell(volume = 0.90) {
   } catch (error) {
     setBellStatus('exception', `${error?.name || 'Error'}: ${error?.message || String(error)}`);
     console.warn('Tsar bell playback failed.', error);
-    return false;
-  }
-}
-
-function ensureDoorAudio() {
-  if (doorAudio && doorAudio.isConnected) return doorAudio;
-  const audio = document.createElement('audio');
-  audio.setAttribute('playsinline', '');
-  audio.preload = 'auto';
-  audio.loop = false;
-  audio.volume = 0.80;
-  audio.style.position = 'fixed';
-  audio.style.width = '1px';
-  audio.style.height = '1px';
-  audio.style.opacity = '0';
-  audio.style.pointerEvents = 'none';
-  audio.style.left = '-9999px';
-  document.body.appendChild(audio);
-  doorAudio = audio;
-  return audio;
-}
-
-function waitForDoorCanPlay(audio, timeoutMs = 12000) {
-  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return Promise.resolve(true);
-  return new Promise(resolve => {
-    let settled = false;
-    const finish = value => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      audio.removeEventListener('canplay', onReady);
-      audio.removeEventListener('loadeddata', onLoaded);
-      audio.removeEventListener('error', onError);
-      resolve(value);
-    };
-    const onReady = () => finish(true);
-    const onLoaded = () => finish(audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
-    const onError = () => finish(false);
-    const timer = setTimeout(() => finish(audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA), timeoutMs);
-    audio.addEventListener('canplay', onReady, { once: true });
-    audio.addEventListener('loadeddata', onLoaded, { once: true });
-    audio.addEventListener('error', onError, { once: true });
-  });
-}
-
-async function prepareDoorAudio() {
-  const audio = ensureDoorAudio();
-  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return true;
-  if (doorPreparePromise) return doorPreparePromise;
-
-  doorPreparePromise = (async () => {
-    try {
-      const response = await fetch(DOOR_AUDIO_URL, { cache: 'force-cache' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      if (doorBlobUrl) URL.revokeObjectURL(doorBlobUrl);
-      doorBlobUrl = URL.createObjectURL(blob);
-      audio.src = doorBlobUrl;
-      audio.load();
-      return await waitForDoorCanPlay(audio);
-    } catch (error) {
-      console.warn('Metal door preparation failed.', error);
-      return false;
-    } finally {
-      doorPreparePromise = null;
-    }
-  })();
-
-  return doorPreparePromise;
-}
-
-function stopDoor() {
-  if (!doorAudio) return;
-  try { doorAudio.pause(); } catch (_) {}
-  try { doorAudio.currentTime = 0; } catch (_) {}
-}
-
-async function playDoor(volume = 0.80) {
-  const audio = ensureDoorAudio();
-  try {
-    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      const ready = await prepareDoorAudio();
-      if (!ready) return false;
-    }
-    audio.pause();
-    audio.currentTime = 0;
-    audio.muted = false;
-    audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.80;
-    return Promise.resolve(audio.play()).then(() => true).catch(error => {
-      console.warn('Metal door playback failed.', error);
-      return false;
-    });
-  } catch (error) {
-    console.warn('Metal door playback failed.', error);
     return false;
   }
 }
@@ -341,7 +234,6 @@ function playGeneric(name, volume = 0.30, loop = false) {
 
 export function getStorySfxSrc(name) {
   if (name === 'bell') return BELL_MP3_URL;
-  if (name === 'door-creak') return DOOR_AUDIO_URL;
   if (name === 'rain') return RAIN_MP3_URL;
   if (name === 'warning-bell') return '';
   return staticSource(name);
@@ -349,14 +241,12 @@ export function getStorySfxSrc(name) {
 
 export function isStorySfxReady(name) {
   if (name === 'bell') return Boolean(bellAudio && bellAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
-  if (name === 'door-creak') return Boolean(doorAudio && doorAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
   if (name === 'rain' || name === 'warning-bell') return true;
   return Boolean(staticSource(name));
 }
 
 export function isStorySfxPlaying(name) {
   if (name === 'bell') return Boolean(bellAudio && !bellAudio.paused && !bellAudio.ended && !bellAudio.muted);
-  if (name === 'door-creak') return Boolean(doorAudio && !doorAudio.paused && !doorAudio.ended && !doorAudio.muted);
   if (name === 'rain') return Boolean(rainAudio && !rainAudio.paused && !rainAudio.ended);
   if (name === 'warning-bell') return false;
   return Boolean(activeAudio && !activeAudio.paused && activeName === name);
@@ -364,7 +254,6 @@ export function isStorySfxPlaying(name) {
 
 export async function preloadStorySfx(name) {
   if (name === 'bell') return prepareBellAudio();
-  if (name === 'door-creak') return prepareDoorAudio();
   if (name === 'rain' || name === 'warning-bell') return true;
   return Boolean(staticSource(name));
 }
@@ -375,19 +264,16 @@ export function stopStorySfx() {
   stopGeneric();
   stopRain();
   stopBell();
-  stopDoor();
 }
 
 export async function unlockStorySfx() {
-  const [bellReady, doorReady] = await Promise.all([prepareBellAudio(), prepareDoorAudio()]);
-  return bellReady || doorReady;
+  return prepareBellAudio();
 }
 
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
   if (!enabled || !name || name === 'none') return Promise.resolve(false);
   if (name === 'warning-bell') return Promise.resolve(false);
   if (name === 'bell') return playBell(volume);
-  if (name === 'door-creak') return playDoor(volume);
   if (name === 'rain') return playRain(volume, loop);
 
   const result = playGeneric(name, volume, loop);
