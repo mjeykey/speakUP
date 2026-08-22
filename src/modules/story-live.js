@@ -12,8 +12,7 @@ const BELL_HEADSTART_MS=1800;
 const DOOR_CREAK_HEADSTART_MS=2300;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DOOR_CREAK_VOLUME=0.95;
-const DEBUG_BUILD='B187';
+const DEBUG_BUILD='B188';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -70,7 +69,6 @@ export function renderStory(root,store){
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
-  let gestureDoorTarget=0;
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
@@ -86,43 +84,18 @@ export function renderStory(root,store){
     if(el)el.textContent=bellStatusText();
   }
 
-  function startDoorFromGesture(direction){
-    const target=displayPage()+direction;
-    if(target<9||target>12||storyId!=='fantasy-1'||!Boolean(store.getState().audioOn))return;
-    gestureDoorTarget=target;
-    stopStorySfx();
-    void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
-  }
-
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    const current=page();
-    const debugButton=current.sound==='bell'
-      ? `<button type="button" data-bell-test style="display:block;margin-top:7px;width:100%;border:1px solid rgba(255,255,255,.45);background:#24364a;color:white;border-radius:8px;padding:7px 8px;font-weight:700">🔔 TEST</button>`
-      : '';
-    const debugBadge='';
-    root.innerHTML=`${debugBadge}<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
-    const prevButton=root.querySelector('[data-prev]');
-    const nextButton=root.querySelector('[data-next]');
-    prevButton.onpointerdown=()=>startDoorFromGesture(-1);
-    nextButton.onpointerdown=()=>startDoorFromGesture(1);
-    prevButton.onclick=()=>navigate(-1);
-    nextButton.onclick=()=>navigate(1);
-    const bellButton=root.querySelector('[data-bell-test]');
-    if(bellButton){
-      bellButton.onclick=async()=>{
-        stopNarrator();
-        await playStorySfx('bell',{enabled:true,loop:false,volume:BELL_NORMAL_VOLUME});
-        refreshBellStatus();
-      };
-      window.addEventListener('speakup-bell-status',refreshBellStatus,{once:true});
-    }
+    root.querySelector('[data-prev]').onclick=()=>navigate(-1);
+    root.querySelector('[data-next]').onclick=()=>navigate(1);
   }
 
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
+    // Door audio belongs only to the trusted arrow click in main.js.
     if(current.sound==='door-creak')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
     if(isStorySfxPlaying(current.sound))return;
@@ -198,17 +171,10 @@ export function renderStory(root,store){
     const current=page();
     if(current.sound==='bell'){
       void playStorySfx('bell',{enabled:true,loop:false,volume:bellVolumeForPhase()});
-      return;
-    }
-    if(current.sound==='door-creak'){
-      if(isStorySfxPlaying('door-creak'))return;
-      stopStorySfx();
-      void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
     }
   }
 
   function finishNavigation(){
-    gestureDoorTarget=0;
     persistProgress();
     void renderPhase();
   }
@@ -219,42 +185,39 @@ export function renderStory(root,store){
     const currentSound=page().sound;
     const keepAmbience=currentSound==='rain'||currentSound==='bell'||currentSound==='door-creak';
     const targetDisplay=displayPage()+direction;
-    const gestureDoorActive=gestureDoorTarget===targetDisplay&&targetDisplay>=9&&targetDisplay<=12&&isStorySfxPlaying('door-creak');
+    const targetIsDoor=storyId==='fantasy-1'&&Boolean(store.getState().audioOn)&&targetDisplay>=9&&targetDisplay<=12;
     if(direction>0){
-      if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience&&!gestureDoorActive)stopAmbience();return;}
+      if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience&&!targetIsDoor)stopAmbience();return;}
       if(phaseIndex<3){
-        if(!keepAmbience&&!gestureDoorActive)stopAmbience();
+        if(!keepAmbience&&!targetIsDoor)stopAmbience();
         phaseIndex+=1;
         if(phaseIndex===2)solved=0;
-        if(page().sound==='door-creak'&&!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
       if(pageIndex<story.pages.length-1){
-        if(!gestureDoorActive)stopAmbience();
+        if(!targetIsDoor)stopAmbience();
         pageIndex+=1;
         phaseIndex=0;
         solved=0;
-        if(!gestureDoorActive)startSoundForCurrentPage();
+        if(!targetIsDoor)startSoundForCurrentPage();
         return finishNavigation();
       }
     }else{
       if(phaseIndex>0){
-        if(!keepAmbience&&!gestureDoorActive)stopAmbience();
+        if(!keepAmbience&&!targetIsDoor)stopAmbience();
         phaseIndex-=1;
         if(phaseIndex===2)solved=0;
-        if(page().sound==='door-creak'&&!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
       if(pageIndex>0){
-        if(!gestureDoorActive)stopAmbience();
+        if(!targetIsDoor)stopAmbience();
         pageIndex-=1;
         phaseIndex=3;
         solved=0;
-        if(!gestureDoorActive)startSoundForCurrentPage();
+        if(!targetIsDoor)startSoundForCurrentPage();
         return finishNavigation();
       }
     }
-    gestureDoorTarget=0;
   }
 
   if(storyId==='fantasy-1'){
