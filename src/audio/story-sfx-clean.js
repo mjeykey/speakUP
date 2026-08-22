@@ -4,6 +4,7 @@ let activeAudio=null;
 let activeName='';
 let rainAudio=null;
 let doorAudio=null;
+let doorStartedAt=0;
 let bellAudio=null;
 let bellBlobUrl='';
 let bellPreparePromise=null;
@@ -13,10 +14,12 @@ let doorStatus={state:'idle',detail:''};
 
 const RAIN_MP3_URL='https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 const BELL_MP3_URL=new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4',import.meta.url).href;
-const DOOR_MP3_URL=new URL('../../assets/audio/door-creak-original-loud.mp3?v=2',import.meta.url).href;
-const DOOR_REPEAT_COUNT=3;
+const DOOR_MP3_URL=new URL('../../assets/audio/door-creak-original-loud.mp3?v=3',import.meta.url).href;
+const DOOR_START_GUARD_MS=650;
 
 const clampVolume=value=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):null;
+const nowMs=()=>typeof performance!=='undefined'&&performance.now?performance.now():Date.now();
+const doorIsStarting=()=>Boolean(doorAudio&&nowMs()-doorStartedAt<DOOR_START_GUARD_MS);
 
 function setBellStatus(state,detail=''){
   bellStatus={state,detail};
@@ -167,34 +170,24 @@ function playDoor(volume=.95){
   audio.volume=clampVolume(volume)??.95;
   audio.playbackRate=1;
   doorAudio=audio;
-  let completed=0;
-  setDoorStatus('play-request',`repeat=${DOOR_REPEAT_COUNT} · src=${DOOR_MP3_URL}`);
+  doorStartedAt=nowMs();
+  setDoorStatus('starting',`guard=${DOOR_START_GUARD_MS}ms · src=${DOOR_MP3_URL}`);
   audio.onloadeddata=()=>setDoorStatus('loaded',`readyState=${audio.readyState} networkState=${audio.networkState}`);
-  audio.onplaying=()=>setDoorStatus('playing',`pass=${completed+1}/${DOOR_REPEAT_COUNT} · time=${audio.currentTime.toFixed(2)}`);
+  audio.onplaying=()=>setDoorStatus('playing',`readyState=${audio.readyState} time=${audio.currentTime.toFixed(2)}`);
   audio.onerror=()=>{
     setDoorStatus('media-error',`code=${audio.error?.code||'unknown'} readyState=${audio.readyState} networkState=${audio.networkState}`);
-    if(doorAudio===audio)doorAudio=null;
+    if(doorAudio===audio){doorAudio=null;doorStartedAt=0;}
   };
   audio.onended=()=>{
-    completed+=1;
-    if(doorAudio===audio&&completed<DOOR_REPEAT_COUNT){
-      setDoorStatus('repeat',`${completed+1}/${DOOR_REPEAT_COUNT}`);
-      try{audio.currentTime=0;}catch(_){}
-      void audio.play().catch(error=>{
-        setDoorStatus('blocked',`${error?.name||'Error'}: ${error?.message||String(error)}`);
-        if(doorAudio===audio)doorAudio=null;
-      });
-      return;
-    }
-    setDoorStatus('ended',`passes=${completed}/${DOOR_REPEAT_COUNT}`);
-    if(doorAudio===audio)doorAudio=null;
+    setDoorStatus('ended',`duration=${Number.isFinite(audio.duration)?audio.duration.toFixed(2):'unknown'}s`);
+    if(doorAudio===audio){doorAudio=null;doorStartedAt=0;}
   };
   return Promise.resolve(audio.play()).then(()=>{
-    setDoorStatus('playing',`pass=1/${DOOR_REPEAT_COUNT} · time=${audio.currentTime.toFixed(2)}`);
+    setDoorStatus('playing',`readyState=${audio.readyState} time=${audio.currentTime.toFixed(2)}`);
     return true;
   }).catch(error=>{
     setDoorStatus('blocked',`${error?.name||'Error'}: ${error?.message||String(error)}`);
-    if(doorAudio===audio)doorAudio=null;
+    if(doorAudio===audio){doorAudio=null;doorStartedAt=0;}
     console.warn('Door playback failed.',error);
     return false;
   });
@@ -229,7 +222,7 @@ function playGeneric(name,volume=.30,loop=false){
 export function getStorySfxStatus(name='bell'){
   if(name==='door-creak'){
     const audio=doorAudio;
-    return{...doorStatus,src:DOOR_MP3_URL,paused:audio?audio.paused:null,readyState:audio?audio.readyState:null,networkState:audio?audio.networkState:null,currentTime:audio?audio.currentTime:null,errorCode:audio?.error?.code||null};
+    return{...doorStatus,src:DOOR_MP3_URL,paused:audio?audio.paused:null,readyState:audio?audio.readyState:null,networkState:audio?audio.networkState:null,currentTime:audio?audio.currentTime:null,errorCode:audio?.error?.code||null,starting:doorIsStarting()};
   }
   const audio=bellAudio;
   return{...bellStatus,src:BELL_MP3_URL,paused:audio?audio.paused:null,readyState:audio?audio.readyState:null,networkState:audio?audio.networkState:null,currentTime:audio?audio.currentTime:null,errorCode:audio?.error?.code||null};
@@ -261,7 +254,7 @@ export function isStorySfxReady(name){
 
 export function isStorySfxPlaying(name){
   if(name==='bell')return Boolean(bellAudio&&!bellAudio.paused&&!bellAudio.ended&&!bellAudio.muted);
-  if(name==='door-creak')return Boolean(doorAudio&&!doorAudio.paused&&!doorAudio.ended&&!doorAudio.muted);
+  if(name==='door-creak')return Boolean(doorIsStarting()||(doorAudio&&!doorAudio.paused&&!doorAudio.ended&&!doorAudio.muted));
   if(name==='rain')return Boolean(rainAudio&&!rainAudio.paused&&!rainAudio.ended);
   if(name==='warning-bell')return false;
   return Boolean(activeAudio&&!activeAudio.paused&&activeName===name);
@@ -278,8 +271,12 @@ export function stopStorySfx(){
   stopTimer=0;
   stopGeneric();
   stopMedia(rainAudio);rainAudio=null;
-  stopMedia(doorAudio);doorAudio=null;
   stopMedia(bellAudio);
+  if(doorIsStarting()){
+    setDoorStatus('guarded','navigation stop ignored during startup');
+  }else{
+    stopMedia(doorAudio);doorAudio=null;doorStartedAt=0;
+  }
 }
 
 export async function unlockStorySfx(){
