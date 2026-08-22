@@ -32,6 +32,24 @@ export function getStorySfxStatus() {
   };
 }
 
+export function setStorySfxVolume(name, volume) {
+  const normalized = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : null;
+  if (normalized === null) return false;
+  if (name === 'bell' && bellAudio) {
+    bellAudio.volume = normalized;
+    return true;
+  }
+  if (name === 'rain' && rainAudio) {
+    rainAudio.volume = normalized;
+    return true;
+  }
+  if (activeAudio && activeName === name) {
+    activeAudio.volume = normalized;
+    return true;
+  }
+  return false;
+}
+
 function staticSource(name) {
   if (!name || name === 'none' || name === 'bell' || name === 'warning-bell' || name === 'rain') return '';
   return STORY_SFX_ASSETS[name] || '';
