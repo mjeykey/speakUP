@@ -7,7 +7,7 @@ import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
-import { renderStory } from '../modules/story-loader.js?v=148';
+import { renderStory } from '../modules/story-loader.js?v=149';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
@@ -40,8 +40,7 @@ const routes = {
 };
 
 function render(state) {
-  const sameStoryRender=previousScreen==='story'&&state.screen==='story';
-  if(!sameStoryRender)stopSpeech();
+  if(state.screen!=='story')stopSpeech();
   if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
   previousScreen=state.screen;
   const view = routes[state.screen] || renderWelcome;
