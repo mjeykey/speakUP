@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=63';
-import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from '../audio/story-sfx-clean.js?v=10';
+import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from '../audio/story-sfx-clean.js?v=11';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -13,7 +13,7 @@ const DOOR_CREAK_HEADSTART_MS=1100;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
 const DOOR_CREAK_VOLUME=0.95;
-const DEBUG_BUILD='B180';
+const DEBUG_BUILD='B181';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -72,7 +72,7 @@ export function renderStory(root,store){
   let renderToken=0;
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
-  const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
+  const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const bellVolumeForPhase=()=>phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
 
   const stopNarrator=()=>stopSpeech();
@@ -145,8 +145,6 @@ export function renderStory(root,store){
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
-    // Door audio must only start from the user's navigation click. Starting it here
-    // would immediately stop/restart the allowed Android playback after saveProgress().
     if(phaseIndex===0){
       ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
@@ -167,7 +165,8 @@ export function renderStory(root,store){
         if(button.dataset.option.toLocaleLowerCase()===item.answer.toLocaleLowerCase()){
           locked=true;
           solved+=1;
-          saveProgress();
+          persistProgress();
+          void renderPhase();
         }else{
           button.classList.add('is-wrong');
           setTimeout(()=>button.classList.remove('is-wrong'),420);
@@ -194,6 +193,11 @@ export function renderStory(root,store){
     }
   }
 
+  function finishNavigation(){
+    persistProgress();
+    void renderPhase();
+  }
+
   function navigate(direction){
     renderToken+=1;
     stopNarrator();
@@ -206,7 +210,7 @@ export function renderStory(root,store){
         phaseIndex+=1;
         if(phaseIndex===2)solved=0;
         if(page().sound==='door-creak')startSoundForCurrentPage();
-        return saveProgress();
+        return finishNavigation();
       }
       if(pageIndex<story.pages.length-1){
         stopAmbience();
@@ -214,7 +218,7 @@ export function renderStory(root,store){
         phaseIndex=0;
         solved=0;
         startSoundForCurrentPage();
-        return saveProgress();
+        return finishNavigation();
       }
     }else{
       if(phaseIndex>0){
@@ -222,7 +226,7 @@ export function renderStory(root,store){
         phaseIndex-=1;
         if(phaseIndex===2)solved=0;
         if(page().sound==='door-creak')startSoundForCurrentPage();
-        return saveProgress();
+        return finishNavigation();
       }
       if(pageIndex>0){
         stopAmbience();
@@ -230,14 +234,13 @@ export function renderStory(root,store){
         phaseIndex=3;
         solved=0;
         startSoundForCurrentPage();
-        return saveProgress();
+        return finishNavigation();
       }
     }
   }
 
   if(storyId==='fantasy-1'){
     void preloadStorySfx('bell');
-    void preloadStorySfx('door-creak');
   }
   renderPhase();
 }
