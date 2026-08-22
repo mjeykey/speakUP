@@ -2,13 +2,15 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=63';
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-web.js?v=1';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-clean.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([4,5,6,7]);
+const BELL_HEADSTART_MS=1800;
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
+const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function learningItems(text,nativeText){
   const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -90,8 +92,12 @@ export function renderStory(root,store){
     void preloadStorySfx(current.sound).then(ok=>{if(ok)start();});
   }
 
-  async function narrate(text,voice,audioEnabled,rate,token){
+  async function narrate(text,voice,audioEnabled,rate,token,current){
     if(token!==renderToken)return;
+    if(audioEnabled&&current?.sound==='bell'){
+      await sleep(BELL_HEADSTART_MS);
+      if(token!==renderToken)return;
+    }
     await speak(text,voice,{enabled:audioEnabled,rate});
   }
 
@@ -102,11 +108,11 @@ export function renderStory(root,store){
     if(phaseIndex===0){
       ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-      await narrate(current.native,nativeVoice,audioEnabled,.88,token);
+      await narrate(current.native,nativeVoice,audioEnabled,.88,token,current);
     }else if(phaseIndex===1){
       ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
-      await narrate(current.learning,learningVoice,audioEnabled,.62,token);
+      await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
       if(current.sound!=='rain'&&current.sound!=='bell')stopAmbience();
       solved=Math.min(solved,current.items.length);
@@ -127,12 +133,13 @@ export function renderStory(root,store){
     }else{
       if(current.sound!=='rain'&&current.sound!=='bell')stopAmbience();
       shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
-      await narrate(current.learning,learningVoice,audioEnabled,.62,token);
+      await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }
   }
 
   function startBellForCurrentPage(){
     if(storyId!=='fantasy-1'||!Boolean(store.getState().audioOn)||page().sound!=='bell')return;
+    // Called directly inside the navigation click: this is the proven Android-safe path.
     void playStorySfx('bell',{enabled:true,loop:false,volume:0.90});
   }
 
@@ -151,5 +158,6 @@ export function renderStory(root,store){
     }
   }
 
+  if(storyId==='fantasy-1')void preloadStorySfx('bell');
   renderPhase();
 }
