@@ -41,7 +41,8 @@ const routes = {
 
 function render(state) {
   const screenChanged=previousScreen!==state.screen;
-  if(screenChanged)stopSpeech();
+  const sameStoryRender=previousScreen==='story'&&state.screen==='story';
+  if(!sameStoryRender)stopSpeech();
   if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
   previousScreen=state.screen;
   const view = routes[state.screen] || renderWelcome;
