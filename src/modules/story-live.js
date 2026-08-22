@@ -10,11 +10,12 @@ const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 const BELL_HEADSTART_MS=1800;
-const DOOR_CREAK_HEADSTART_MS=2300;
+const DOOR_CREAK_HEADSTART_MS=950;
+const SPEECH_RESTART_GUARD_MS=120;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
 const DOOR_CREAK_VOLUME=0.95;
-const DEBUG_BUILD='B190';
+const DEBUG_BUILD='B191';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -65,6 +66,7 @@ export function renderStory(root,store){
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
+  let speechRestartAt=0;
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
@@ -86,7 +88,6 @@ export function renderStory(root,store){
 
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
-    // Door playback is owned only by the trusted arrow click in navigate().
     if(current.sound==='door-creak')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
     if(isStorySfxPlaying(current.sound))return;
@@ -106,6 +107,11 @@ export function renderStory(root,store){
 
   async function narrate(text,voice,audioEnabled,rate,token,current){
     if(token!==renderToken)return;
+    const restartWait=speechRestartAt-Date.now();
+    if(restartWait>0){
+      await sleep(restartWait);
+      if(token!==renderToken)return;
+    }
     if(audioEnabled&&current?.sound==='bell'){
       await sleep(BELL_HEADSTART_MS);
       if(token!==renderToken)return;
@@ -177,7 +183,6 @@ export function renderStory(root,store){
     const targetIsDoor=storyId==='fantasy-1'&&audioEnabled&&targetSound==='door-creak';
 
     if(targetIsDoor){
-      // One owner, one sequence: kill old block sound first, then start door in this real click.
       stopStorySfx();
       stopStoryDoor();
       void playStoryDoor(DOOR_CREAK_VOLUME);
@@ -200,6 +205,7 @@ export function renderStory(root,store){
 
     renderToken+=1;
     stopNarrator();
+    speechRestartAt=Date.now()+SPEECH_RESTART_GUARD_MS;
     transitionAudio(target);
 
     const pageChanged=target.pageIndex!==pageIndex;
