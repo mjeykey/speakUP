@@ -13,7 +13,7 @@ const DOOR_CREAK_HEADSTART_MS=1100;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
 const DOOR_CREAK_VOLUME=0.95;
-const DEBUG_BUILD='B181';
+const DEBUG_BUILD='B182';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -70,6 +70,7 @@ export function renderStory(root,store){
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
+  let gestureDoorTarget=0;
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
@@ -85,6 +86,14 @@ export function renderStory(root,store){
     if(el)el.textContent=bellStatusText();
   }
 
+  function startDoorFromGesture(direction){
+    const target=displayPage()+direction;
+    if(target<9||target>12||storyId!=='fantasy-1'||!Boolean(store.getState().audioOn))return;
+    gestureDoorTarget=target;
+    stopStorySfx();
+    void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
+  }
+
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
@@ -95,8 +104,12 @@ export function renderStory(root,store){
     const debugBadge='';
     root.innerHTML=`${debugBadge}<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
-    root.querySelector('[data-prev]').onclick=()=>navigate(-1);
-    root.querySelector('[data-next]').onclick=()=>navigate(1);
+    const prevButton=root.querySelector('[data-prev]');
+    const nextButton=root.querySelector('[data-next]');
+    prevButton.onpointerdown=()=>startDoorFromGesture(-1);
+    nextButton.onpointerdown=()=>startDoorFromGesture(1);
+    prevButton.onclick=()=>navigate(-1);
+    nextButton.onclick=()=>navigate(1);
     const bellButton=root.querySelector('[data-bell-test]');
     if(bellButton){
       bellButton.onclick=async()=>{
@@ -188,12 +201,14 @@ export function renderStory(root,store){
       return;
     }
     if(current.sound==='door-creak'){
+      if(isStorySfxPlaying('door-creak'))return;
       stopStorySfx();
       void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
     }
   }
 
   function finishNavigation(){
+    gestureDoorTarget=0;
     persistProgress();
     void renderPhase();
   }
@@ -203,40 +218,43 @@ export function renderStory(root,store){
     stopNarrator();
     const currentSound=page().sound;
     const keepAmbience=currentSound==='rain'||currentSound==='bell'||currentSound==='door-creak';
+    const targetDisplay=displayPage()+direction;
+    const gestureDoorActive=gestureDoorTarget===targetDisplay&&targetDisplay>=9&&targetDisplay<=12&&isStorySfxPlaying('door-creak');
     if(direction>0){
-      if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience)stopAmbience();return;}
+      if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience&&!gestureDoorActive)stopAmbience();return;}
       if(phaseIndex<3){
-        if(!keepAmbience)stopAmbience();
+        if(!keepAmbience&&!gestureDoorActive)stopAmbience();
         phaseIndex+=1;
         if(phaseIndex===2)solved=0;
-        if(page().sound==='door-creak')startSoundForCurrentPage();
+        if(page().sound==='door-creak'&&!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
       if(pageIndex<story.pages.length-1){
-        stopAmbience();
+        if(!gestureDoorActive)stopAmbience();
         pageIndex+=1;
         phaseIndex=0;
         solved=0;
-        startSoundForCurrentPage();
+        if(!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
     }else{
       if(phaseIndex>0){
-        if(!keepAmbience)stopAmbience();
+        if(!keepAmbience&&!gestureDoorActive)stopAmbience();
         phaseIndex-=1;
         if(phaseIndex===2)solved=0;
-        if(page().sound==='door-creak')startSoundForCurrentPage();
+        if(page().sound==='door-creak'&&!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
       if(pageIndex>0){
-        stopAmbience();
+        if(!gestureDoorActive)stopAmbience();
         pageIndex-=1;
         phaseIndex=3;
         solved=0;
-        startSoundForCurrentPage();
+        if(!gestureDoorActive)startSoundForCurrentPage();
         return finishNavigation();
       }
     }
+    gestureDoorTarget=0;
   }
 
   if(storyId==='fantasy-1'){
