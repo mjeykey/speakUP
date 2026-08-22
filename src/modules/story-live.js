@@ -1,14 +1,14 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
-import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=2';
+import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
-const DEBUG_BUILD='B193';
+const DEBUG_BUILD='B194';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
@@ -114,6 +114,7 @@ export function renderStory(root,store){
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
+      stopStoryNarration();
       solved=Math.min(solved,current.items.length);
       const item=current.items[solved];
       const options=shuffle(current.items.map(entry=>entry.answer));
@@ -153,7 +154,7 @@ export function renderStory(root,store){
     if(!target)return;
 
     renderToken+=1;
-    stopStoryNarration();
+    if(target.phaseIndex===2)stopStoryNarration();
 
     const currentSound=page()?.sound||'none';
     const targetSound=story.pages[target.pageIndex]?.sound||'none';
