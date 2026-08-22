@@ -3,6 +3,7 @@ import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=63';
 import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from '../audio/story-sfx-clean.js?v=7';
+import { playDoorCreak, stopDoorCreak } from '../audio/story-door.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -12,8 +13,8 @@ const BELL_HEADSTART_MS=1800;
 const DOOR_CREAK_HEADSTART_MS=1100;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DOOR_CREAK_VOLUME=0.90;
-const DEBUG_BUILD='B173';
+const DOOR_CREAK_VOLUME=0.95;
+const DEBUG_BUILD='B174';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -76,7 +77,7 @@ export function renderStory(root,store){
   const bellVolumeForPhase=()=>phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
 
   const stopNarrator=()=>stopSpeech();
-  const stopAmbience=()=>stopStorySfx();
+  const stopAmbience=()=>{stopStorySfx();stopDoorCreak();};
   const stopAll=()=>{stopNarrator();stopAmbience();};
   const leave=()=>{renderToken+=1;stopAll();store.setState({screen:'menu'});};
 
@@ -110,13 +111,14 @@ export function renderStory(root,store){
 
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
+    if(current.sound==='door-creak')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
     if(isStorySfxPlaying(current.sound))return;
     const start=()=>{
       if(token!==renderToken)return;
       const live=page();
       if(live!==current||isStorySfxPlaying(current.sound))return;
-      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():current.sound==='door-creak'?DOOR_CREAK_VOLUME:0.30;
+      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():0.30;
       void playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain',volume});
     };
     if(current.sound==='rain'||current.sound==='bell'){
@@ -144,6 +146,9 @@ export function renderStory(root,store){
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
+    if(current.sound==='door-creak'&&audioEnabled){
+      void playDoorCreak(DOOR_CREAK_VOLUME);
+    }
     if(phaseIndex===0){
       ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
@@ -186,8 +191,8 @@ export function renderStory(root,store){
       return;
     }
     if(current.sound==='door-creak'){
-      stopStorySfx();
-      void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
+      stopDoorCreak();
+      void playDoorCreak(DOOR_CREAK_VOLUME);
     }
   }
 
@@ -234,7 +239,6 @@ export function renderStory(root,store){
 
   if(storyId==='fantasy-1'){
     void preloadStorySfx('bell');
-    void preloadStorySfx('door-creak');
   }
   renderPhase();
 }
