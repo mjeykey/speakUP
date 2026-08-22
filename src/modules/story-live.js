@@ -6,11 +6,12 @@ import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, se
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
-const CHURCH_BELL_PAGES=new Set([1,4,5,6,7]);
+const CHURCH_BELL_PAGES=new Set([1]);
+const DOOR_CREAK_PAGES=new Set([2]);
 const BELL_HEADSTART_MS=1800;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DEBUG_BUILD='B168';
+const DEBUG_BUILD='B169';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -33,7 +34,7 @@ function getStory(storyId,learningLanguage,nativeLanguage){
     pages:fantasyStory.pages.map((source,index)=>{
       const learning=getFantasyTranslation(source,index,learningLanguage);
       const native=getFantasyTranslation(source,index,nativeLanguage);
-      const sound=CHURCH_BELL_PAGES.has(index)?'bell':source.sound;
+      const sound=CHURCH_BELL_PAGES.has(index)?'bell':DOOR_CREAK_PAGES.has(index)?'door-creak':source.sound;
       return{learning,native,sound,items:learningItems(learning,native)};
     })
   };
@@ -68,6 +69,7 @@ export function renderStory(root,store){
   let locked=false;
   let renderToken=0;
   const page=()=>story.pages[pageIndex];
+  const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const saveProgress=()=>store.updateProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const bellVolumeForPhase=()=>phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
 
@@ -88,8 +90,8 @@ export function renderStory(root,store){
     const debugButton=current.sound==='bell'
       ? `<button type="button" data-bell-test style="display:block;margin-top:7px;width:100%;border:1px solid rgba(255,255,255,.45);background:#24364a;color:white;border-radius:8px;padding:7px 8px;font-weight:700">🔔 TEST</button>`
       : '';
-    const debugBadge=`<div data-story-debug style="position:fixed;top:8px;right:8px;z-index:2147483647;background:rgba(0,0,0,.92);color:#fff;border:2px solid #68d5ff;border-radius:10px;padding:8px 10px;font:700 11px/1.35 Arial,sans-serif;max-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.45)"><div>${DEBUG_BUILD} · ${escapeHtml(storyId)}</div><div>Page ${pageIndex+1} · ${escapeHtml(current.sound||'none')}</div><div>Bell: <span data-bell-status>${escapeHtml(bellStatusText())}</span></div>${debugButton}</div>`;
-    root.innerHTML=`${debugBadge}<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    const debugBadge='';
+    root.innerHTML=`${debugBadge}<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
     root.querySelector('[data-next]').onclick=()=>navigate(1);
@@ -107,12 +109,13 @@ export function renderStory(root,store){
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
+    if(current.sound==='door-creak'&&phaseIndex!==0)return;
     if(isStorySfxPlaying(current.sound))return;
     const start=()=>{
       if(token!==renderToken)return;
       const live=page();
       if(live!==current||isStorySfxPlaying(current.sound))return;
-      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():0.30;
+      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():current.sound==='door-creak'?0.50:0.30;
       void playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain',volume});
     };
     if(current.sound==='rain'||current.sound==='bell'){
@@ -145,7 +148,7 @@ export function renderStory(root,store){
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
-      if(current.sound!=='rain'&&current.sound!=='bell')stopAmbience();
+      if(current.sound!=='rain'&&current.sound!=='bell'&&current.sound!=='door-creak')stopAmbience();
       solved=Math.min(solved,current.items.length);
       const item=current.items[solved];
       const options=shuffle(current.items.map(entry=>entry.answer));
@@ -162,7 +165,7 @@ export function renderStory(root,store){
         }
       });
     }else{
-      if(current.sound!=='rain'&&current.sound!=='bell')stopAmbience();
+      if(current.sound!=='rain'&&current.sound!=='bell'&&current.sound!=='door-creak')stopAmbience();
       shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }
@@ -177,7 +180,7 @@ export function renderStory(root,store){
     renderToken+=1;
     stopNarrator();
     const currentSound=page().sound;
-    const keepAmbience=currentSound==='rain'||currentSound==='bell';
+    const keepAmbience=currentSound==='rain'||currentSound==='bell'||currentSound==='door-creak';
     if(direction>0){
       if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience)stopAmbience();return;}
       if(phaseIndex<3){if(!keepAmbience)stopAmbience();phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
