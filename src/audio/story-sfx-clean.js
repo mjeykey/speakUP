@@ -9,12 +9,16 @@ let bellPreparePromise = null;
 let doorAudio = null;
 let doorBlobUrl = '';
 let doorPreparePromise = null;
+let doorAudioContext = null;
+let doorSourceNode = null;
+let doorGainNode = null;
 let stopTimer = 0;
 let bellStatus = { state: 'idle', detail: '' };
 
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4', import.meta.url).href;
 const DOOR_DATA_URL = STORY_SFX_ASSETS['door-creak'] || '';
+const DOOR_SIGNAL_GAIN = 25;
 
 function setBellStatus(state, detail = '') {
   bellStatus = { state, detail };
@@ -84,6 +88,25 @@ function ensureBellAudio() {
   return audio;
 }
 
+function ensureDoorAmplifier(audio) {
+  if (!audio || typeof window === 'undefined') return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!doorAudioContext || doorAudioContext.state === 'closed') {
+    doorAudioContext = new AudioContextClass({ latencyHint: 'interactive' });
+    doorSourceNode = null;
+    doorGainNode = null;
+  }
+  if (!doorSourceNode) {
+    doorSourceNode = doorAudioContext.createMediaElementSource(audio);
+    doorGainNode = doorAudioContext.createGain();
+    doorGainNode.gain.value = DOOR_SIGNAL_GAIN;
+    doorSourceNode.connect(doorGainNode);
+    doorGainNode.connect(doorAudioContext.destination);
+  }
+  return { context: doorAudioContext, gain: doorGainNode };
+}
+
 function ensureDoorAudio() {
   if (doorAudio && doorAudio.isConnected) return doorAudio;
   if (!DOOR_DATA_URL) return null;
@@ -100,6 +123,7 @@ function ensureDoorAudio() {
   audio.style.left = '-9999px';
   document.body.appendChild(audio);
   doorAudio = audio;
+  try { ensureDoorAmplifier(audio); } catch (error) { console.warn('Door amplifier setup failed.', error); }
   return audio;
 }
 
@@ -233,6 +257,13 @@ async function playDoor(volume = 0.95) {
   if (!audio) return false;
   try {
     if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) await prepareDoorAudio();
+    const amplifier = ensureDoorAmplifier(audio);
+    if (amplifier) {
+      amplifier.gain.gain.value = DOOR_SIGNAL_GAIN;
+      if (amplifier.context.state === 'suspended') {
+        try { await amplifier.context.resume(); } catch (_) {}
+      }
+    }
     audio.pause();
     audio.currentTime = 0;
     audio.muted = false;
@@ -353,6 +384,10 @@ export function stopStorySfx() {
 
 export async function unlockStorySfx() {
   const results = await Promise.allSettled([prepareBellAudio(), prepareDoorAudio()]);
+  const amplifier = doorAudio ? ensureDoorAmplifier(doorAudio) : null;
+  if (amplifier?.context?.state === 'suspended') {
+    try { await amplifier.context.resume(); } catch (_) {}
+  }
   return results.some(result => result.status === 'fulfilled' && result.value);
 }
 
