@@ -15,8 +15,7 @@ import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=63';
-import { stopStorySfx } from '../audio/story-sfx-clean.js?v=16';
-import { stopStoryDoor } from '../audio/story-door-direct.js?v=1';
+import { stopStoryEffects } from '../audio/story-effects.js?v=1';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
@@ -41,11 +40,9 @@ const routes = {
 };
 
 function render(state) {
-  stopSpeech();
-  if(previousScreen==='story'&&state.screen!=='story'){
-    stopStoryDoor();
-    stopStorySfx();
-  }
+  const screenChanged=previousScreen!==state.screen;
+  if(screenChanged)stopSpeech();
+  if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
   previousScreen=state.screen;
   const view = routes[state.screen] || renderWelcome;
   view(root, store);
