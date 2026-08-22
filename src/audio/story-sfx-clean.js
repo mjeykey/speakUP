@@ -22,8 +22,32 @@ function setBellStatus(state,detail=''){
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('speakup-bell-status',{detail:bellStatus}));
 }
 
+function renderDoorDiagnostic(){
+  if(typeof document==='undefined'||!document.body)return;
+  let panel=document.getElementById('speakup-door-diagnostic');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='speakup-door-diagnostic';
+    Object.assign(panel.style,{position:'fixed',left:'12px',right:'12px',bottom:'12px',zIndex:'99999',background:'rgba(18,25,33,.96)',color:'#fff',border:'1px solid rgba(255,255,255,.3)',borderRadius:'12px',padding:'10px',fontFamily:'system-ui,sans-serif',fontSize:'13px',boxShadow:'0 8px 30px rgba(0,0,0,.35)'});
+    const status=document.createElement('div');
+    status.dataset.doorDiagStatus='1';
+    status.style.marginBottom='8px';
+    panel.appendChild(status);
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent='🚪 TÜR TEST';
+    Object.assign(button.style,{width:'100%',border:'0',borderRadius:'9px',padding:'11px 12px',fontWeight:'800',fontSize:'15px',background:'#fff',color:'#18212b'});
+    button.onclick=()=>{void playDoor(1);};
+    panel.appendChild(button);
+    document.body.appendChild(panel);
+  }
+  const status=panel.querySelector('[data-door-diag-status]');
+  if(status)status.textContent=`TÜR: ${doorStatus.state}${doorStatus.detail?` · ${doorStatus.detail}`:''}`;
+}
+
 function setDoorStatus(state,detail=''){
   doorStatus={state,detail};
+  renderDoorDiagnostic();
   if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('speakup-door-status',{detail:doorStatus}));
 }
 
