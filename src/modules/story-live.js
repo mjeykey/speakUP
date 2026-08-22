@@ -1,14 +1,14 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
-import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=1';
-import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=1';
+import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=2';
+import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=2';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
-const DEBUG_BUILD='B192';
+const DEBUG_BUILD='B193';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
