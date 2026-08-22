@@ -14,13 +14,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Write proof
+      - name: Probe live GitHub Pages
         shell: bash
         run: |
           set -euo pipefail
-          printf 'actions-ok\n' > .actions-smoke-proof
+          base='https://mjeykey.github.io/speakUP'
+          nonce="$(date +%s)"
+          report='.live-pages-report.txt'
+          tmp="$(mktemp -d)"
+          : > "$report"
+          echo "PROBE_UTC=$(date -u +%FT%TZ)" >> "$report"
+          echo "RUNNER_COMMIT=$(git rev-parse HEAD)" >> "$report"
+
+          curl -fsSL "$base/app.html?probe=$nonce" -o "$tmp/app.html"
+          echo "APP_SHA256=$(sha256sum "$tmp/app.html" | awk '{print $1}')" >> "$report"
+          app_main=$(grep -oE 'src/app/main\.js\?v=[0-9]+' "$tmp/app.html" | tail -1 || true)
+          echo "APP_MAIN_REF=$app_main" >> "$report"
+
+          if [ -n "$app_main" ]; then
+            curl -fsSL "$base/$app_main&probe=$nonce" -o "$tmp/main.js"
+            echo "MAIN_SHA256=$(sha256sum "$tmp/main.js" | awk '{print $1}')" >> "$report"
+            main_loader=$(grep -oE '../modules/story-loader\.js\?v=[0-9]+' "$tmp/main.js" | tail -1 || true)
+            echo "MAIN_LOADER_REF=$main_loader" >> "$report"
+          fi
+
+          if [ -n "${main_loader:-}" ]; then
+            loader_v=$(printf '%s' "$main_loader" | sed -E 's/.*\?v=([0-9]+)/\1/')
+            curl -fsSL "$base/src/modules/story-loader.js?v=$loader_v&probe=$nonce" -o "$tmp/loader.js"
+            echo "LOADER_SHA256=$(sha256sum "$tmp/loader.js" | awk '{print $1}')" >> "$report"
+            story_ref=$(grep -oE 'story-live\.js\?v=[0-9]+' "$tmp/loader.js" | tail -1 || true)
+            echo "LOADER_STORY_REF=$story_ref" >> "$report"
+          fi
+
+          if [ -n "${story_ref:-}" ]; then
+            story_v=$(printf '%s' "$story_ref" | sed -E 's/.*\?v=([0-9]+)/\1/')
+            curl -fsSL "$base/src/modules/story-live.js?v=$story_v&probe=$nonce" -o "$tmp/story.js"
+            echo "STORY_SHA256=$(sha256sum "$tmp/story.js" | awk '{print $1}')" >> "$report"
+            grep -q 'Bell status:' "$tmp/story.js" && echo 'STORY_HAS_BELL_STATUS=YES' >> "$report" || echo 'STORY_HAS_BELL_STATUS=NO' >> "$report"
+            grep -q 'data-bell-test' "$tmp/story.js" && echo 'STORY_HAS_TEST_BUTTON=YES' >> "$report" || echo 'STORY_HAS_TEST_BUTTON=NO' >> "$report"
+          fi
+
+          curl -fsSL "$base/assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?probe=$nonce" -o "$tmp/bell.mp3"
+          bell_sha=$(sha256sum "$tmp/bell.mp3" | awk '{print $1}')
+          echo "LIVE_BELL_SHA256=$bell_sha" >> "$report"
+          echo 'EXPECTED_BELL_SHA256=969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58' >> "$report"
+          if [ "$bell_sha" = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58' ]; then echo 'BELL_MATCH=EXACT' >> "$report"; else echo 'BELL_MATCH=NO' >> "$report"; fi
+
+          cat "$report"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .actions-smoke-proof
-          git commit -m "Prove GitHub Actions execution"
+          git add "$report"
+          git commit -m "Record live GitHub Pages probe"
           git push
