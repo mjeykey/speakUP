@@ -1,24 +1,16 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
-import { speak, stopSpeech } from '../audio/speech.js?v=63';
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from '../audio/story-sfx-clean.js?v=16';
-import { playStoryDoor, stopStoryDoor } from '../audio/story-door-direct.js?v=1';
+import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=1';
+import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=1';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
-const BELL_HEADSTART_MS=1800;
-const DOOR_CREAK_HEADSTART_MS=950;
-const SPEECH_RESTART_GUARD_MS=120;
-const BELL_NORMAL_VOLUME=0.90;
-const BELL_LEARNING_VOLUME=0.68;
-const DOOR_CREAK_VOLUME=0.95;
-const DEBUG_BUILD='B191';
+const DEBUG_BUILD='B192';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
-const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function learningItems(text,nativeText){
   const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -66,16 +58,17 @@ export function renderStory(root,store){
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
-  let speechRestartAt=0;
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
-  const bellVolumeForPhase=()=>phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
-  const stopNarrator=()=>stopSpeech();
-  const stopAllEffects=()=>{stopStoryDoor();stopStorySfx();};
-  const stopAll=()=>{stopNarrator();stopAllEffects();};
-  const leave=()=>{renderToken+=1;stopAll();store.setState({screen:'menu'});};
+  const isTokenCurrent=token=>()=>token===renderToken;
+  const leave=()=>{
+    renderToken+=1;
+    stopStoryNarration();
+    stopStoryEffects();
+    store.setState({screen:'menu'});
+  };
 
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
@@ -86,41 +79,25 @@ export function renderStory(root,store){
     root.querySelector('[data-next]').onclick=()=>navigate(1);
   }
 
-  function ensureAmbience(current,audioEnabled,token){
-    if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
-    if(current.sound==='door-creak')return;
-    if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
-    if(isStorySfxPlaying(current.sound))return;
-    const start=()=>{
-      if(token!==renderToken)return;
-      const live=page();
-      if(live!==current||isStorySfxPlaying(current.sound))return;
-      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():0.30;
-      void playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain',volume});
-    };
-    if(current.sound==='rain'||current.sound==='bell'){
-      start();
-      return;
-    }
-    void preloadStorySfx(current.sound).then(ok=>{if(ok)start();});
+  function syncEffect(current,audioEnabled,token){
+    ensureStoryEffect({
+      storyId,
+      sound:current.sound,
+      phaseIndex,
+      enabled:audioEnabled,
+      isCurrent:()=>token===renderToken&&page()===current
+    });
   }
 
   async function narrate(text,voice,audioEnabled,rate,token,current){
-    if(token!==renderToken)return;
-    const restartWait=speechRestartAt-Date.now();
-    if(restartWait>0){
-      await sleep(restartWait);
-      if(token!==renderToken)return;
-    }
-    if(audioEnabled&&current?.sound==='bell'){
-      await sleep(BELL_HEADSTART_MS);
-      if(token!==renderToken)return;
-    }
-    if(audioEnabled&&current?.sound==='door-creak'){
-      await sleep(DOOR_CREAK_HEADSTART_MS);
-      if(token!==renderToken)return;
-    }
-    await speak(text,voice,{enabled:audioEnabled,rate});
+    await narrateStory({
+      text,
+      voice,
+      enabled:audioEnabled,
+      rate,
+      sound:current.sound,
+      isCurrent:isTokenCurrent(token)
+    });
   }
 
   async function renderPhase(){
@@ -128,18 +105,15 @@ export function renderStory(root,store){
     const token=++renderToken;
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
-    if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
+    syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
-      ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
       await narrate(current.native,nativeVoice,audioEnabled,.88,token,current);
     }else if(phaseIndex===1){
-      ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
-      ensureAmbience(current,audioEnabled,token);
       solved=Math.min(solved,current.items.length);
       const item=current.items[solved];
       const options=shuffle(current.items.map(entry=>entry.answer));
@@ -157,7 +131,6 @@ export function renderStory(root,store){
         }
       });
     }else{
-      ensureAmbience(current,audioEnabled,token);
       shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }
@@ -175,46 +148,31 @@ export function renderStory(root,store){
     return null;
   }
 
-  function transitionAudio(target){
-    const audioEnabled=Boolean(store.getState().audioOn);
-    const currentSound=page()?.sound||'none';
-    const targetSound=story.pages[target.pageIndex]?.sound||'none';
-    const sameSourcePage=target.pageIndex===pageIndex;
-    const targetIsDoor=storyId==='fantasy-1'&&audioEnabled&&targetSound==='door-creak';
-
-    if(targetIsDoor){
-      stopStorySfx();
-      stopStoryDoor();
-      void playStoryDoor(DOOR_CREAK_VOLUME);
-      return;
-    }
-
-    stopStoryDoor();
-    const preserveContinuousSound=audioEnabled&&sameSourcePage&&currentSound===targetSound&&(currentSound==='rain'||currentSound==='bell');
-    if(!preserveContinuousSound)stopStorySfx();
-  }
-
-  function finishNavigation(){
-    persistProgress();
-    void renderPhase();
-  }
-
   function navigate(direction){
     const target=targetPosition(direction);
     if(!target)return;
 
     renderToken+=1;
-    stopNarrator();
-    speechRestartAt=Date.now()+SPEECH_RESTART_GUARD_MS;
-    transitionAudio(target);
+    stopStoryNarration();
+
+    const currentSound=page()?.sound||'none';
+    const targetSound=story.pages[target.pageIndex]?.sound||'none';
+    transitionStoryEffects({
+      storyId,
+      enabled:Boolean(store.getState().audioOn),
+      currentSound,
+      targetSound,
+      sameSourcePage:target.pageIndex===pageIndex
+    });
 
     const pageChanged=target.pageIndex!==pageIndex;
     pageIndex=target.pageIndex;
     phaseIndex=target.phaseIndex;
     if(pageChanged||phaseIndex===2)solved=0;
-    finishNavigation();
+    persistProgress();
+    void renderPhase();
   }
 
-  if(storyId==='fantasy-1')void preloadStorySfx('bell');
+  prepareStoryEffects(storyId);
   renderPhase();
 }
