@@ -3,16 +3,16 @@ import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
 let activeAudio=null;
 let activeName='';
 let rainAudio=null;
+let doorAudio=null;
 let bellAudio=null;
 let bellBlobUrl='';
 let bellPreparePromise=null;
-let doorAudio=null;
 let stopTimer=0;
 let bellStatus={state:'idle',detail:''};
 
 const RAIN_MP3_URL='https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 const BELL_MP3_URL=new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4',import.meta.url).href;
-const DOOR_MP3_URL=new URL('../../assets/audio/door-creak-original-loud.mp3?v=1',import.meta.url).href;
+const DOOR_MP3_URL=new URL('../../assets/audio/door-creak-original-loud.mp3?v=2',import.meta.url).href;
 
 const clampVolume=value=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):null;
 
@@ -38,15 +38,6 @@ function ensureBellAudio(){
   bellAudio.onerror=()=>setBellStatus('media-error',`code=${bellAudio.error?.code||'unknown'} readyState=${bellAudio.readyState}`);
   setBellStatus('created',`readyState=${bellAudio.readyState}`);
   return bellAudio;
-}
-
-function ensureDoorAudio(){
-  if(doorAudio&&doorAudio.isConnected)return doorAudio;
-  doorAudio=styleHiddenAudio(document.createElement('audio'));
-  doorAudio.volume=.95;
-  doorAudio.src=DOOR_MP3_URL;
-  doorAudio.load();
-  return doorAudio;
 }
 
 function waitForCanPlay(audio,timeoutMs=12000){
@@ -97,33 +88,10 @@ async function prepareBellAudio(){
   return bellPreparePromise;
 }
 
-function prepareDoorAudio(){
-  const audio=ensureDoorAudio();
-  if(audio.readyState>=HTMLMediaElement.HAVE_CURRENT_DATA)return Promise.resolve(true);
-  return waitForCanPlay(audio);
-}
-
 function stopMedia(audio){
   if(!audio)return;
   try{audio.pause();}catch(_){}
   try{audio.currentTime=0;}catch(_){}
-}
-
-function playDoor(volume=.95){
-  const audio=ensureDoorAudio();
-  try{
-    stopMedia(audio);
-    audio.muted=false;
-    audio.volume=clampVolume(volume)??.95;
-    // Important for Android: play() is invoked synchronously inside the navigation click.
-    return Promise.resolve(audio.play()).then(()=>true).catch(error=>{
-      console.warn('Door playback failed.',error);
-      return false;
-    });
-  }catch(error){
-    console.warn('Door playback failed.',error);
-    return Promise.resolve(false);
-  }
 }
 
 async function playBell(volume=.90){
@@ -156,6 +124,24 @@ function playRain(volume=.40,keepGoing=false){
   audio.onended=()=>{if(rainAudio===audio){rainAudio=null;if(keepGoing)void playRain(volume,true);}};
   audio.onerror=()=>{if(rainAudio===audio)rainAudio=null;};
   return Promise.resolve(audio.play()).then(()=>true).catch(error=>{if(rainAudio===audio)rainAudio=null;console.warn('Rain playback failed.',error);return false;});
+}
+
+function playDoor(volume=.95){
+  stopMedia(doorAudio);
+  const audio=new Audio(DOOR_MP3_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.loop=false;
+  audio.muted=false;
+  audio.volume=clampVolume(volume)??.95;
+  doorAudio=audio;
+  audio.onended=()=>{if(doorAudio===audio)doorAudio=null;};
+  audio.onerror=()=>{if(doorAudio===audio)doorAudio=null;};
+  return Promise.resolve(audio.play()).then(()=>true).catch(error=>{
+    if(doorAudio===audio)doorAudio=null;
+    console.warn('Door playback failed.',error);
+    return false;
+  });
 }
 
 function staticSource(name){
@@ -209,8 +195,7 @@ export function getStorySfxSrc(name){
 
 export function isStorySfxReady(name){
   if(name==='bell')return Boolean(bellAudio&&bellAudio.readyState>=HTMLMediaElement.HAVE_CURRENT_DATA);
-  if(name==='door-creak')return Boolean(doorAudio&&doorAudio.readyState>=HTMLMediaElement.HAVE_CURRENT_DATA);
-  if(name==='rain'||name==='warning-bell')return true;
+  if(name==='door-creak'||name==='rain'||name==='warning-bell')return true;
   return Boolean(staticSource(name));
 }
 
@@ -224,8 +209,7 @@ export function isStorySfxPlaying(name){
 
 export function preloadStorySfx(name){
   if(name==='bell')return prepareBellAudio();
-  if(name==='door-creak')return prepareDoorAudio();
-  if(name==='rain'||name==='warning-bell')return Promise.resolve(true);
+  if(name==='door-creak'||name==='rain'||name==='warning-bell')return Promise.resolve(true);
   return Promise.resolve(Boolean(staticSource(name)));
 }
 
@@ -234,13 +218,12 @@ export function stopStorySfx(){
   stopTimer=0;
   stopGeneric();
   stopMedia(rainAudio);rainAudio=null;
+  stopMedia(doorAudio);doorAudio=null;
   stopMedia(bellAudio);
-  stopMedia(doorAudio);
 }
 
 export async function unlockStorySfx(){
-  const results=await Promise.allSettled([prepareBellAudio(),prepareDoorAudio()]);
-  return results.some(result=>result.status==='fulfilled'&&result.value);
+  return prepareBellAudio();
 }
 
 export function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs=0}={}){
@@ -255,7 +238,5 @@ export function playStorySfx(name,{enabled=true,loop=false,volume,testDurationMs
 }
 
 if(typeof document!=='undefined'&&document.body){
-  // Start loading the real files long before the user reaches the Story scene.
   void prepareBellAudio();
-  void prepareDoorAudio();
 }
