@@ -1,0 +1,52 @@
+name: Story page 9 door block
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .story-page9-door-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch page numbering and door block
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('src/modules/story-live.js')
+          s = p.read_text()
+          s = s.replace("const CHURCH_BELL_PAGES=new Set([1,4,5,6,7]);", "const CHURCH_BELL_PAGES=new Set([1]);\nconst DOOR_CREAK_PAGES=new Set([2]);")
+          s = s.replace("const DEBUG_BUILD='B168';", "const DEBUG_BUILD='B169';")
+          s = s.replace("const sound=CHURCH_BELL_PAGES.has(index)?'bell':source.sound;", "const sound=CHURCH_BELL_PAGES.has(index)?'bell':DOOR_CREAK_PAGES.has(index)?'door-creak':source.sound;")
+          s = s.replace("  const page=()=>story.pages[pageIndex];\n", "  const page=()=>story.pages[pageIndex];\n  const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;\n")
+          s = re.sub(r"    const debugBadge=`<div data-story-debug.*?`;\n", "    const debugBadge='';\n", s, count=1)
+          s = s.replace("<p class=\"story-progress\">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>", "<p class=\"story-progress\">Seite ${displayPage()}</p>")
+          s = s.replace("    if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());\n    if(isStorySfxPlaying(current.sound))return;", "    if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());\n    if(current.sound==='door-creak'&&phaseIndex!==0)return;\n    if(isStorySfxPlaying(current.sound))return;")
+          s = s.replace("const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():0.30;", "const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():current.sound==='door-creak'?0.50:0.30;")
+          s = s.replace("if(current.sound!=='rain'&&current.sound!=='bell')stopAmbience();", "if(current.sound!=='rain'&&current.sound!=='bell'&&current.sound!=='door-creak')stopAmbience();")
+          s = s.replace("const keepAmbience=currentSound==='rain'||currentSound==='bell';", "const keepAmbience=currentSound==='rain'||currentSound==='bell'||currentSound==='door-creak';")
+          p.write_text(s)
+
+          loader = Path('src/modules/story-loader.js')
+          loader.write_text(loader.read_text().replace("story-live.js?v=7", "story-live.js?v=8"))
+
+          main = Path('src/app/main.js')
+          main.write_text(main.read_text().replace("story-loader.js?v=124", "story-loader.js?v=125"))
+
+          for name in ['app.html','index.html']:
+              f=Path(name)
+              f.write_text(f.read_text().replace("src/app/main.js?v=168", "src/app/main.js?v=169"))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/modules/story-live.js src/modules/story-loader.js src/app/main.js app.html index.html
+          git commit -m "Use simple story page numbers and door sound on pages 9-12"
+          git push
