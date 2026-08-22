@@ -1,21 +1,22 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx-clean.js?v=16';
-import { playStoryDoor, stopStoryDoor } from './story-door-direct.js?v=1';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx-clean.js?v=17';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
-const DOOR_VOLUME=.95;
+const DOOR_VOLUME=1;
 
 function bellVolumeForPhase(phaseIndex){
   return phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
 }
 
 export function stopStoryEffects(){
-  stopStoryDoor();
   stopStorySfx();
 }
 
 export function prepareStoryEffects(storyId){
-  if(storyId==='fantasy-1')void preloadStorySfx('bell');
+  if(storyId==='fantasy-1'){
+    void preloadStorySfx('bell');
+    void preloadStorySfx('door-creak');
+  }
 }
 
 export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurrent=()=>true}={}){
@@ -39,24 +40,20 @@ export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurre
 }
 
 export function transitionStoryEffects({storyId,enabled=true,currentSound='none',targetSound='none',sameSourcePage=false}={}){
-  if(storyId!=='fantasy-1'){
+  if(storyId!=='fantasy-1'||!enabled){
     stopStoryEffects();
     return;
   }
 
-  if(!enabled){
-    stopStoryEffects();
-    return;
-  }
-
+  // Use the exact same door player that was already proven audible on Android.
+  // This function is called synchronously from the real navigation click, so
+  // play() remains inside the trusted user gesture.
   if(targetSound==='door-creak'){
     stopStorySfx();
-    stopStoryDoor();
-    void playStoryDoor(DOOR_VOLUME);
+    void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_VOLUME});
     return;
   }
 
-  stopStoryDoor();
   const preserveContinuous=Boolean(
     sameSourcePage&&
     currentSound===targetSound&&
