@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=63';
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-clean.js?v=2';
+import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-clean.js?v=3';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -45,6 +45,12 @@ function gapHtml(page,solved){
   return html;
 }
 
+function bellStatusText(){
+  const status=getStorySfxStatus();
+  const detail=status.detail?` · ${status.detail}`:'';
+  return `${status.state}${detail}`;
+}
+
 export function renderStory(root,store){
   const state=store.getState();
   const storyId=state.selectedStory||'everyday';
@@ -66,13 +72,30 @@ export function renderStory(root,store){
   const stopAll=()=>{stopNarrator();stopAmbience();};
   const leave=()=>{renderToken+=1;stopAll();store.setState({screen:'menu'});};
 
+  function refreshBellStatus(){
+    const el=root.querySelector('[data-bell-status]');
+    if(el)el.textContent=bellStatusText();
+  }
+
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    const bellDebug=page().sound==='bell'
+      ? `<div style="margin:18px auto 4px;font-family:Arial,sans-serif;font-size:13px;color:#c7eaff"><div>Bell status: <strong data-bell-status>${escapeHtml(bellStatusText())}</strong></div><button type="button" data-bell-test style="margin-top:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:white;border-radius:999px;padding:9px 15px">🔔 Test bell</button></div>`
+      : '';
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>${content}${bellDebug}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
     root.querySelector('[data-next]').onclick=()=>navigate(1);
+    const bellButton=root.querySelector('[data-bell-test]');
+    if(bellButton){
+      bellButton.onclick=async()=>{
+        stopNarrator();
+        await playStorySfx('bell',{enabled:true,loop:false,volume:0.90});
+        refreshBellStatus();
+      };
+      window.addEventListener('speakup-bell-status',refreshBellStatus,{once:true});
+    }
   }
 
   function ensureAmbience(current,audioEnabled,token){
@@ -139,7 +162,6 @@ export function renderStory(root,store){
 
   function startBellForCurrentPage(){
     if(storyId!=='fantasy-1'||!Boolean(store.getState().audioOn)||page().sound!=='bell')return;
-    // Called directly inside the navigation click: this is the proven Android-safe path.
     void playStorySfx('bell',{enabled:true,loop:false,volume:0.90});
   }
 
