@@ -14,7 +14,7 @@ let doorStatus={state:'idle',detail:''};
 const RAIN_MP3_URL='https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
 const BELL_MP3_URL=new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4',import.meta.url).href;
 const DOOR_MP3_URL=new URL('../../assets/audio/door-creak-original-loud.mp3?v=2',import.meta.url).href;
-const DOOR_PLAYBACK_RATE=.38;
+const DOOR_REPEAT_COUNT=3;
 
 const clampVolume=value=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):null;
 
@@ -165,24 +165,32 @@ function playDoor(volume=.95){
   audio.loop=false;
   audio.muted=false;
   audio.volume=clampVolume(volume)??.95;
-  audio.playbackRate=DOOR_PLAYBACK_RATE;
-  try{audio.preservesPitch=true;}catch(_){}
-  try{audio.webkitPreservesPitch=true;}catch(_){}
+  audio.playbackRate=1;
   doorAudio=audio;
-  setDoorStatus('play-request',`rate=${DOOR_PLAYBACK_RATE} · src=${DOOR_MP3_URL}`);
-  audio.onloadeddata=()=>setDoorStatus('loaded',`readyState=${audio.readyState} networkState=${audio.networkState} rate=${audio.playbackRate}`);
-  audio.onplaying=()=>setDoorStatus('playing',`readyState=${audio.readyState} time=${audio.currentTime.toFixed(2)} rate=${audio.playbackRate}`);
+  let completed=0;
+  setDoorStatus('play-request',`repeat=${DOOR_REPEAT_COUNT} · src=${DOOR_MP3_URL}`);
+  audio.onloadeddata=()=>setDoorStatus('loaded',`readyState=${audio.readyState} networkState=${audio.networkState}`);
+  audio.onplaying=()=>setDoorStatus('playing',`pass=${completed+1}/${DOOR_REPEAT_COUNT} · time=${audio.currentTime.toFixed(2)}`);
   audio.onerror=()=>{
     setDoorStatus('media-error',`code=${audio.error?.code||'unknown'} readyState=${audio.readyState} networkState=${audio.networkState}`);
     if(doorAudio===audio)doorAudio=null;
   };
   audio.onended=()=>{
-    const effective=Number.isFinite(audio.duration)?audio.duration/audio.playbackRate:NaN;
-    setDoorStatus('ended',`media=${Number.isFinite(audio.duration)?audio.duration.toFixed(2):'unknown'}s · played≈${Number.isFinite(effective)?effective.toFixed(2):'unknown'}s`);
+    completed+=1;
+    if(doorAudio===audio&&completed<DOOR_REPEAT_COUNT){
+      setDoorStatus('repeat',`${completed+1}/${DOOR_REPEAT_COUNT}`);
+      try{audio.currentTime=0;}catch(_){}
+      void audio.play().catch(error=>{
+        setDoorStatus('blocked',`${error?.name||'Error'}: ${error?.message||String(error)}`);
+        if(doorAudio===audio)doorAudio=null;
+      });
+      return;
+    }
+    setDoorStatus('ended',`passes=${completed}/${DOOR_REPEAT_COUNT}`);
     if(doorAudio===audio)doorAudio=null;
   };
   return Promise.resolve(audio.play()).then(()=>{
-    setDoorStatus('playing',`readyState=${audio.readyState} time=${audio.currentTime.toFixed(2)} rate=${audio.playbackRate}`);
+    setDoorStatus('playing',`pass=1/${DOOR_REPEAT_COUNT} · time=${audio.currentTime.toFixed(2)}`);
     return true;
   }).catch(error=>{
     setDoorStatus('blocked',`${error?.name||'Error'}: ${error?.message||String(error)}`);
