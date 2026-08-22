@@ -9,9 +9,11 @@ const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 const BELL_HEADSTART_MS=1800;
+const DOOR_CREAK_HEADSTART_MS=1100;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DEBUG_BUILD='B170';
+const DOOR_CREAK_VOLUME=0.80;
+const DEBUG_BUILD='B171';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -109,12 +111,13 @@ export function renderStory(root,store){
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
+    if(current.sound==='door-creak'&&phaseIndex!==0)return;
     if(isStorySfxPlaying(current.sound))return;
     const start=()=>{
       if(token!==renderToken)return;
       const live=page();
       if(live!==current||isStorySfxPlaying(current.sound))return;
-      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():current.sound==='door-creak'?0.50:0.30;
+      const volume=current.sound==='rain'?0.40:current.sound==='bell'?bellVolumeForPhase():current.sound==='door-creak'?DOOR_CREAK_VOLUME:0.30;
       void playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain',volume});
     };
     if(current.sound==='rain'||current.sound==='bell'){
@@ -128,6 +131,10 @@ export function renderStory(root,store){
     if(token!==renderToken)return;
     if(audioEnabled&&current?.sound==='bell'){
       await sleep(BELL_HEADSTART_MS);
+      if(token!==renderToken)return;
+    }
+    if(audioEnabled&&current?.sound==='door-creak'&&phaseIndex===0){
+      await sleep(DOOR_CREAK_HEADSTART_MS);
       if(token!==renderToken)return;
     }
     await speak(text,voice,{enabled:audioEnabled,rate});
@@ -172,9 +179,16 @@ export function renderStory(root,store){
     }
   }
 
-  function startBellForCurrentPage(){
-    if(storyId!=='fantasy-1'||!Boolean(store.getState().audioOn)||page().sound!=='bell')return;
-    void playStorySfx('bell',{enabled:true,loop:false,volume:bellVolumeForPhase()});
+  function startSoundForCurrentPage(){
+    if(storyId!=='fantasy-1'||!Boolean(store.getState().audioOn))return;
+    const current=page();
+    if(current.sound==='bell'){
+      void playStorySfx('bell',{enabled:true,loop:false,volume:bellVolumeForPhase()});
+      return;
+    }
+    if(current.sound==='door-creak'&&phaseIndex===0){
+      void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
+    }
   }
 
   function navigate(direction){
@@ -185,13 +199,16 @@ export function renderStory(root,store){
     if(direction>0){
       if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience)stopAmbience();return;}
       if(phaseIndex<3){if(!keepAmbience)stopAmbience();phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
-      if(pageIndex<story.pages.length-1){stopAmbience();pageIndex+=1;phaseIndex=0;solved=0;startBellForCurrentPage();return saveProgress();}
+      if(pageIndex<story.pages.length-1){stopAmbience();pageIndex+=1;phaseIndex=0;solved=0;startSoundForCurrentPage();return saveProgress();}
     }else{
       if(phaseIndex>0){if(!keepAmbience)stopAmbience();phaseIndex-=1;if(phaseIndex===2)solved=0;return saveProgress();}
-      if(pageIndex>0){stopAmbience();pageIndex-=1;phaseIndex=3;solved=0;startBellForCurrentPage();return saveProgress();}
+      if(pageIndex>0){stopAmbience();pageIndex-=1;phaseIndex=3;solved=0;startSoundForCurrentPage();return saveProgress();}
     }
   }
 
-  if(storyId==='fantasy-1')void preloadStorySfx('bell');
+  if(storyId==='fantasy-1'){
+    void preloadStorySfx('bell');
+    void preloadStorySfx('door-creak');
+  }
   renderPhase();
 }
