@@ -12,8 +12,8 @@ const BELL_HEADSTART_MS=1800;
 const DOOR_CREAK_HEADSTART_MS=1100;
 const BELL_NORMAL_VOLUME=0.90;
 const BELL_LEARNING_VOLUME=0.68;
-const DOOR_CREAK_VOLUME=0.80;
-const DEBUG_BUILD='B172';
+const DOOR_CREAK_VOLUME=0.90;
+const DEBUG_BUILD='B173';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -111,7 +111,6 @@ export function renderStory(root,store){
   function ensureAmbience(current,audioEnabled,token){
     if(storyId!=='fantasy-1'||!audioEnabled||!current.sound||current.sound==='none')return;
     if(current.sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase());
-    if(current.sound==='door-creak'&&phaseIndex!==0)return;
     if(isStorySfxPlaying(current.sound))return;
     const start=()=>{
       if(token!==renderToken)return;
@@ -133,7 +132,7 @@ export function renderStory(root,store){
       await sleep(BELL_HEADSTART_MS);
       if(token!==renderToken)return;
     }
-    if(audioEnabled&&current?.sound==='door-creak'&&phaseIndex===0){
+    if(audioEnabled&&current?.sound==='door-creak'){
       await sleep(DOOR_CREAK_HEADSTART_MS);
       if(token!==renderToken)return;
     }
@@ -186,7 +185,8 @@ export function renderStory(root,store){
       void playStorySfx('bell',{enabled:true,loop:false,volume:bellVolumeForPhase()});
       return;
     }
-    if(current.sound==='door-creak'&&phaseIndex===0){
+    if(current.sound==='door-creak'){
+      stopStorySfx();
       void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_CREAK_VOLUME});
     }
   }
@@ -198,11 +198,37 @@ export function renderStory(root,store){
     const keepAmbience=currentSound==='rain'||currentSound==='bell'||currentSound==='door-creak';
     if(direction>0){
       if(phaseIndex===2&&solved<page().items.length){if(!keepAmbience)stopAmbience();return;}
-      if(phaseIndex<3){if(!keepAmbience)stopAmbience();phaseIndex+=1;if(phaseIndex===2)solved=0;return saveProgress();}
-      if(pageIndex<story.pages.length-1){stopAmbience();pageIndex+=1;phaseIndex=0;solved=0;startSoundForCurrentPage();return saveProgress();}
+      if(phaseIndex<3){
+        if(!keepAmbience)stopAmbience();
+        phaseIndex+=1;
+        if(phaseIndex===2)solved=0;
+        if(page().sound==='door-creak')startSoundForCurrentPage();
+        return saveProgress();
+      }
+      if(pageIndex<story.pages.length-1){
+        stopAmbience();
+        pageIndex+=1;
+        phaseIndex=0;
+        solved=0;
+        startSoundForCurrentPage();
+        return saveProgress();
+      }
     }else{
-      if(phaseIndex>0){if(!keepAmbience)stopAmbience();phaseIndex-=1;if(phaseIndex===2)solved=0;return saveProgress();}
-      if(pageIndex>0){stopAmbience();pageIndex-=1;phaseIndex=3;solved=0;startSoundForCurrentPage();return saveProgress();}
+      if(phaseIndex>0){
+        if(!keepAmbience)stopAmbience();
+        phaseIndex-=1;
+        if(phaseIndex===2)solved=0;
+        if(page().sound==='door-creak')startSoundForCurrentPage();
+        return saveProgress();
+      }
+      if(pageIndex>0){
+        stopAmbience();
+        pageIndex-=1;
+        phaseIndex=3;
+        solved=0;
+        startSoundForCurrentPage();
+        return saveProgress();
+      }
     }
   }
 
