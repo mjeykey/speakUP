@@ -8,6 +8,7 @@ import { getSpeechLanguage, languageName } from '../data/language-content-matrix
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([4,5,6,7]);
 const BELL_HEADSTART_MS=1800;
+const DEBUG_BUILD='B166';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -80,10 +81,12 @@ export function renderStory(root,store){
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    const bellDebug=page().sound==='bell'
-      ? `<div style="margin:18px auto 4px;font-family:Arial,sans-serif;font-size:13px;color:#c7eaff"><div>Bell status: <strong data-bell-status>${escapeHtml(bellStatusText())}</strong></div><button type="button" data-bell-test style="margin-top:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:white;border-radius:999px;padding:9px 15px">🔔 Test bell</button></div>`
+    const current=page();
+    const debugButton=current.sound==='bell'
+      ? `<button type="button" data-bell-test style="display:block;margin-top:7px;width:100%;border:1px solid rgba(255,255,255,.45);background:#24364a;color:white;border-radius:8px;padding:7px 8px;font-weight:700">🔔 TEST</button>`
       : '';
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>${content}${bellDebug}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    const debugBadge=`<div data-story-debug style="position:fixed;top:8px;right:8px;z-index:2147483647;background:rgba(0,0,0,.92);color:#fff;border:2px solid #68d5ff;border-radius:10px;padding:8px 10px;font:700 11px/1.35 Arial,sans-serif;max-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.45)"><div>${DEBUG_BUILD} · ${escapeHtml(storyId)}</div><div>Page ${pageIndex+1} · ${escapeHtml(current.sound||'none')}</div><div>Bell: <span data-bell-status>${escapeHtml(bellStatusText())}</span></div>${debugButton}</div>`;
+    root.innerHTML=`${debugBadge}<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Page ${pageIndex+1} / ${story.pages.length} · Step ${phaseIndex+1} / ${PHASES.length}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
     root.querySelector('[data-next]').onclick=()=>navigate(1);
