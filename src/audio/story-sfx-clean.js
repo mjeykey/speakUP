@@ -4,11 +4,13 @@ let activeAudio = null;
 let activeName = '';
 let rainAudio = null;
 let bellAudio = null;
+let bellBlobUrl = '';
+let bellPreparePromise = null;
 let stopTimer = 0;
 let bellStatus = { state: 'idle', detail: '' };
 
 const RAIN_MP3_URL = 'https://raw.githubusercontent.com/smithcol11/vr-class-horror-game/04a6aeb5b51ae98c1579c166d7fd42e24c88950d/sounds/rain-on-roof-or-window-nature-sounds-8312.mp3';
-const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean3', import.meta.url).href;
+const BELL_MP3_URL = new URL('../../assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?v=969c6cd233d57223-clean4', import.meta.url).href;
 
 function setBellStatus(state, detail = '') {
   bellStatus = { state, detail };
@@ -42,7 +44,6 @@ function ensureBellAudio() {
   audio.preload = 'auto';
   audio.loop = false;
   audio.volume = 0.90;
-  audio.src = BELL_MP3_URL;
   audio.style.position = 'fixed';
   audio.style.width = '1px';
   audio.style.height = '1px';
@@ -54,8 +55,70 @@ function ensureBellAudio() {
   document.body.appendChild(audio);
   bellAudio = audio;
   setBellStatus('created', `readyState=${audio.readyState}`);
-  audio.load();
   return audio;
+}
+
+function waitForBellCanPlay(audio, timeoutMs = 12000) {
+  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return Promise.resolve(true);
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = value => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      audio.removeEventListener('canplay', onReady);
+      audio.removeEventListener('loadeddata', onLoaded);
+      audio.removeEventListener('error', onError);
+      resolve(value);
+    };
+    const onReady = () => finish(true);
+    const onLoaded = () => {
+      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) finish(true);
+    };
+    const onError = () => finish(false);
+    const timer = setTimeout(() => finish(audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA), timeoutMs);
+    audio.addEventListener('canplay', onReady, { once: true });
+    audio.addEventListener('loadeddata', onLoaded, { once: true });
+    audio.addEventListener('error', onError, { once: true });
+  });
+}
+
+async function prepareBellAudio() {
+  const audio = ensureBellAudio();
+  if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return true;
+  if (bellPreparePromise) return bellPreparePromise;
+
+  bellPreparePromise = (async () => {
+    try {
+      setBellStatus('fetching', 'loading exact uploaded MP3');
+      const response = await fetch(BELL_MP3_URL, { cache: 'force-cache' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      setBellStatus('fetched', `${blob.size} bytes`);
+
+      if (bellBlobUrl) URL.revokeObjectURL(bellBlobUrl);
+      bellBlobUrl = URL.createObjectURL(blob);
+      audio.src = bellBlobUrl;
+      audio.load();
+      setBellStatus('loading-media', `readyState=${audio.readyState}`);
+
+      const ready = await waitForBellCanPlay(audio);
+      if (!ready) {
+        setBellStatus('not-ready', `readyState=${audio.readyState} networkState=${audio.networkState}`);
+        return false;
+      }
+      setBellStatus('ready', `readyState=${audio.readyState} · ${blob.size} bytes`);
+      return true;
+    } catch (error) {
+      setBellStatus('prepare-error', `${error?.name || 'Error'}: ${error?.message || String(error)}`);
+      console.warn('Tsar bell preparation failed.', error);
+      return false;
+    } finally {
+      bellPreparePromise = null;
+    }
+  })();
+
+  return bellPreparePromise;
 }
 
 function stopBell() {
@@ -64,17 +127,16 @@ function stopBell() {
   try { bellAudio.currentTime = 0; } catch (_) {}
 }
 
-function playBell(volume = 0.90) {
+async function playBell(volume = 0.90) {
   const audio = ensureBellAudio();
   try {
+    if (audio.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      await prepareBellAudio();
+    }
     audio.pause();
     audio.currentTime = 0;
     audio.muted = false;
     audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.90;
-    if (audio.src !== BELL_MP3_URL) {
-      audio.src = BELL_MP3_URL;
-      audio.load();
-    }
     setBellStatus('play-request', `readyState=${audio.readyState} networkState=${audio.networkState}`);
     const playback = audio.play();
     return Promise.resolve(playback).then(() => {
@@ -88,7 +150,7 @@ function playBell(volume = 0.90) {
   } catch (error) {
     setBellStatus('exception', `${error?.name || 'Error'}: ${error?.message || String(error)}`);
     console.warn('Tsar bell playback failed.', error);
-    return Promise.resolve(false);
+    return false;
   }
 }
 
@@ -165,7 +227,8 @@ export function getStorySfxSrc(name) {
 }
 
 export function isStorySfxReady(name) {
-  if (name === 'bell' || name === 'rain' || name === 'warning-bell') return true;
+  if (name === 'bell') return Boolean(bellAudio && bellAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
+  if (name === 'rain' || name === 'warning-bell') return true;
   return Boolean(staticSource(name));
 }
 
@@ -177,10 +240,7 @@ export function isStorySfxPlaying(name) {
 }
 
 export async function preloadStorySfx(name) {
-  if (name === 'bell') {
-    ensureBellAudio();
-    return true;
-  }
+  if (name === 'bell') return prepareBellAudio();
   if (name === 'rain' || name === 'warning-bell') return true;
   return Boolean(staticSource(name));
 }
@@ -194,8 +254,7 @@ export function stopStorySfx() {
 }
 
 export async function unlockStorySfx() {
-  ensureBellAudio();
-  return true;
+  return prepareBellAudio();
 }
 
 export function playStorySfx(name, { enabled = true, loop = false, volume, testDurationMs = 0 } = {}) {
