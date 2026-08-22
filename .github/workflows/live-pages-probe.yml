@@ -1,0 +1,93 @@
+name: Live Pages probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .live-pages-probe-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe published GitHub Pages files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://mjeykey.github.io/speakUP'
+          nonce="$(date +%s)"
+          tmp="$(mktemp -d)"
+          report='.live-pages-report.txt'
+          : > "$report"
+          echo "PROBE_UTC=$(date -u +%FT%TZ)" >> "$report"
+          echo "COMMIT=$(git rev-parse HEAD)" >> "$report"
+
+          fetch() {
+            local name="$1" url="$2"
+            local headers="$tmp/$name.headers"
+            local body="$tmp/$name.body"
+            local code
+            code=$(curl -L --silent --show-error --max-time 30 -D "$headers" -o "$body" -w '%{http_code}' "$url")
+            echo "[$name]" >> "$report"
+            echo "URL=$url" >> "$report"
+            echo "HTTP=$code" >> "$report"
+            echo "SIZE=$(wc -c < "$body" | tr -d ' ')" >> "$report"
+            echo "SHA256=$(sha256sum "$body" | awk '{print $1}')" >> "$report"
+            echo "CONTENT_TYPE=$(grep -i '^content-type:' "$headers" | tail -1 | tr -d '\r' || true)" >> "$report"
+            echo "CACHE=$(grep -i '^x-cache:' "$headers" | tail -1 | tr -d '\r' || true)" >> "$report"
+            echo "AGE=$(grep -i '^age:' "$headers" | tail -1 | tr -d '\r' || true)" >> "$report"
+            echo >> "$report"
+          }
+
+          fetch app "$base/app.html?probe=$nonce"
+          app="$tmp/app.body"
+          main_ref=$(grep -oE 'src/app/main\.js\?v=[0-9]+' "$app" | tail -1 || true)
+          echo "APP_MAIN_REF=$main_ref" >> "$report"
+
+          if [ -n "$main_ref" ]; then
+            fetch main "$base/$main_ref&probe=$nonce"
+            main="$tmp/main.body"
+            loader_ref=$(grep -oE '../modules/story-loader\.js\?v=[0-9]+' "$main" | tail -1 || true)
+            echo "MAIN_LOADER_REF=$loader_ref" >> "$report"
+          else
+            loader_ref=''
+          fi
+
+          if [ -n "$loader_ref" ]; then
+            loader_url=$(python - <<'PY'
+from urllib.parse import urljoin
+print(urljoin('https://mjeykey.github.io/speakUP/src/app/main.js', '../modules/story-loader.js'))
+PY
+)
+            loader_v=$(printf '%s' "$loader_ref" | sed -E 's/.*\?v=([0-9]+)/\1/')
+            fetch loader "$loader_url?v=$loader_v&probe=$nonce"
+            loader="$tmp/loader.body"
+            story_ref=$(grep -oE "story-live\.js\?v=[0-9]+" "$loader" | tail -1 || true)
+            echo "LOADER_STORY_REF=$story_ref" >> "$report"
+          else
+            story_ref=''
+          fi
+
+          if [ -n "$story_ref" ]; then
+            story_v=$(printf '%s' "$story_ref" | sed -E 's/.*\?v=([0-9]+)/\1/')
+            fetch story "$base/src/modules/story-live.js?v=$story_v&probe=$nonce"
+            story="$tmp/story.body"
+            if grep -q 'Bell status:' "$story"; then echo 'STORY_HAS_BELL_STATUS=YES' >> "$report"; else echo 'STORY_HAS_BELL_STATUS=NO' >> "$report"; fi
+            if grep -q 'data-bell-test' "$story"; then echo 'STORY_HAS_TEST_BUTTON=YES' >> "$report"; else echo 'STORY_HAS_TEST_BUTTON=NO' >> "$report"; fi
+          fi
+
+          fetch bell "$base/assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3?probe=$nonce"
+          echo 'EXPECTED_BELL_SHA256=969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58' >> "$report"
+          bell_sha=$(grep -A5 '^\[bell\]$' "$report" | grep '^SHA256=' | cut -d= -f2 || true)
+          if [ "$bell_sha" = '969c6cd233d572236af16ab79510c16e6f7dbbe9402998cbc1a5b6ed15d8bd58' ]; then echo 'BELL_MATCH=EXACT' >> "$report"; else echo 'BELL_MATCH=NO' >> "$report"; fi
+
+          cat "$report"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$report"
+          git commit -m 'Record live GitHub Pages probe'
+          git push
