@@ -2,13 +2,13 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=63';
-import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-clean.js?v=3';
+import { getStorySfxStatus, isStorySfxPlaying, preloadStorySfx, playStorySfx, stopStorySfx } from '../audio/story-sfx-clean.js?v=4';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
-const CHURCH_BELL_PAGES=new Set([4,5,6,7]);
+const CHURCH_BELL_PAGES=new Set([1,4,5,6,7]);
 const BELL_HEADSTART_MS=1800;
-const DEBUG_BUILD='B166';
+const DEBUG_BUILD='B167';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
@@ -31,7 +31,7 @@ function getStory(storyId,learningLanguage,nativeLanguage){
     pages:fantasyStory.pages.map((source,index)=>{
       const learning=getFantasyTranslation(source,index,learningLanguage);
       const native=getFantasyTranslation(source,index,nativeLanguage);
-      const sound=index===1?'warning-bell':CHURCH_BELL_PAGES.has(index)?'bell':source.sound;
+      const sound=CHURCH_BELL_PAGES.has(index)?'bell':source.sound;
       return{learning,native,sound,items:learningItems(learning,native)};
     })
   };
@@ -108,10 +108,10 @@ export function renderStory(root,store){
       if(token!==renderToken)return;
       const live=page();
       if(live!==current||isStorySfxPlaying(current.sound))return;
-      const volume=current.sound==='rain'?0.40:current.sound==='bell'?0.90:current.sound==='warning-bell'?0.55:0.30;
+      const volume=current.sound==='rain'?0.40:current.sound==='bell'?0.90:0.30;
       void playStorySfx(current.sound,{enabled:true,loop:current.sound==='rain',volume});
     };
-    if(current.sound==='rain'||current.sound==='bell'||current.sound==='warning-bell'){
+    if(current.sound==='rain'||current.sound==='bell'){
       start();
       return;
     }
