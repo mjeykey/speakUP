@@ -25,7 +25,7 @@ export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurre
   if(sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase(phaseIndex));
   if(isStorySfxPlaying(sound))return;
 
-  const volume=sound==='rain'?.40:sound==='bell'?bellVolumeForPhase(phaseIndex):.30;
+  const volume=sound==='rain'?0.40:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
   const start=()=>{
     if(!isCurrent()||isStorySfxPlaying(sound))return;
     void playStorySfx(sound,{enabled:true,loop:sound==='rain',volume});
