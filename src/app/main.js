@@ -40,7 +40,6 @@ const routes = {
 };
 
 function render(state) {
-  const screenChanged=previousScreen!==state.screen;
   const sameStoryRender=previousScreen==='story'&&state.screen==='story';
   if(!sameStoryRender)stopSpeech();
   if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
