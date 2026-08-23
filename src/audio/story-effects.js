@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=208';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=211';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
@@ -26,10 +26,10 @@ export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurre
   if(sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase(phaseIndex));
   if(isStorySfxPlaying(sound))return;
 
-  const volume=sound==='rain'?0.40:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
+  const volume=sound==='rain'?0.40:sound==='ocean-waves'?0.45:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
   const start=()=>{
     if(!isCurrent()||isStorySfxPlaying(sound))return;
-    void playStorySfx(sound,{enabled:true,loop:sound==='rain',volume});
+    void playStorySfx(sound,{enabled:true,loop:sound==='rain'||sound==='ocean-waves',volume});
   };
 
   if(sound==='rain'||sound==='bell'){
@@ -54,7 +54,7 @@ export function transitionStoryEffects({storyId,enabled=true,currentSound='none'
   const preserveContinuous=Boolean(
     sameSourcePage&&
     currentSound===targetSound&&
-    (currentSound==='rain'||currentSound==='bell')
+    (currentSound==='rain'||currentSound==='bell'||currentSound==='ocean-waves')
   );
   if(!preserveContinuous)stopStorySfx();
 }
