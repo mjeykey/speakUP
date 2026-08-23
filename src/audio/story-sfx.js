@@ -250,8 +250,8 @@ export function stopStorySfx(){
   stopGeneric();
   stopMedia(rainAudio);rainAudio=null;
   stopMedia(bellAudio);
-  if(doorIsStarting())setDoorStatus('guarded','navigation stop ignored during startup');
-  else{stopMedia(doorAudio);doorAudio=null;doorStartedAt=0;}
+  stopMedia(doorAudio);doorAudio=null;doorStartedAt=0;
+  setDoorStatus('stopped','page changed');
 }
 
 export async function unlockStorySfx(){return prepareBellAudio();}
