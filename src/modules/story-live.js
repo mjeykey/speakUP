@@ -10,7 +10,7 @@ const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
-const DEBUG_BUILD='B209';
+const DEBUG_BUILD='B210';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
@@ -75,7 +75,7 @@ export function renderStory(root,store){
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
-  const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>sourcePage===7&&sourcePhase===0?'engine-start':story.pages[sourcePage]?.sound||'none';
+  const phaseSound=(sourcePage=pageIndex)=>story.pages[sourcePage]?.sound||'none';
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const isTokenCurrent=token=>()=>token===renderToken;
   const leave=()=>{
