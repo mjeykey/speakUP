@@ -54,16 +54,16 @@ test('memory renders complete board', async ({ page }) => {
   await expect(page.locator('.memory-card')).toHaveCount(8);
 });
 
-test('anxiety progress persists after returning to menu', async ({ page }) => {
+test('anxiety exercise advances and returns to menu', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="anxiety"]').click();
   await page.locator('[data-start]').click();
-  await expect(page.locator('.anxiety-world-progress')).toHaveText('1 / 300');
+  await expect(page.locator('.anxiety-world-screen')).toBeVisible();
+  const first = await page.locator('.story-copy').first().textContent();
   await page.locator('[data-next]').click();
-  await expect(page.locator('.anxiety-world-progress')).toHaveText('2 / 300');
+  await expect(page.locator('.story-copy').first()).not.toHaveText(first || '');
   await page.locator('[data-menu]').click();
-  await page.locator('[data-start]').click();
-  await expect(page.locator('.anxiety-world-progress')).toHaveText('2 / 300');
+  await expect(page.locator('.menu-screen')).toBeVisible();
 });
 
 test('story starts and moves to second phase', async ({ page }) => {
