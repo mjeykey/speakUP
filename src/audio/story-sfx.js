@@ -18,7 +18,8 @@ const GLASS_MP3_URL=new URL('../../assets/audio/universfield-broken-glass-impact
 const ENGINE_START_MP3_URL=new URL('../../assets/audio/freesound_community-electric-motor-engine-start-stop-98304.mp3?v=208',import.meta.url).href;
 const OCEAN_WAVES_MP3_URL=new URL('../../assets/audio/mollyroselee-ocean-waves-crashing-the-shoreline-423649.mp3?v=211',import.meta.url).href;
 const METAL_SCRAPE_MP3_URL=new URL('../../assets/audio/freesound_community-metal-stretch-and-scrape-two-56192.mp3?v=214',import.meta.url).href;
-const LIGHTNING_STRIKE_MP3_URL=new URL('../../assets/audio/gregorquendel-lightning-strike-fx-i-175724.mp3?v=218',import.meta.url).href;
+const LIGHTNING_STRIKE_MP3_URL=new URL('../../assets/audio/gregorquendel-lightning-strike-fx-i-175724.mp3?v=220',import.meta.url).href;
+const STORM_WIND_MP3_URL=new URL('../../assets/audio/wings_of_freedom-storm-417583.mp3?v=220',import.meta.url).href;
 const DOOR_START_GUARD_MS=650;
 const DOOR_FILE_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=204',import.meta.url).href;
 
@@ -181,6 +182,7 @@ function staticSource(name){
   if(name==='ocean-waves')return OCEAN_WAVES_MP3_URL;
   if(name==='metal-scrape')return METAL_SCRAPE_MP3_URL;
   if(name==='lightning-strike')return LIGHTNING_STRIKE_MP3_URL;
+  if(name==='storm-wind')return STORM_WIND_MP3_URL;
   return STORY_SFX_ASSETS[name]||'';
 }
 
