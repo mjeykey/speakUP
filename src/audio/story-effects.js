@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=200';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=201';
 import { isDoorCreakPlaying, playDoorCreak, stopDoorCreak, unlockDoorCreak } from './story-door.js?v=2';
 
 const BELL_NORMAL_VOLUME=.90;
