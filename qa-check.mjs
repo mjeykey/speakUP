@@ -70,9 +70,14 @@ check('Broken glass uses the uploaded local MP3', () => {
   assert.match(audio, /assets\/audio\/universfield-broken-glass-impact-454859\.mp3/);
   assert.ok(statSync('./assets/audio/universfield-broken-glass-impact-454859.mp3').size > 80_000);
 });
-check('Story audio import chain uses build 206', () => {
-  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=206/);
-  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=206/);
+check('Engine start uses the uploaded local MP3', () => {
+  const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
+  assert.match(audio, /assets\/audio\/freesound_community-electric-motor-engine-start-stop-98304\.mp3/);
+  assert.ok(statSync('./assets/audio/freesound_community-electric-motor-engine-start-stop-98304.mp3').size > 120_000);
+});
+check('Story audio import chain uses build 208', () => {
+  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=208/);
+  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=208/);
 });
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
