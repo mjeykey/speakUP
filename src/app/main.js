@@ -15,7 +15,7 @@ import { renderFuture } from '../modules/future.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=63';
-import { stopStoryEffects } from '../audio/story-effects.js?v=208';
+import { stopStoryEffects } from '../audio/story-effects.js?v=215';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
