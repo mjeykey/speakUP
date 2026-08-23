@@ -8,6 +8,8 @@ import { getSpeechLanguage, languageName } from '../data/language-content-matrix
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
+// Zero-based story pages where the characters are physically outside in the storm.
+const OUTDOOR_RAIN_PAGES=new Set([2,3,4,27,28,32,38,41,52,53,54,55,56,57,58]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 const DEBUG_BUILD='B214';
@@ -75,7 +77,12 @@ export function renderStory(root,store){
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
-  const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>sourcePage===10?(sourcePhase<=2?'metal-scrape':'none'):(story.pages[sourcePage]?.sound||'none');
+  const phaseAmbientSound=(sourcePage=pageIndex)=>OUTDOOR_RAIN_PAGES.has(sourcePage)?'rain':'none';
+  const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>{
+    if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
+    const sound=story.pages[sourcePage]?.sound||'none';
+    return sound==='rain'?phaseAmbientSound(sourcePage):sound;
+  };
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const isTokenCurrent=token=>()=>token===renderToken;
   const leave=()=>{
@@ -98,6 +105,7 @@ export function renderStory(root,store){
     ensureStoryEffect({
       storyId,
       sound:phaseSound(),
+      ambientSound:phaseAmbientSound(),
       phaseIndex,
       enabled:audioEnabled,
       isCurrent:()=>token===renderToken&&page()===current
@@ -182,6 +190,7 @@ export function renderStory(root,store){
         enabled:Boolean(store.getState().audioOn),
         currentSound,
         targetSound,
+        targetAmbientSound:phaseAmbientSound(target.pageIndex),
         sameSourcePage:target.pageIndex===pageIndex
       });
     }
