@@ -10,7 +10,7 @@ const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
-const DEBUG_BUILD='B208';
+const DEBUG_BUILD='B209';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
@@ -75,6 +75,7 @@ export function renderStory(root,store){
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
+  const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>sourcePage===7&&sourcePhase===0?'engine-start':story.pages[sourcePage]?.sound||'none';
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const isTokenCurrent=token=>()=>token===renderToken;
   const leave=()=>{
@@ -96,7 +97,7 @@ export function renderStory(root,store){
   function syncEffect(current,audioEnabled,token){
     ensureStoryEffect({
       storyId,
-      sound:current.sound,
+      sound:phaseSound(),
       phaseIndex,
       enabled:audioEnabled,
       isCurrent:()=>token===renderToken&&page()===current
@@ -109,7 +110,7 @@ export function renderStory(root,store){
       voice,
       enabled:audioEnabled,
       rate,
-      sound:current.sound,
+      sound:phaseSound(),
       isCurrent:isTokenCurrent(token)
     });
   }
@@ -170,8 +171,8 @@ export function renderStory(root,store){
     renderToken+=1;
     if(target.phaseIndex===2)stopStoryNarration();
 
-    const currentSound=page()?.sound||'none';
-    const targetSound=story.pages[target.pageIndex]?.sound||'none';
+    const currentSound=phaseSound(pageIndex,phaseIndex);
+    const targetSound=phaseSound(target.pageIndex,target.phaseIndex);
     if(targetSound==='door-creak'&&Boolean(store.getState().audioOn)){
       stopStoryEffects();
       playVerifiedDoor();
