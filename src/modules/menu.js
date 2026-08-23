@@ -2,7 +2,7 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=203';
+import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=204';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
