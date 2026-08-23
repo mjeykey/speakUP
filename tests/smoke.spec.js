@@ -27,7 +27,7 @@ test('menu exposes supported languages only', async ({ page }) => {
 
 test('words advances and returns to menu', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Wörter$/i }).click();
+  await page.locator('[data-mode="words"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.words-screen')).toBeVisible();
   const first = await page.locator('.single-word').textContent();
@@ -48,7 +48,7 @@ test('sentences opens level selection and exercise', async ({ page }) => {
 
 test('memory renders complete board', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Memory$/i }).click();
+  await page.locator('[data-mode="memory"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.memory-screen')).toBeVisible();
   await expect(page.locator('.memory-card')).toHaveCount(8);
@@ -56,7 +56,7 @@ test('memory renders complete board', async ({ page }) => {
 
 test('anxiety progress persists after returning to menu', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Anxiety$/i }).click();
+  await page.locator('[data-mode="anxiety"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.anxiety-world-progress')).toHaveText('1 / 300');
   await page.locator('[data-next]').click();
@@ -68,7 +68,7 @@ test('anxiety progress persists after returning to menu', async ({ page }) => {
 
 test('story starts and moves to second phase', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Geschichten$/i }).click();
+  await page.locator('[data-mode="story"]').click();
   await page.locator('[data-stories] button').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
@@ -79,7 +79,7 @@ test('story starts and moves to second phase', async ({ page }) => {
 
 test('emotions opens an exercise', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Emotionen$/i }).click();
+  await page.locator('[data-mode="emotions"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.emotions-screen')).toBeVisible();
   await page.locator('[data-i]').first().click();
@@ -88,7 +88,7 @@ test('emotions opens an exercise', async ({ page }) => {
 
 test('L2 opens a selected topic and advances', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^L2 ·/i }).click();
+  await page.locator('[data-level="l2"]').click();
   await page.locator('[data-l2-topic]').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.l2-screen')).toBeVisible();
@@ -99,7 +99,7 @@ test('L2 opens a selected topic and advances', async ({ page }) => {
 
 test('L3 opens a selected topic and advances', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^L3 ·/i }).click();
+  await page.locator('[data-level="l3"]').click();
   await page.locator('[data-l3-topic]').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.l3-screen')).toBeVisible();
