@@ -50,24 +50,24 @@ check('Story audio uses one local engine', () => {
   assert.match(effects, /\.\/story-sfx\.js/);
   assert.doesNotMatch(`${menu}\n${effects}`, /story-sfx-(?:simple|clean|web)/);
 });
-check('Story rain is bundled locally', () => {
+check('Story rain is a natural local MP3', () => {
   const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
-  assert.match(audio, /assets\/audio\/rain-natural-20s\.ogg/);
-  assert.doesNotMatch(audio, /raw\.githubusercontent\.com/);
-  assert.ok(statSync('./assets/audio/rain-natural-20s.ogg').size > 8_000);
+  assert.match(audio, /assets\/audio\/rain-natural-mobile\.mp3/);
+  assert.doesNotMatch(audio, /rain-natural-20s\.ogg|rain-mobile-loop\.mp3|raw\.githubusercontent\.com/);
+  assert.ok(statSync('./assets/audio/rain-natural-mobile.mp3').size > 300_000);
 });
 
-check('Story door is a separate local MP3', () => {
+check('Story door uses the verified uploaded MP3', () => {
   const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
-  assert.match(audio, /assets\/audio\/door-creak-original-loud\.mp3/);
-  assert.match(audio, /new Audio\(DOOR_FILE_URL\)/);
-  assert.ok(statSync('./assets/audio/door-creak-original-loud.mp3').size > 1_000);
+  const story = readFileSync('./src/modules/story-live.js', 'utf8');
+  assert.match(audio, /assets\/audio\/freesound_community-heavy-metal-door-74594\.mp3/);
+  assert.match(story, /assets\/audio\/freesound_community-heavy-metal-door-74594\.mp3/);
+  assert.doesNotMatch(audio, /DOOR_MP3_URL|data:audio\/mpeg;base64/);
+  assert.ok(statSync('./assets/audio/freesound_community-heavy-metal-door-74594.mp3').size > 400_000);
 });
-check('Story audio import chain uses build 199', () => {
-  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=199/);
-  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=199/);
-  assert.match(readFileSync('./src/modules/story-live.js', 'utf8'), /story-effects\.js\?v=199/);
-  assert.match(readFileSync('./src/audio/story-effects.js', 'utf8'), /story-sfx\.js\?v=198/);
+check('Story audio import chain uses build 205', () => {
+  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=205/);
+  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=205/);
 });
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
