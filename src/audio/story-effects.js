@@ -39,22 +39,9 @@ export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurre
   void preloadStorySfx(sound).then(ok=>{if(ok)start();});
 }
 
-export function transitionStoryEffects({storyId,enabled=true,currentSound='none',targetSound='none',sameSourcePage=false}={}){
-  if(storyId!=='fantasy-1'||!enabled){
-    stopStoryEffects();
-    return;
-  }
-
-  if(targetSound==='door-creak'){
-    stopStorySfx();
+export function transitionStoryEffects({storyId,enabled=true,targetSound='none'}={}){
+  stopStorySfx();
+  if(storyId==='fantasy-1'&&enabled&&targetSound==='door-creak'){
     void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_VOLUME});
-    return;
   }
-
-  const preserveContinuous=Boolean(
-    sameSourcePage&&
-    currentSound===targetSound&&
-    (currentSound==='rain'||currentSound==='bell'||currentSound==='ocean-waves')
-  );
-  if(!preserveContinuous)stopStorySfx();
 }
