@@ -5,6 +5,9 @@ let activeName='';
 let rainAudio=null;
 let doorAudio=null;
 let doorStartedAt=0;
+let doorAudioContext=null;
+let doorSourceNode=null;
+let doorGainNode=null;
 let bellAudio=null;
 let bellBlobUrl='';
 let bellPreparePromise=null;
@@ -144,11 +147,26 @@ function playDoor(volume=.95){
   audio.preload='auto';
   audio.loop=false;
   audio.muted=false;
-  audio.volume=clampVolume(volume)??.95;
-  audio.playbackRate=1;
+  audio.volume=1;
+  audio.playbackRate=.82;
+  try{
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    if(AudioContextClass){
+      if(!doorAudioContext)doorAudioContext=new AudioContextClass();
+      if(doorAudioContext.state==='suspended')void doorAudioContext.resume();
+      try{doorSourceNode?.disconnect();}catch(_){}
+      try{doorGainNode?.disconnect();}catch(_){}
+      doorSourceNode=doorAudioContext.createMediaElementSource(audio);
+      doorGainNode=doorAudioContext.createGain();
+      doorGainNode.gain.value=9*(clampVolume(volume)??.95);
+      doorSourceNode.connect(doorGainNode).connect(doorAudioContext.destination);
+    }
+  }catch(error){
+    console.warn('Door gain channel unavailable.',error);
+  }
   doorAudio=audio;
   doorStartedAt=nowMs();
-  setDoorStatus('starting','local MP3');
+  setDoorStatus('starting','local MP3 · amplified channel');
   audio.onloadeddata=()=>setDoorStatus('loaded',`readyState=${audio.readyState} networkState=${audio.networkState}`);
   audio.onplaying=()=>setDoorStatus('playing',`readyState=${audio.readyState} time=${audio.currentTime.toFixed(2)}`);
   audio.onerror=()=>{
