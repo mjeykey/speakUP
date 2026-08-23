@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync, statSync } from 'node:fs';
 import { LANGUAGE_OPTIONS, getWords, getSentenceLevels, getSpeechLanguage } from './src/data/language-content-matrix.js';
 import { ANXIETY_WORLD_PAGES, ANXIETY_WORLD_PAGE_COUNT } from './src/data/anxiety-world.js';
 import { getCommunicationStrengthMatrix } from './src/data/communication-strength/matrix.js';
@@ -42,6 +43,19 @@ check('Anxiety page count', () => { assert.equal(ANXIETY_WORLD_PAGE_COUNT, 300);
 check('Anxiety ids and text', () => ANXIETY_WORLD_PAGES.forEach((page, index) => { assert.equal(page.id, index + 1); assert.ok(nonEmptyText(page.text)); }));
 check('Andalusian communication alias', () => assert.deepEqual(getCommunicationStrengthMatrix('es-AN','de-DE'), getCommunicationStrengthMatrix('es-ES','de-DE')));
 check('Dalmatian communication alias', () => assert.deepEqual(getCommunicationStrengthMatrix('hr-DAL','de-DE'), getCommunicationStrengthMatrix('hr-HR','de-DE')));
+check('Story audio uses one local engine', () => {
+  const menu = readFileSync('./src/modules/menu.js', 'utf8');
+  const effects = readFileSync('./src/audio/story-effects.js', 'utf8');
+  assert.match(menu, /audio\/story-sfx\.js/);
+  assert.match(effects, /\.\/story-sfx\.js/);
+  assert.doesNotMatch(`${menu}\n${effects}`, /story-sfx-(?:simple|clean|web)/);
+});
+check('Story rain is bundled locally', () => {
+  const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
+  assert.match(audio, /assets\/audio\/rain-natural-20s\.ogg/);
+  assert.doesNotMatch(audio, /raw\.githubusercontent\.com/);
+  assert.ok(statSync('./assets/audio/rain-natural-20s.ogg').size > 8_000);
+});
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
 if (failures.length) process.exitCode = 1;
