@@ -2,7 +2,7 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx-simple.js?v=10';
+import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=196';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
@@ -75,6 +75,7 @@ export function renderMenu(root, store) {
   LEVELS.forEach(([id,title,description]) => {
     const button = document.createElement('button');
     button.type = 'button';
+    button.dataset.level = id;
     button.className = `menu-card learning-level-card ${learningLevel === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
     button.onclick = () => {
@@ -94,6 +95,7 @@ export function renderMenu(root, store) {
   if (modes) MODES.forEach(([id,title,description]) => {
     const button = document.createElement('button');
     button.type = 'button';
+    button.dataset.mode = id;
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
     button.onclick = () => {
