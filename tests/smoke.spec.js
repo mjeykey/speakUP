@@ -121,11 +121,12 @@ test('story audio assets are local and diagnostic UI is absent', async ({ page }
   await openMenu(page);
   const audioPaths = await page.evaluate(async () => {
     const module = await import('/src/audio/story-sfx.js');
-    return ['rain', 'bell', 'door-creak', 'glass-break'].map(name => module.getStorySfxSrc(name));
+    return ['rain', 'bell', 'door-creak', 'glass-break', 'engine-start'].map(name => module.getStorySfxSrc(name));
   });
   expect(audioPaths[0]).toContain('/assets/audio/rain-natural-mobile.mp3');
   expect(audioPaths[1]).toContain('/assets/audio/soundreality-tsar-bell-sound-simulation-292699.mp3');
   expect(audioPaths[2]).toContain('/assets/audio/freesound_community-heavy-metal-door-74594.mp3');
   expect(audioPaths[3]).toContain('/assets/audio/universfield-broken-glass-impact-454859.mp3');
+  expect(audioPaths[4]).toContain('/assets/audio/freesound_community-electric-motor-engine-start-stop-98304.mp3');
   await expect(page.locator('#speakup-door-diagnostic')).toHaveCount(0);
 });
