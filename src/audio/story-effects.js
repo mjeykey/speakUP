@@ -1,5 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=206';
-import { isDoorCreakPlaying, playDoorCreak, stopDoorCreak, unlockDoorCreak } from './story-door.js?v=2';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=207';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
@@ -11,13 +10,12 @@ function bellVolumeForPhase(phaseIndex){
 
 export function stopStoryEffects(){
   stopStorySfx();
-  stopDoorCreak();
 }
 
 export function prepareStoryEffects(storyId){
   if(storyId==='fantasy-1'){
     void preloadStorySfx('bell');
-    void unlockDoorCreak();
+    void preloadStorySfx('door-creak');
   }
 }
 
@@ -49,13 +47,10 @@ export function transitionStoryEffects({storyId,enabled=true,currentSound='none'
 
   if(targetSound==='door-creak'){
     stopStorySfx();
-    if(!(sameSourcePage&&currentSound==='door-creak'&&isDoorCreakPlaying())){
-      void playDoorCreak(DOOR_VOLUME);
-    }
+    void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_VOLUME});
     return;
   }
 
-  stopDoorCreak();
   const preserveContinuous=Boolean(
     sameSourcePage&&
     currentSound===targetSound&&
