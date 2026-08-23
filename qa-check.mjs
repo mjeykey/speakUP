@@ -65,9 +65,14 @@ check('Story door uses the verified uploaded MP3', () => {
   assert.doesNotMatch(audio, /DOOR_MP3_URL|data:audio\/mpeg;base64/);
   assert.ok(statSync('./assets/audio/freesound_community-heavy-metal-door-74594.mp3').size > 400_000);
 });
-check('Story audio import chain uses build 205', () => {
-  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=205/);
-  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=205/);
+check('Broken glass uses the uploaded local MP3', () => {
+  const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
+  assert.match(audio, /assets\/audio\/universfield-broken-glass-impact-454859\.mp3/);
+  assert.ok(statSync('./assets/audio/universfield-broken-glass-impact-454859.mp3').size > 80_000);
+});
+check('Story audio import chain uses build 206', () => {
+  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=206/);
+  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=206/);
 });
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
