@@ -57,5 +57,18 @@ check('Story rain is bundled locally', () => {
   assert.ok(statSync('./assets/audio/rain-natural-20s.ogg').size > 8_000);
 });
 
+check('Story door is a separate local MP3', () => {
+  const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
+  assert.match(audio, /assets\/audio\/door-creak-original-loud\.mp3/);
+  assert.match(audio, /new Audio\(DOOR_FILE_URL\)/);
+  assert.ok(statSync('./assets/audio/door-creak-original-loud.mp3').size > 1_000);
+});
+check('Story audio import chain uses build 199', () => {
+  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=199/);
+  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=199/);
+  assert.match(readFileSync('./src/modules/story-live.js', 'utf8'), /story-effects\.js\?v=199/);
+  assert.match(readFileSync('./src/audio/story-effects.js', 'utf8'), /story-sfx\.js\?v=198/);
+});
+
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
 if (failures.length) process.exitCode = 1;
