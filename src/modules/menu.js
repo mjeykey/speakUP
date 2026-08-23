@@ -75,6 +75,7 @@ export function renderMenu(root, store) {
   LEVELS.forEach(([id,title,description]) => {
     const button = document.createElement('button');
     button.type = 'button';
+    button.dataset.level = id;
     button.className = `menu-card learning-level-card ${learningLevel === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
     button.onclick = () => {
@@ -94,6 +95,7 @@ export function renderMenu(root, store) {
   if (modes) MODES.forEach(([id,title,description]) => {
     const button = document.createElement('button');
     button.type = 'button';
+    button.dataset.mode = id;
     button.className = `menu-card ${state.mode === id ? 'selected' : ''}`;
     button.innerHTML = `<span>${title}</span><small>${description}</small>`;
     button.onclick = () => {
