@@ -246,6 +246,16 @@ export function preloadStorySfx(name){
   return Promise.resolve(Boolean(staticSource(name)));
 }
 
+export function transitionStorySfx({keepRain=false}={}){
+  clearTimeout(stopTimer);
+  stopTimer=0;
+  stopGeneric();
+  if(!keepRain){stopMedia(rainAudio);rainAudio=null;}
+  stopMedia(bellAudio);
+  stopMedia(doorAudio);doorAudio=null;doorStartedAt=0;
+  setDoorStatus('stopped','scene changed');
+}
+
 export function stopStorySfx(){
   clearTimeout(stopTimer);
   stopTimer=0;
