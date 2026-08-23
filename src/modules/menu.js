@@ -2,7 +2,7 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=196';
+import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=197';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
@@ -150,7 +150,7 @@ export function renderMenu(root, store) {
     }
     if (current.mode === 'story' && !current.selectedStory) return;
     if (current.mode === 'story' && current.selectedStory === 'fantasy-1') {
-      if (isStorySfxReady('rain')) playStorySfx('rain', { enabled:Boolean(current.audioOn), loop:true, volume:0.28 });
+      void playStorySfx('rain', { enabled:Boolean(current.audioOn), loop:true, volume:0.28 });
       store.setState({ screen:'story' });
       return;
     }
