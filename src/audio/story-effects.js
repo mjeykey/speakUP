@@ -1,4 +1,5 @@
 import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx } from './story-sfx.js?v=196';
+import { isDoorCreakPlaying, playDoorCreak, stopDoorCreak, unlockDoorCreak } from './story-door.js?v=2';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
@@ -10,12 +11,13 @@ function bellVolumeForPhase(phaseIndex){
 
 export function stopStoryEffects(){
   stopStorySfx();
+  stopDoorCreak();
 }
 
 export function prepareStoryEffects(storyId){
   if(storyId==='fantasy-1'){
     void preloadStorySfx('bell');
-    void preloadStorySfx('door-creak');
+    void unlockDoorCreak();
   }
 }
 
@@ -45,15 +47,15 @@ export function transitionStoryEffects({storyId,enabled=true,currentSound='none'
     return;
   }
 
-  // Use the exact same door player that was already proven audible on Android.
-  // This function is called synchronously from the real navigation click, so
-  // play() remains inside the trusted user gesture.
   if(targetSound==='door-creak'){
     stopStorySfx();
-    void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_VOLUME});
+    if(!(sameSourcePage&&currentSound==='door-creak'&&isDoorCreakPlaying())){
+      void playDoorCreak(DOOR_VOLUME);
+    }
     return;
   }
 
+  stopDoorCreak();
   const preserveContinuous=Boolean(
     sameSourcePage&&
     currentSound===targetSound&&
