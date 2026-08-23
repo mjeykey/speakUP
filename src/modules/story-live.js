@@ -8,9 +8,23 @@ import { getSpeechLanguage, languageName } from '../data/language-content-matrix
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
-const DEBUG_BUILD='B204';
+const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
+let verifiedDoorAudio=null;
+const DEBUG_BUILD='B205';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
+
+function playVerifiedDoor(){
+  try{verifiedDoorAudio?.pause();}catch(_){}
+  const audio=new Audio(VERIFIED_DOOR_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.volume=1;
+  verifiedDoorAudio=audio;
+  audio.onended=()=>{if(verifiedDoorAudio===audio)verifiedDoorAudio=null;};
+  audio.onerror=()=>{if(verifiedDoorAudio===audio)verifiedDoorAudio=null;};
+  void audio.play().catch(error=>console.warn('Verified door playback failed.',error));
+}
 
 function learningItems(text,nativeText){
   const clean=value=>String(value||'').replace(/[“”"'.,!?;:()—–]/g,' ').split(/\s+/).filter(word=>word.length>=4);
@@ -158,13 +172,18 @@ export function renderStory(root,store){
 
     const currentSound=page()?.sound||'none';
     const targetSound=story.pages[target.pageIndex]?.sound||'none';
-    transitionStoryEffects({
-      storyId,
-      enabled:Boolean(store.getState().audioOn),
-      currentSound,
-      targetSound,
-      sameSourcePage:target.pageIndex===pageIndex
-    });
+    if(targetSound==='door-creak'&&Boolean(store.getState().audioOn)){
+      stopStoryEffects();
+      playVerifiedDoor();
+    }else{
+      transitionStoryEffects({
+        storyId,
+        enabled:Boolean(store.getState().audioOn),
+        currentSound,
+        targetSound,
+        sameSourcePage:target.pageIndex===pageIndex
+      });
+    }
 
     const pageChanged=target.pageIndex!==pageIndex;
     pageIndex=target.pageIndex;
