@@ -80,6 +80,7 @@ export function renderStory(root,store){
   const phaseAmbientSound=(sourcePage=pageIndex)=>OUTDOOR_RAIN_PAGES.has(sourcePage)?'rain':'none';
   const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>{
     if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
+    if(sourcePage===11)return'lightning-strike';
     const sound=story.pages[sourcePage]?.sound||'none';
     return sound==='rain'?phaseAmbientSound(sourcePage):sound;
   };
