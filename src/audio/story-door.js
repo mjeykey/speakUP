@@ -1,17 +1,15 @@
-import { STORY_SFX_ASSETS } from './story-sfx-assets.js?v=2';
-
 let doorAudio = null;
-const DOOR_SRC = STORY_SFX_ASSETS['door-creak'] || '';
+const DOOR_SRC = new URL('../../assets/audio/door-creak-original-loud.mp3?v=5570c1b2', import.meta.url).href;
 
 function ensureDoorAudio() {
   if (doorAudio && doorAudio.isConnected) return doorAudio;
-  if (!DOOR_SRC || typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') return null;
   const audio = document.createElement('audio');
   audio.setAttribute('playsinline', '');
   audio.preload = 'auto';
   audio.loop = false;
   audio.src = DOOR_SRC;
-  audio.volume = 0.95;
+  audio.volume = 1;
   audio.style.position = 'fixed';
   audio.style.width = '1px';
   audio.style.height = '1px';
@@ -23,22 +21,26 @@ function ensureDoorAudio() {
   return audio;
 }
 
-export function playDoorCreak(volume = 0.95) {
+export function playDoorCreak(volume = 1) {
   const audio = ensureDoorAudio();
   if (!audio) return Promise.resolve(false);
   try {
     audio.pause();
     audio.currentTime = 0;
     audio.muted = false;
-    audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.95;
+    audio.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
     return Promise.resolve(audio.play()).then(() => true).catch(error => {
-      console.warn('Original door creak playback failed.', error);
+      console.warn('Real door creak playback failed.', error);
       return false;
     });
   } catch (error) {
-    console.warn('Original door creak playback failed.', error);
+    console.warn('Real door creak playback failed.', error);
     return Promise.resolve(false);
   }
+}
+
+export function isDoorCreakPlaying() {
+  return Boolean(doorAudio && !doorAudio.paused && !doorAudio.ended && !doorAudio.muted);
 }
 
 export function stopDoorCreak() {
