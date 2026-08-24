@@ -16,10 +16,14 @@ import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=63';
 import { stopStoryEffects } from '../audio/story-effects.js?v=218';
+import { installScene7376, stopScene7376 } from '../audio/story-scene-73-76.js?v=233';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
 let previousScreen=null;
+
+// One controller only for display pages 73-76: wind + wagon + tiles.
+installScene7376(root,store);
 
 const routes = {
   welcome: renderWelcome,
@@ -41,7 +45,10 @@ const routes = {
 
 function render(state) {
   if(state.screen!=='story')stopSpeech();
-  if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
+  if(previousScreen==='story'&&state.screen!=='story'){
+    stopStoryEffects();
+    stopScene7376();
+  }
   previousScreen=state.screen;
   const view = routes[state.screen] || renderWelcome;
   view(root, store);
