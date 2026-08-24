@@ -74,7 +74,7 @@ async function playTileBreak(root,page){
     track.preload='auto';
     track.loop=false;
     track.volume=.9;
-    track.playbackRate=1;
+    track.playbackRate=.82;
     audio=track;
     let playCount=1;
     track.onended=()=>{
