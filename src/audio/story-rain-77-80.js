@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, playStorySfx, setStorySfxVolume } from './story-sfx.js?v=217';
+import { isStorySfxPlaying, playStorySfx, setStorySfxVolume } from './story-sfx-smooth.js?v=254';
 
 const SCENE_PAGES=new Set([77,78,79,80]);
 const RAIN_VOLUME=.04;
