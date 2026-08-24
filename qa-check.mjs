@@ -48,7 +48,7 @@ check('Story audio uses one local engine', () => {
   const effects = readFileSync('./src/audio/story-effects.js', 'utf8');
   assert.match(menu, /audio\/story-sfx\.js/);
   assert.match(effects, /\.\/story-sfx\.js/);
-  assert.doesNotMatch(`${menu}\n${effects}`, /story-sfx-(?:simple|clean|web)/);
+  assert.doesNotMatch(`${menu}\n${effects}`, /story-sfx-(?:simple|clean|smooth|web)/);
 });
 check('Story rain is a natural local MP3', () => {
   const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');
@@ -75,9 +75,9 @@ check('Engine start uses the uploaded local MP3', () => {
   assert.match(audio, /assets\/audio\/freesound_community-electric-motor-engine-start-stop-98304\.mp3/);
   assert.ok(statSync('./assets/audio/freesound_community-electric-motor-engine-start-stop-98304.mp3').size > 120_000);
 });
-check('Story audio import chain uses build 208', () => {
-  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=208/);
-  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live\.js\?v=208/);
+check('Story audio import chain is cache-versioned', () => {
+  assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=\d+/);
+  assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live(?:-crowdless)?\.js\?v=\d+/);
 });
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
