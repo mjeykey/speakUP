@@ -1,6 +1,6 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
-import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
+import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=2';
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=218';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
@@ -12,7 +12,7 @@ const DOOR_CREAK_PAGES=new Set([2]);
 const OUTDOOR_RAIN_PAGES=new Set([2,3,4,11,27,28,32,38,41,52,53,54,55,56,57,58]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
-const DEBUG_BUILD='B225';
+const DEBUG_BUILD='B226';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
