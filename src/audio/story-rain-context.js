@@ -1,4 +1,5 @@
 import { isStorySfxPlaying, playStorySfx, setStorySfxVolume, stopStoryRainSfx } from './story-sfx-smooth.js?v=262';
+import { setRainAllowed, stopAllRainTracks } from './story-rain-guard.js?v=263';
 
 const RAIN_VOLUME=.04;
 
@@ -31,27 +32,28 @@ function isOutdoorPage(displayPage){
   return OUTDOOR_SOURCE_PAGES.has(sourcePageIndex(displayPage));
 }
 
-function setRainAllowed(value){
-  if(typeof window!=='undefined')window.__speakupRainAllowed=Boolean(value);
+function hardStopRain(){
+  setRainAllowed(false);
+  stopAllRainTracks();
+  stopStoryRainSfx();
 }
 
 function applyRainContext(root,store){
   if(!isTargetStory(root)){
-    setRainAllowed(false);
-    stopStoryRainSfx();
+    hardStopRain();
     return;
   }
 
   const page=currentPage(root);
   const audioEnabled=Boolean(store?.getState?.().audioOn);
   const shouldRain=page>0&&audioEnabled&&isOutdoorPage(page);
-  setRainAllowed(shouldRain);
 
   if(!shouldRain){
-    stopStoryRainSfx();
+    hardStopRain();
     return;
   }
 
+  setRainAllowed(true);
   if(isStorySfxPlaying('rain')){
     setStorySfxVolume('rain',RAIN_VOLUME);
   }else{
@@ -62,8 +64,6 @@ function applyRainContext(root,store){
 function syncRain(root,store){
   const token=++syncToken;
   applyRainContext(root,store);
-
-  // Catch any delayed playback request from a scene transition.
   [60,160,320].forEach(delay=>{
     window.setTimeout(()=>{
       if(token===syncToken)applyRainContext(root,store);
@@ -74,10 +74,7 @@ function syncRain(root,store){
 export function installRainContext(root,store){
   if(root.dataset.rainContextInstalled==='1')return;
   root.dataset.rainContextInstalled='1';
-
-  // Start locked. The controller explicitly unlocks rain only on true outdoor pages.
-  setRainAllowed(false);
-  stopStoryRainSfx();
+  hardStopRain();
 
   const sync=()=>syncRain(root,store);
   const observer=new MutationObserver(sync);
