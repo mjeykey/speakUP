@@ -1,9 +1,8 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx.js?v=264';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx.js?v=268';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
 const DOOR_VOLUME=1;
-const RAIN_VOLUME=.24;
 
 function bellVolumeForPhase(phaseIndex){
   return phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
@@ -20,15 +19,8 @@ export function prepareStoryEffects(storyId){
   }
 }
 
-export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,enabled=true,isCurrent=()=>true}={}){
+export function ensureStoryEffect({storyId,sound,phaseIndex,enabled=true,isCurrent=()=>true}={}){
   if(storyId!=='fantasy-1'||!enabled||!isCurrent())return;
-
-  if(ambientSound==='rain'){
-    if(isStorySfxPlaying('rain'))setStorySfxVolume('rain',RAIN_VOLUME);
-    else void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
-  }else if(isStorySfxPlaying('rain')){
-    transitionStorySfx({keepRain:false});
-  }
 
   if(!sound||sound==='none'||sound==='rain'||sound==='door-creak'||sound==='crowd')return;
 
@@ -44,8 +36,8 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
   start();
 }
 
-export function transitionStoryEffects({storyId,enabled=true,targetSound='none',targetAmbientSound='none'}={}){
-  transitionStorySfx({keepRain:storyId==='fantasy-1'&&enabled&&targetAmbientSound==='rain'});
+export function transitionStoryEffects({storyId,enabled=true,targetSound='none'}={}){
+  transitionStorySfx({keepRain:false});
   if(storyId==='fantasy-1'&&enabled&&targetSound==='door-creak'){
     void playStorySfx('door-creak',{enabled:true,loop:false,volume:DOOR_VOLUME});
   }
