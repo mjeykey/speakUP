@@ -5,13 +5,14 @@ const TILE_BREAK_DELAY_MS=5000;
 const WAGON_IMPACT_DELAY_MS=6000;
 const EFFECT_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=221',import.meta.url).href;
-const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=226',import.meta.url).href;
+const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=227',import.meta.url).href;
 let tileBreakTimer=0;
 let tileBreakAudio=null;
 let tileBreakBlobUrl='';
 let tileBreakLoadPromise=null;
 let wagonImpactTimer=0;
-let wagonImpactAudio=null;
+let wagonTrack=null;
+let wagonTrackPrimed=false;
 
 function stopTileBreak(){
   clearTimeout(tileBreakTimer);
@@ -22,13 +23,42 @@ function stopTileBreak(){
   }
 }
 
-function stopWagonImpact(){
+function ensureWagonTrack(){
+  if(wagonTrack)return wagonTrack;
+  const audio=document.createElement('audio');
+  audio.src=WAGON_IMPACT_URL;
+  audio.preload='auto';
+  audio.loop=false;
+  audio.setAttribute('playsinline','');
+  audio.volume=.78;
+  audio.style.display='none';
+  audio.dataset.storyTrack='wagon-impact';
+  document.body.appendChild(audio);
+  wagonTrack=audio;
+  return audio;
+}
+
+function primeWagonTrack(){
+  if(wagonTrackPrimed)return;
+  const audio=ensureWagonTrack();
+  const previousMuted=audio.muted;
+  audio.muted=true;
+  const playPromise=audio.play();
+  if(playPromise&&typeof playPromise.then==='function'){
+    playPromise.then(()=>{
+      audio.pause();
+      audio.currentTime=0;
+      audio.muted=previousMuted;
+      wagonTrackPrimed=true;
+    }).catch(()=>{audio.muted=previousMuted;});
+  }
+}
+
+function stopWagonTrack(){
   clearTimeout(wagonImpactTimer);
   wagonImpactTimer=0;
-  if(wagonImpactAudio){
-    try{wagonImpactAudio.pause();wagonImpactAudio.currentTime=0;}catch(_){}
-    wagonImpactAudio=null;
-  }
+  if(!wagonTrack)return;
+  try{wagonTrack.pause();wagonTrack.currentTime=0;}catch(_){}
 }
 
 async function tileBreakSrc(){
@@ -74,22 +104,20 @@ function scheduleTileBreak(root,scheduledPage){
 }
 
 function scheduleWagonImpact(root,scheduledPage){
-  stopWagonImpact();
+  stopWagonTrack();
+  const audio=ensureWagonTrack();
+  audio.load();
   wagonImpactTimer=window.setTimeout(async()=>{
     wagonImpactTimer=0;
     if(currentDisplayPage(root)!==scheduledPage)return;
     try{
-      const audio=new Audio(WAGON_IMPACT_URL);
-      audio.setAttribute('playsinline','');
-      audio.preload='auto';
-      audio.loop=false;
+      audio.pause();
+      audio.currentTime=0;
+      audio.muted=false;
       audio.volume=.78;
-      wagonImpactAudio=audio;
-      audio.onended=()=>{if(wagonImpactAudio===audio)wagonImpactAudio=null;};
-      audio.onerror=()=>{if(wagonImpactAudio===audio)wagonImpactAudio=null;};
       await audio.play();
     }catch(error){
-      console.warn('Wagon impact playback failed.',error);
+      console.warn('Dedicated wagon track playback failed.',error);
     }
   },WAGON_IMPACT_DELAY_MS);
 }
@@ -97,6 +125,9 @@ function scheduleWagonImpact(root,scheduledPage){
 export function renderStory(root,store){
   renderBaseStory(root,store);
   let lastPage=-1;
+  const armTrack=()=>primeWagonTrack();
+  root.addEventListener('pointerdown',armTrack,{capture:true});
+  root.addEventListener('click',armTrack,{capture:true});
 
   const syncEffects=()=>{
     const page=currentDisplayPage(root);
@@ -104,7 +135,7 @@ export function renderStory(root,store){
 
     if(!audioEnabled||!EFFECT_PAGES.has(page)){
       stopTileBreak();
-      stopWagonImpact();
+      stopWagonTrack();
       lastPage=page;
       return;
     }
