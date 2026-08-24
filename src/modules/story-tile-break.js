@@ -5,7 +5,7 @@ const TILE_BREAK_DELAY_MS=5000;
 const WAGON_IMPACT_DELAY_MS=6000;
 const EFFECT_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=221',import.meta.url).href;
-const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=224',import.meta.url).href;
+const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=225',import.meta.url).href;
 let tileBreakTimer=0;
 let tileBreakAudio=null;
 let tileBreakBlobUrl='';
