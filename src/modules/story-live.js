@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
-import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=268';
+import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -12,12 +12,26 @@ const DOOR_CREAK_PAGES=new Set([2]);
 // Rain is deliberately off in the stables, inside the wagon, inside the watchtower,
 // and beyond the mountain gate.
 const OUTDOOR_RAIN_PAGES=new Set([2,26,27,28,29,30,31,40,45,46,51,52,53,54,55,56,57]);
+
+// Repeated places get the same low background atmosphere. Event sounds still play separately.
+// The opening stable keeps its existing rain/bell/door design untouched.
+const LOCATION_AMBIENCE_RANGES=[
+  {from:9,to:17,sound:'water',volume:.10},        // flooded city around the wagon
+  {from:19,to:25,sound:'water',volume:.14},       // broken bridge / black river
+  {from:26,to:31,sound:'soft-wind',volume:.10},   // abandoned square / exposed mountain edge
+  {from:33,to:36,sound:'soft-wind',volume:.08},   // mountain road, heard softly from inside wagon
+  {from:37,to:50,sound:'soft-wind',volume:.10},   // watchtower area
+  {from:51,to:58,sound:'storm-wind',volume:.12},  // outside at watchtower during attack
+  {from:59,to:64,sound:'storm-wind',volume:.10},  // final mountain road / summit gate
+  {from:65,to:67,sound:'dawn-wind',volume:.10}    // safe side of gate into dawn
+];
+
 const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=269',import.meta.url).href;
 const RAIN_VOLUME=.28;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
-const DEBUG_BUILD='B269';
+const DEBUG_BUILD='B270';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
@@ -124,6 +138,11 @@ export function renderStory(root,store){
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&OUTDOOR_RAIN_PAGES.has(sourcePage);
   const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
+  const locationAmbience=(sourcePage=pageIndex)=>LOCATION_AMBIENCE_RANGES.find(range=>sourcePage>=range.from&&sourcePage<=range.to)||null;
+  const syncLocationAmbience=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>{
+    const ambience=storyId==='fantasy-1'?locationAmbience(sourcePage):null;
+    syncStoryLocationAmbience(ambience?.sound||'none',{enabled:Boolean(audioEnabled&&ambience),volume:ambience?.volume??.10});
+  };
   const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>{
     if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
     if(sourcePage===11)return'lightning-strike';
@@ -179,6 +198,7 @@ export function renderStory(root,store){
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
     syncRain(pageIndex,audioEnabled);
+    syncLocationAmbience(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
@@ -231,9 +251,9 @@ export function renderStory(root,store){
     if(target.phaseIndex===2)stopStoryNarration();
 
     const audioEnabled=Boolean(store.getState().audioOn);
-    // This call happens directly inside the user's navigation click.
-    // Android therefore permits the persistent rain element to resume.
+    // These calls happen directly inside the user's navigation click, which keeps mobile audio reliable.
     syncRain(target.pageIndex,audioEnabled);
+    syncLocationAmbience(target.pageIndex,audioEnabled);
 
     const currentSound=phaseSound(pageIndex,phaseIndex);
     const targetSound=phaseSound(target.pageIndex,target.phaseIndex);
