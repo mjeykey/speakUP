@@ -1,17 +1,15 @@
-import { isStorySfxPlaying, playStorySfx, setStorySfxVolume, stopStoryRainSfx } from './story-sfx-smooth.js?v=258';
+import { isStorySfxPlaying, playStorySfx, setStorySfxVolume, stopStoryRainSfx } from './story-sfx-smooth.js?v=262';
 
 const RAIN_VOLUME=.04;
 
-// Zero-based source paragraphs where the characters are genuinely outside.
-// Every source paragraph is rendered as 4 visible pages.
-// Everywhere else the rain is forced OFF: stables, inside the wagon,
-// inside the watchtower, and after the mountain gate.
+// Zero-based source paragraphs where the characters themselves are outside
+// and exposed to the storm. Every source paragraph is rendered as 4 visible pages.
+// Driving through rain while seated inside the wagon does NOT count as outdoors.
 const OUTDOOR_SOURCE_PAGES=new Set([
   2,
-  26,27,28,29,30,31,32,
+  26,27,28,29,30,31,
   40,
-  45,46,
-  51,52,53,54,55,56,57,58
+  51,52,53,54,55,56,57
 ]);
 
 let syncToken=0;
@@ -33,8 +31,13 @@ function isOutdoorPage(displayPage){
   return OUTDOOR_SOURCE_PAGES.has(sourcePageIndex(displayPage));
 }
 
+function setRainAllowed(value){
+  if(typeof window!=='undefined')window.__speakupRainAllowed=Boolean(value);
+}
+
 function applyRainContext(root,store){
   if(!isTargetStory(root)){
+    setRainAllowed(false);
     stopStoryRainSfx();
     return;
   }
@@ -42,6 +45,7 @@ function applyRainContext(root,store){
   const page=currentPage(root);
   const audioEnabled=Boolean(store?.getState?.().audioOn);
   const shouldRain=page>0&&audioEnabled&&isOutdoorPage(page);
+  setRainAllowed(shouldRain);
 
   if(!shouldRain){
     stopStoryRainSfx();
@@ -59,8 +63,8 @@ function syncRain(root,store){
   const token=++syncToken;
   applyRainContext(root,store);
 
-  // Catch any delayed rain playback started by another scene transition.
-  [80,250].forEach(delay=>{
+  // Catch any delayed playback request from a scene transition.
+  [60,160,320].forEach(delay=>{
     window.setTimeout(()=>{
       if(token===syncToken)applyRainContext(root,store);
     },delay);
@@ -70,6 +74,10 @@ function syncRain(root,store){
 export function installRainContext(root,store){
   if(root.dataset.rainContextInstalled==='1')return;
   root.dataset.rainContextInstalled='1';
+
+  // Start locked. The controller explicitly unlocks rain only on true outdoor pages.
+  setRainAllowed(false);
+  stopStoryRainSfx();
 
   const sync=()=>syncRain(root,store);
   const observer=new MutationObserver(sync);
