@@ -7,7 +7,7 @@ import { renderFillGap } from '../modules/fill-gap-matrix.js?v=1';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=1';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=1';
-import { renderStory } from '../modules/story-loader.js?v=231';
+import { renderStory } from '../modules/story-loader.js?v=232';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=1';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=1';
@@ -16,13 +16,10 @@ import { renderL2Learning } from '../modules/l2-learning.js?v=1';
 import { renderL3Learning } from '../modules/l3-learning.js?v=1';
 import { stopSpeech } from '../audio/speech.js?v=63';
 import { stopStoryEffects } from '../audio/story-effects.js?v=218';
-import { installScene7376, stopScene7376 } from '../audio/story-scene-73-76.js?v=231';
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
 let previousScreen=null;
-
-installScene7376(root,store);
 
 const routes = {
   welcome: renderWelcome,
@@ -44,10 +41,7 @@ const routes = {
 
 function render(state) {
   if(state.screen!=='story')stopSpeech();
-  if(previousScreen==='story'&&state.screen!=='story'){
-    stopStoryEffects();
-    stopScene7376();
-  }
+  if(previousScreen==='story'&&state.screen!=='story')stopStoryEffects();
   previousScreen=state.screen;
   const view = routes[state.screen] || renderWelcome;
   view(root, store);
