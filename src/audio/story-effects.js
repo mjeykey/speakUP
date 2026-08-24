@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx.js?v=217';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx-smooth.js?v=254';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
