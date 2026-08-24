@@ -1,11 +1,16 @@
-import { stopStoryRainSfx } from './story-sfx-smooth.js?v=257';
+import { stopStoryRainSfx } from './story-sfx-smooth.js?v=258';
 
-const OUTDOOR_PAGE_RANGES=[
-  [105,128],
-  [161,164],
-  [181,188],
-  [209,232]
-];
+// Zero-based source paragraphs where the characters are genuinely outside
+// and exposed to the storm. Every source paragraph is rendered as 4 visible pages.
+// Rain is forced OFF everywhere else: stables, inside the wagon, inside the watchtower,
+// and after the mountain gate.
+const OUTDOOR_SOURCE_PAGES=new Set([
+  2,
+  26,27,28,29,30,31,
+  40,
+  45,46,
+  51,52,53,54,55,56,57
+]);
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
@@ -16,8 +21,12 @@ function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function isOutdoorPage(page){
-  return OUTDOOR_PAGE_RANGES.some(([start,end])=>page>=start&&page<=end);
+function sourcePageIndex(displayPage){
+  return displayPage>0?Math.floor((displayPage-1)/4):-1;
+}
+
+function isOutdoorPage(displayPage){
+  return OUTDOOR_SOURCE_PAGES.has(sourcePageIndex(displayPage));
 }
 
 function enforceRainContext(root){
