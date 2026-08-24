@@ -103,11 +103,14 @@ function createChunkedBase64AudioSource(urls){
       const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
       const failed=responses.find(response=>!response.ok);
       if(failed)throw new Error(`HTTP ${failed.status}`);
-      const encoded=(await Promise.all(responses.map(response=>response.text()))).join('').replace(/\s+/g,'');
-      const binary=atob(encoded);
-      const bytes=new Uint8Array(binary.length);
-      for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
-      objectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
+      const encodedParts=await Promise.all(responses.map(response=>response.text()));
+      const byteParts=encodedParts.map(encoded=>{
+        const binary=atob(encoded.replace(/\s+/g,''));
+        const bytes=new Uint8Array(binary.length);
+        for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
+        return bytes;
+      });
+      objectUrl=URL.createObjectURL(new Blob(byteParts,{type:'audio/mpeg'}));
       return objectUrl;
     })().catch(error=>{
       loadPromise=null;
@@ -158,7 +161,7 @@ async function getWindAudio(){
   track.preload='auto';
   track.loop=true;
   track.muted=false;
-  track.volume=.50;
+  track.volume=.30;
   track.onerror=()=>console.warn('Wind ambience playback failed.');
   windAudio=track;
   return track;
@@ -171,7 +174,7 @@ async function ensureWind(root,page,store){
     if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
     track.muted=false;
     track.loop=true;
-    track.volume=.50;
+    track.volume=.30;
     if(!track.paused&&!track.ended)return;
     await track.play();
   }catch(error){
@@ -203,7 +206,7 @@ async function primeSceneAudio(){
     windTrack.pause();
     windTrack.currentTime=0;
     windTrack.muted=false;
-    windTrack.volume=.50;
+    windTrack.volume=.30;
     primed=true;
   }catch(_){}
 }
