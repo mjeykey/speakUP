@@ -3,10 +3,13 @@ import { stopStoryEffects } from './story-effects.js?v=250';
 const SCENE_PAGES=new Set([89,90,91,92]);
 const CRACK_DELAY_BY_PAGE=new Map([[89,450],[90,650],[91,700],[92,650]]);
 const CRACK_B64_PART_URLS=[
-  new URL('../../assets/audio/stone-floor-crack-fast.part0?v=252',import.meta.url).href,
-  new URL('../../assets/audio/stone-floor-crack-fast.part1?v=252',import.meta.url).href,
-  new URL('../../assets/audio/stone-floor-crack-fast.part2?v=252',import.meta.url).href,
-  new URL('../../assets/audio/stone-floor-crack-fast.part3?v=252',import.meta.url).href
+  new URL('../../assets/audio/stone-floor-crack-fast.part0?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-fast.part1?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-fast.part2?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-tail0.bin?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-tail1.bin?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-tail2.bin?v=253',import.meta.url).href,
+  new URL('../../assets/audio/stone-floor-crack-tail3.bin?v=253',import.meta.url).href
 ];
 
 let timer=0;
@@ -41,13 +44,14 @@ async function crackSrc(){
     );
     const failed=responses.find(response=>!response.ok);
     if(failed)throw new Error(`HTTP ${failed.status}`);
-    const encoded=(await Promise.all(responses.map(response=>response.text())))
-      .join('')
-      .replace(/\s+/g,'');
-    const binary=atob(encoded);
-    const bytes=new Uint8Array(binary.length);
-    for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
-    objectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
+    const encodedParts=await Promise.all(responses.map(response=>response.text()));
+    const byteParts=encodedParts.map(encoded=>{
+      const binary=atob(encoded.replace(/\s+/g,''));
+      const bytes=new Uint8Array(binary.length);
+      for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
+      return bytes;
+    });
+    objectUrl=URL.createObjectURL(new Blob(byteParts,{type:'audio/mpeg'}));
     return objectUrl;
   })().catch(error=>{
     loadPromise=null;
