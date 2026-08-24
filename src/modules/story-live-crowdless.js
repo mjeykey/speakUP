@@ -1,5 +1,5 @@
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
-import { renderStory as renderBaseStory } from './story-live.js?v=267';
+import { renderStory as renderBaseStory } from './story-live.js?v=268';
 
 function applyStorySoundOverrides(){
   fantasyStory.pages.forEach(page=>{
