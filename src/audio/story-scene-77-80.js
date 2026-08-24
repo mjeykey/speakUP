@@ -1,3 +1,5 @@
+import { stopStoryEffects } from './story-effects.js?v=218';
+
 const SCENE_PAGES=new Set([77,78,79,80]);
 const ROCK_DELAY_BY_PAGE=new Map([[77,4500],[78,5200],[79,4500],[80,5200]]);
 const ROCK_PART_URLS=[
@@ -136,8 +138,10 @@ export function installScene7780(root,store){
     lastPage=page;
     lastEnabled=enabled;
     playedPage=-1;
-    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleRocks(root,page,store);
-    else stopRocks();
+    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
+      stopStoryEffects();
+      scheduleRocks(root,page,store);
+    }else stopRocks();
   };
 
   root.addEventListener('pointerdown',unlock,{capture:true});
