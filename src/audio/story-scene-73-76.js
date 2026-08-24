@@ -74,9 +74,19 @@ async function playTileBreak(root,page){
     track.preload='auto';
     track.loop=false;
     track.volume=.9;
-    track.playbackRate=.82;
+    track.playbackRate=1;
     audio=track;
-    track.onended=()=>{if(audio===track)audio=null;};
+    let playCount=1;
+    track.onended=()=>{
+      if(audio!==track)return;
+      if(playCount<2&&currentPage(root)===page&&isTargetStory(root)){
+        playCount+=1;
+        track.currentTime=0;
+        void track.play().catch(()=>{if(audio===track)audio=null;});
+        return;
+      }
+      audio=null;
+    };
     track.onerror=()=>{if(audio===track)audio=null;};
     await track.play();
   }catch(error){
