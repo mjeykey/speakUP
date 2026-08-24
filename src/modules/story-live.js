@@ -2,7 +2,7 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
-import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=267';
+import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=268';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -11,11 +11,41 @@ const DOOR_CREAK_PAGES=new Set([2]);
 // Zero-based source pages where the characters are actually outside and exposed to the storm.
 // Rain is deliberately off in the stables, inside the wagon, inside the watchtower, and beyond the mountain gate.
 const OUTDOOR_RAIN_PAGES=new Set([2,26,27,28,29,30,31,40,45,46,51,52,53,54,55,56,57]);
+const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=268',import.meta.url).href;
+const RAIN_VOLUME=.24;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
-const DEBUG_BUILD='B267';
+let storyRainAudio=null;
+const DEBUG_BUILD='B268';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
+
+function stopStoryRain(){
+  if(!storyRainAudio)return;
+  try{storyRainAudio.pause();}catch(_){}
+  try{storyRainAudio.currentTime=0;}catch(_){}
+  storyRainAudio=null;
+}
+
+function ensureStoryRain(enabled=true){
+  if(!enabled){stopStoryRain();return;}
+  if(storyRainAudio&&!storyRainAudio.paused&&!storyRainAudio.ended){
+    storyRainAudio.volume=RAIN_VOLUME;
+    return;
+  }
+  stopStoryRain();
+  const audio=new Audio(RAIN_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.loop=true;
+  audio.volume=RAIN_VOLUME;
+  storyRainAudio=audio;
+  audio.onerror=()=>{if(storyRainAudio===audio)storyRainAudio=null;};
+  void audio.play().catch(error=>{
+    if(storyRainAudio===audio)storyRainAudio=null;
+    console.warn('Story rain playback failed.',error);
+  });
+}
 
 function playVerifiedDoor(){
   try{verifiedDoorAudio?.pause();}catch(_){}
@@ -78,7 +108,8 @@ export function renderStory(root,store){
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
-  const phaseAmbientSound=(sourcePage=pageIndex)=>OUTDOOR_RAIN_PAGES.has(sourcePage)?'rain':'none';
+  const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&OUTDOOR_RAIN_PAGES.has(sourcePage);
+  const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
   const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>{
     if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
     if(sourcePage===11)return'lightning-strike';
@@ -86,12 +117,13 @@ export function renderStory(root,store){
     if(sourcePage===19)return'none';
     if(sourcePage===22)return'none';
     const sound=story.pages[sourcePage]?.sound||'none';
-    return sound==='rain'?phaseAmbientSound(sourcePage):sound;
+    return sound==='rain'?'none':sound;
   };
   const persistProgress=()=>store.saveProgress('story',progressKey,{storyId,learningLanguage:state.learningLanguage,nativeLanguage:state.nativeLanguage,pageIndex,phaseIndex,solved});
   const isTokenCurrent=token=>()=>token===renderToken;
   const leave=()=>{
     renderToken+=1;
+    stopStoryRain();
     stopStoryNarration();
     stopStoryEffects();
     store.setState({screen:'menu'});
@@ -110,7 +142,6 @@ export function renderStory(root,store){
     ensureStoryEffect({
       storyId,
       sound:phaseSound(),
-      ambientSound:phaseAmbientSound(),
       phaseIndex,
       enabled:audioEnabled,
       isCurrent:()=>token===renderToken&&page()===current
@@ -133,6 +164,7 @@ export function renderStory(root,store){
     const token=++renderToken;
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
+    syncRain(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
@@ -184,18 +216,20 @@ export function renderStory(root,store){
     renderToken+=1;
     if(target.phaseIndex===2)stopStoryNarration();
 
+    const audioEnabled=Boolean(store.getState().audioOn);
+    syncRain(target.pageIndex,audioEnabled);
+
     const currentSound=phaseSound(pageIndex,phaseIndex);
     const targetSound=phaseSound(target.pageIndex,target.phaseIndex);
-    if(targetSound==='door-creak'&&Boolean(store.getState().audioOn)){
+    if(targetSound==='door-creak'&&audioEnabled){
       stopStoryEffects();
       playVerifiedDoor();
     }else{
       transitionStoryEffects({
         storyId,
-        enabled:Boolean(store.getState().audioOn),
+        enabled:audioEnabled,
         currentSound,
         targetSound,
-        targetAmbientSound:phaseAmbientSound(target.pageIndex),
         sameSourcePage:target.pageIndex===pageIndex
       });
     }
