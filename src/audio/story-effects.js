@@ -3,7 +3,7 @@ import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, st
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
 const DOOR_VOLUME=1;
-const RAIN_VOLUME=.08;
+const RAIN_VOLUME=.04;
 
 function bellVolumeForPhase(phaseIndex){
   return phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
@@ -23,8 +23,9 @@ export function prepareStoryEffects(storyId){
 export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,enabled=true,isCurrent=()=>true}={}){
   if(storyId!=='fantasy-1'||!enabled||!isCurrent())return;
 
-  if(ambientSound==='rain'&&!isStorySfxPlaying('rain')){
-    void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
+  if(ambientSound==='rain'){
+    if(isStorySfxPlaying('rain'))setStorySfxVolume('rain',RAIN_VOLUME);
+    else void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
   }
 
   if(!sound||sound==='none'||sound==='rain'||sound==='door-creak')return;
