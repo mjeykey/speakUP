@@ -1,12 +1,15 @@
 import { renderStory as renderBaseStory } from './story-live.js?v=219';
 
 const TILE_BREAK_DELAY_MS=5000;
-const TILE_BREAK_PAGES=new Set([73,74,75,76]);
+const EFFECT_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=221',import.meta.url).href;
+const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=222',import.meta.url).href;
+const WIND_VOLUME=.28;
 let tileBreakTimer=0;
 let tileBreakAudio=null;
 let tileBreakBlobUrl='';
 let tileBreakLoadPromise=null;
+let windAudio=null;
 
 function stopTileBreak(){
   clearTimeout(tileBreakTimer);
@@ -15,6 +18,28 @@ function stopTileBreak(){
     try{tileBreakAudio.pause();tileBreakAudio.currentTime=0;}catch(_){}
     tileBreakAudio=null;
   }
+}
+
+function stopWind(){
+  if(!windAudio)return;
+  try{windAudio.pause();windAudio.currentTime=0;}catch(_){}
+  windAudio=null;
+}
+
+function ensureWind(){
+  if(windAudio&&!windAudio.paused&&!windAudio.ended)return;
+  stopWind();
+  const audio=new Audio(WIND_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.loop=true;
+  audio.volume=WIND_VOLUME;
+  windAudio=audio;
+  audio.onerror=()=>{if(windAudio===audio)windAudio=null;};
+  void audio.play().catch(error=>{
+    if(windAudio===audio)windAudio=null;
+    console.warn('Wind ambience playback failed.',error);
+  });
 }
 
 async function tileBreakSrc(){
@@ -38,10 +63,8 @@ function currentDisplayPage(root){
   return match?Number(match[1]):0;
 }
 
-function scheduleTileBreak(root){
+function scheduleTileBreak(root,scheduledPage){
   stopTileBreak();
-  const scheduledPage=currentDisplayPage(root);
-  if(!TILE_BREAK_PAGES.has(scheduledPage))return;
   tileBreakTimer=window.setTimeout(async()=>{
     tileBreakTimer=0;
     if(currentDisplayPage(root)!==scheduledPage)return;
@@ -63,7 +86,24 @@ function scheduleTileBreak(root){
 
 export function renderStory(root,store){
   renderBaseStory(root,store);
-  scheduleTileBreak(root);
-  const observer=new MutationObserver(()=>scheduleTileBreak(root));
+  let lastPage=-1;
+
+  const syncEffects=()=>{
+    const page=currentDisplayPage(root);
+    const audioEnabled=Boolean(store.getState().audioOn);
+    if(!audioEnabled||!EFFECT_PAGES.has(page)){
+      stopTileBreak();
+      stopWind();
+      lastPage=page;
+      return;
+    }
+
+    ensureWind();
+    if(page!==lastPage)scheduleTileBreak(root,page);
+    lastPage=page;
+  };
+
+  syncEffects();
+  const observer=new MutationObserver(syncEffects);
   observer.observe(root,{childList:true,subtree:true});
 }
