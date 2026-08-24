@@ -74,6 +74,7 @@ async function playTileBreak(root,page){
     track.preload='auto';
     track.loop=false;
     track.volume=.9;
+    track.playbackRate=.82;
     audio=track;
     track.onended=()=>{if(audio===track)audio=null;};
     track.onerror=()=>{if(audio===track)audio=null;};
