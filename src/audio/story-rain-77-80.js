@@ -1,7 +1,7 @@
 import { isStorySfxPlaying, playStorySfx } from './story-sfx.js?v=217';
 
 const SCENE_PAGES=new Set([77,78,79,80]);
-const RAIN_VOLUME=.16;
+const RAIN_VOLUME=.08;
 let lastPage=-1;
 let lastEnabled=null;
 
