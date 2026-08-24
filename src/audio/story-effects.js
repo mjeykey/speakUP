@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx-smooth.js?v=254';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStoryRainSfx, stopStorySfx, transitionStorySfx } from './story-sfx-smooth.js?v=256';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
@@ -26,6 +26,8 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
   if(ambientSound==='rain'){
     if(isStorySfxPlaying('rain'))setStorySfxVolume('rain',RAIN_VOLUME);
     else void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
+  }else if(isStorySfxPlaying('rain')){
+    stopStoryRainSfx();
   }
 
   if(!sound||sound==='none'||sound==='rain'||sound==='door-creak')return;
