@@ -1,4 +1,4 @@
-import { renderStory as renderBaseStory } from './story-live-crowdless.js?v=267';
+import { renderStory as renderBaseStory } from './story-live-crowdless.js?v=268';
 import { installScene7376 } from '../audio/story-scene-73-76.js?v=242';
 import { installScene7780 } from '../audio/story-scene-77-80.js?v=246';
 import { installScene8992Direct } from '../audio/story-scene-89-92-direct.js?v=254';
