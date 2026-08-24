@@ -13,6 +13,12 @@ const ROOF_ACCENT_PART_URLS=[
   new URL('../../assets/audio/roof-break-accent.part5?v=242',import.meta.url).href,
   new URL('../../assets/audio/roof-break-accent.part6?v=242',import.meta.url).href
 ];
+const WIND_PART_URLS=[
+  new URL('../../assets/audio/wind-blowing-73-76.part0?v=271',import.meta.url).href,
+  new URL('../../assets/audio/wind-blowing-73-76.part1?v=271',import.meta.url).href,
+  new URL('../../assets/audio/wind-blowing-73-76.part2?v=271',import.meta.url).href,
+  new URL('../../assets/audio/wind-blowing-73-76.part3?v=271',import.meta.url).href
+];
 
 let tileTimer=0;
 let accentTimer=0;
@@ -20,6 +26,7 @@ let ceramicTimer=0;
 let tileAudio=null;
 let accentAudio=null;
 let ceramicAudio=null;
+let windAudio=null;
 let lastPage=-1;
 let lastEnabled=null;
 let playedPage=-1;
@@ -84,9 +91,37 @@ function createChunkedAudioSource(urls){
   };
 }
 
+function createChunkedBase64AudioSource(urls){
+  let objectUrl='';
+  let loadPromise=null;
+
+  return async function audioSource(){
+    if(objectUrl)return objectUrl;
+    if(loadPromise)return loadPromise;
+
+    loadPromise=(async()=>{
+      const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
+      const failed=responses.find(response=>!response.ok);
+      if(failed)throw new Error(`HTTP ${failed.status}`);
+      const encoded=(await Promise.all(responses.map(response=>response.text()))).join('').replace(/\s+/g,'');
+      const binary=atob(encoded);
+      const bytes=new Uint8Array(binary.length);
+      for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
+      objectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
+      return objectUrl;
+    })().catch(error=>{
+      loadPromise=null;
+      throw error;
+    });
+
+    return loadPromise;
+  };
+}
+
 const tileBreakSrc=createBase64AudioSource(TILE_BREAK_B64_URL);
 const ceramicBreakSrc=createBase64AudioSource(CERAMIC_BREAK_B64_URL);
 const roofAccentSrc=createChunkedAudioSource(ROOF_ACCENT_PART_URLS);
+const windSrc=createChunkedBase64AudioSource(WIND_PART_URLS);
 
 function stopTrack(track){
   if(!track)return;
@@ -96,7 +131,7 @@ function stopTrack(track){
   }catch(_){}
 }
 
-function stopSceneAudio(){
+function stopImpactAudio(){
   clearTimeout(tileTimer);
   clearTimeout(accentTimer);
   clearTimeout(ceramicTimer);
@@ -111,13 +146,47 @@ function stopSceneAudio(){
   ceramicAudio=null;
 }
 
+function stopSceneAudio(){
+  stopImpactAudio();
+  stopTrack(windAudio);
+}
+
+async function getWindAudio(){
+  if(windAudio)return windAudio;
+  const track=new Audio(await windSrc());
+  track.setAttribute('playsinline','');
+  track.preload='auto';
+  track.loop=true;
+  track.muted=false;
+  track.volume=.50;
+  track.onerror=()=>console.warn('Wind ambience playback failed.');
+  windAudio=track;
+  return track;
+}
+
+async function ensureWind(root,page,store){
+  if(!SCENE_PAGES.has(page)||currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
+  try{
+    const track=await getWindAudio();
+    if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
+    track.muted=false;
+    track.loop=true;
+    track.volume=.50;
+    if(!track.paused&&!track.ended)return;
+    await track.play();
+  }catch(error){
+    console.warn('Wind ambience playback failed.',error);
+  }
+}
+
 async function primeSceneAudio(){
   if(primed)return;
   try{
-    const [tileSrc,accentSrc,ceramicSrc]=await Promise.all([
+    const [tileSrc,accentSrc,ceramicSrc,windTrack]=await Promise.all([
       tileBreakSrc(),
       roofAccentSrc(),
-      ceramicBreakSrc()
+      ceramicBreakSrc(),
+      getWindAudio()
     ]);
     const probes=[new Audio(tileSrc),new Audio(accentSrc),new Audio(ceramicSrc)];
     await Promise.all(probes.map(async probe=>{
@@ -128,6 +197,13 @@ async function primeSceneAudio(){
       probe.pause();
       probe.currentTime=0;
     }));
+    windTrack.muted=true;
+    windTrack.volume=0;
+    await windTrack.play();
+    windTrack.pause();
+    windTrack.currentTime=0;
+    windTrack.muted=false;
+    windTrack.volume=.50;
     primed=true;
   }catch(_){}
 }
@@ -213,8 +289,9 @@ async function playTileBreak(root,page,store){
   }
 }
 
-function scheduleTileBreak(root,page,store){
-  stopSceneAudio();
+function scheduleScene(root,page,store){
+  stopImpactAudio();
+  void ensureWind(root,page,store);
   const delay=TILE_BREAK_DELAY_BY_PAGE.get(page)??8000;
   tileTimer=window.setTimeout(()=>{
     tileTimer=0;
@@ -232,7 +309,7 @@ export function stopScene7376(){
 export function installScene7376(root,store){
   if(root.dataset.tileBreakInstalled==='1')return;
   root.dataset.tileBreakInstalled='1';
-  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc()]).catch(()=>{});
+  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc(),windSrc()]).catch(()=>{});
 
   const unlock=()=>{
     if(store.getState().audioOn)void primeSceneAudio();
@@ -245,7 +322,7 @@ export function installScene7376(root,store){
     lastPage=page;
     lastEnabled=enabled;
     playedPage=-1;
-    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleTileBreak(root,page,store);
+    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleScene(root,page,store);
     else stopSceneAudio();
   };
 
