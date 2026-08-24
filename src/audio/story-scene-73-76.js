@@ -6,9 +6,9 @@ const TIMING=new Map([
   [76,{wagon:5.8,tiles:9.5}]
 ]);
 
-const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=231',import.meta.url).href;
-const WAGON_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=231',import.meta.url).href;
-const TILES_B64_URL=new URL('../../assets/audio/tile-break.b64?v=231',import.meta.url).href;
+const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=232',import.meta.url).href;
+const WAGON_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=232',import.meta.url).href;
+const TILES_B64_URL=new URL('../../assets/audio/tile-break.b64?v=232',import.meta.url).href;
 
 let context=null;
 let windBufferPromise=null;
@@ -110,7 +110,7 @@ async function startScene(root,page,audioEnabled){
     windSource=makeSource(windBuffer,.24,true);
     windSource.start();
 
-    wagonSource=makeSource(wagonBuffer,.82,false);
+    wagonSource=makeSource(wagonBuffer,.9,false);
     wagonSource.start(ctx.currentTime+Math.max(.05,timing.wagon-elapsed));
 
     tilesSource=makeSource(tilesBuffer,.9,false);
@@ -124,6 +124,9 @@ export function installScene7376(root,store){
   if(root.dataset.scene7376Installed==='1')return;
   root.dataset.scene7376Installed='1';
 
+  let lastPage=-1;
+  let lastAudioEnabled=null;
+
   const unlock=()=>{
     if(!store.getState().audioOn)return;
     const ctx=getContext();
@@ -131,12 +134,18 @@ export function installScene7376(root,store){
     void loadBuffers().catch(()=>{});
   };
 
+  const sync=()=>{
+    const page=currentPage(root);
+    const audioEnabled=Boolean(store.getState().audioOn);
+    if(page===lastPage&&audioEnabled===lastAudioEnabled)return;
+    lastPage=page;
+    lastAudioEnabled=audioEnabled;
+    if(SCENE_PAGES.has(page)&&audioEnabled)void startScene(root,page,true);
+    else stopScene7376();
+  };
+
   root.addEventListener('pointerdown',unlock,{capture:true});
-  root.addEventListener('click',()=>{
-    queueMicrotask(()=>{
-      const page=currentPage(root);
-      if(SCENE_PAGES.has(page))void startScene(root,page,Boolean(store.getState().audioOn));
-      else stopScene7376();
-    });
-  });
+  const observer=new MutationObserver(sync);
+  observer.observe(root,{childList:true,subtree:true,characterData:true});
+  sync();
 }
