@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, playStorySfx } from './story-sfx.js?v=217';
+import { isStorySfxPlaying, playStorySfx, setStorySfxVolume } from './story-sfx.js?v=217';
 
 const SCENE_PAGES=new Set([77,78,79,80]);
 const RAIN_VOLUME=.08;
@@ -17,12 +17,17 @@ function isTargetStory(root){
 function ensureRain(root,store){
   const page=currentPage(root);
   const enabled=Boolean(store.getState().audioOn);
+
+  if(isStorySfxPlaying('rain'))setStorySfxVolume('rain',RAIN_VOLUME);
+
   if(page===lastPage&&enabled===lastEnabled)return;
   lastPage=page;
   lastEnabled=enabled;
   if(!enabled||!SCENE_PAGES.has(page)||!isTargetStory(root))return;
   if(!isStorySfxPlaying('rain')){
     void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
+  }else{
+    setStorySfxVolume('rain',RAIN_VOLUME);
   }
 }
 
