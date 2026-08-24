@@ -6,7 +6,7 @@ import {
   stopStorySfx as baseStopStorySfx,
   transitionStorySfx as baseTransitionStorySfx,
   getStorySfxSrc
-} from './story-sfx.js?v=217';
+} from './story-sfx-clean.js?v=258';
 
 let rainAudio=null;
 
