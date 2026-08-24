@@ -12,7 +12,7 @@ const DOOR_CREAK_PAGES=new Set([2]);
 const OUTDOOR_RAIN_PAGES=new Set([2,3,4,11,27,28,32,38,41,52,53,54,55,56,57,58]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
-const DEBUG_BUILD='B214';
+const DEBUG_BUILD='B225';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
@@ -81,7 +81,7 @@ export function renderStory(root,store){
   const phaseSound=(sourcePage=pageIndex,sourcePhase=phaseIndex)=>{
     if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
     if(sourcePage===11)return'lightning-strike';
-    if(sourcePage===18)return'storm-wind';
+    if(sourcePage===18)return'none';
     const sound=story.pages[sourcePage]?.sound||'none';
     return sound==='rain'?phaseAmbientSound(sourcePage):sound;
   };
