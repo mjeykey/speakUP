@@ -1,4 +1,4 @@
-import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStoryRainSfx, stopStorySfx, transitionStorySfx } from './story-sfx-smooth.js?v=262';
+import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, stopStorySfx, transitionStorySfx } from './story-sfx.js?v=264';
 
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
@@ -27,7 +27,7 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
     if(isStorySfxPlaying('rain'))setStorySfxVolume('rain',RAIN_VOLUME);
     else void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
   }else if(isStorySfxPlaying('rain')){
-    stopStoryRainSfx();
+    transitionStorySfx({keepRain:false});
   }
 
   if(!sound||sound==='none'||sound==='rain'||sound==='door-creak'||sound==='crowd')return;
@@ -35,10 +35,10 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
   if(sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase(phaseIndex));
   if(isStorySfxPlaying(sound))return;
 
-  const volume=sound==='lightning-strike'?1:sound==='storm-wind'?0.72:sound==='rain'?RAIN_VOLUME:sound==='ocean-waves'?0.45:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
+  const volume=sound==='lightning-strike'?1:sound==='storm-wind'?0.72:sound==='ocean-waves'?0.45:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
   const start=()=>{
     if(!isCurrent()||isStorySfxPlaying(sound))return;
-    void playStorySfx(sound,{enabled:true,loop:sound==='rain'||sound==='ocean-waves'||sound==='storm-wind',volume});
+    void playStorySfx(sound,{enabled:true,loop:sound==='ocean-waves'||sound==='storm-wind',volume});
   };
 
   start();
