@@ -136,9 +136,13 @@ export function installScene8992Direct(root,store){
   void ensureAudio().catch(()=>{});
 
   const retry=()=>{
-    if(store.getState().audioOn)void prime();
     const page=currentPage(root);
-    if(SCENE_PAGES.has(page)&&playedPage!==page)void playCrack(root,page,store);
+    const enabled=Boolean(store.getState().audioOn);
+    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
+      if(playedPage!==page)void playCrack(root,page,store);
+      return;
+    }
+    if(enabled)void prime();
   };
 
   const observer=new MutationObserver(()=>sync(root,store));
