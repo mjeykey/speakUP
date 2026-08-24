@@ -69,6 +69,10 @@ export function preloadStorySfx(name){
   return basePreloadStorySfx(name);
 }
 
+export function stopStoryRainSfx(){
+  stopRain();
+}
+
 export function transitionStorySfx({keepRain=false}={}){
   baseTransitionStorySfx({keepRain:false});
   if(!keepRain)stopRain();
