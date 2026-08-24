@@ -2,14 +2,15 @@ import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
-import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=250';
+import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, transitionStoryEffects } from '../audio/story-effects.js?v=255';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
-// Zero-based story pages where the characters are physically outside in the storm.
-const OUTDOOR_RAIN_PAGES=new Set([2,3,4,11,27,28,32,38,41,52,53,54,55,56,57,58]);
+// Zero-based source pages where the characters are actually outside and exposed to the storm.
+// Rain is deliberately off in the stables, inside the wagon, inside the watchtower, and beyond the mountain gate.
+const OUTDOOR_RAIN_PAGES=new Set([2,26,27,28,29,30,31,40,45,46,51,52,53,54,55,56,57]);
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 const DEBUG_BUILD='B225';
@@ -82,6 +83,7 @@ export function renderStory(root,store){
     if(sourcePage===10)return sourcePhase<=2?'metal-scrape':'none';
     if(sourcePage===11)return'lightning-strike';
     if(sourcePage===18)return'none';
+    if(sourcePage===22)return'none';
     const sound=story.pages[sourcePage]?.sound||'none';
     return sound==='rain'?phaseAmbientSound(sourcePage):sound;
   };
