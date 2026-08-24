@@ -1,7 +1,7 @@
 import { renderStory as renderBaseStory } from './story-live.js?v=226';
 import { stopStoryEffects } from '../audio/story-effects.js?v=218';
 
-const TILE_BREAK_DELAY_MS=5000;
+const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
 const WAGON_IMPACT_DELAY_SECONDS=6;
 const EFFECT_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=221',import.meta.url).href;
@@ -110,6 +110,7 @@ function currentDisplayPage(root){
 
 function scheduleTileBreak(root,scheduledPage){
   stopTileBreak();
+  const delay=TILE_BREAK_DELAY_BY_PAGE.get(scheduledPage)??8000;
   tileBreakTimer=window.setTimeout(async()=>{
     tileBreakTimer=0;
     if(currentDisplayPage(root)!==scheduledPage)return;
@@ -126,7 +127,7 @@ function scheduleTileBreak(root,scheduledPage){
     }catch(error){
       console.warn('Tile-break playback failed.',error);
     }
-  },TILE_BREAK_DELAY_MS);
+  },delay);
 }
 
 export function renderStory(root,store){
