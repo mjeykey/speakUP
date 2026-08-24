@@ -1,22 +1,10 @@
 const SCENE_PAGES=new Set([73,74,75,76]);
-const TIMING=new Map([
-  [73,{wagon:4.8,tiles:7.8}],
-  [74,{wagon:5.8,tiles:9.5}],
-  [75,{wagon:4.8,tiles:7.8}],
-  [76,{wagon:5.8,tiles:9.5}]
-]);
-
-const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=232',import.meta.url).href;
-const WAGON_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=232',import.meta.url).href;
-const TILES_B64_URL=new URL('../../assets/audio/tile-break.b64?v=232',import.meta.url).href;
+const WAGON_DELAY=new Map([[73,4.8],[74,5.8],[75,4.8],[76,5.8]]);
+const WAGON_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=234',import.meta.url).href;
 
 let context=null;
-let windBufferPromise=null;
 let wagonBufferPromise=null;
-let tilesBufferPromise=null;
-let windSource=null;
 let wagonSource=null;
-let tilesSource=null;
 let generation=0;
 
 function currentPage(root){
@@ -32,107 +20,72 @@ function getContext(){
   return context;
 }
 
-async function decodeMp3(url){
-  const ctx=getContext();
-  if(!ctx)throw new Error('Web Audio unavailable');
-  const response=await fetch(url,{cache:'force-cache'});
-  if(!response.ok)throw new Error(`HTTP ${response.status}`);
-  const bytes=await response.arrayBuffer();
-  return ctx.decodeAudioData(bytes.slice(0));
+async function loadWagon(){
+  if(wagonBufferPromise)return wagonBufferPromise;
+  wagonBufferPromise=(async()=>{
+    const ctx=getContext();
+    if(!ctx)throw new Error('Web Audio unavailable');
+    const response=await fetch(WAGON_URL,{cache:'no-store'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const bytes=await response.arrayBuffer();
+    return ctx.decodeAudioData(bytes.slice(0));
+  })();
+  return wagonBufferPromise;
 }
 
-async function decodeBase64Mp3(url){
-  const ctx=getContext();
-  if(!ctx)throw new Error('Web Audio unavailable');
-  const response=await fetch(url,{cache:'force-cache'});
-  if(!response.ok)throw new Error(`HTTP ${response.status}`);
-  const encoded=(await response.text()).replace(/\s+/g,'');
-  const binary=atob(encoded);
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i+=1)bytes[i]=binary.charCodeAt(i);
-  return ctx.decodeAudioData(bytes.buffer.slice(0));
-}
-
-function loadBuffers(){
-  windBufferPromise??=decodeMp3(WIND_URL);
-  wagonBufferPromise??=decodeMp3(WAGON_URL);
-  tilesBufferPromise??=decodeBase64Mp3(TILES_B64_URL);
-  return Promise.all([windBufferPromise,wagonBufferPromise,tilesBufferPromise]);
-}
-
-function stopSource(source){
-  if(!source)return;
-  try{source.stop();}catch(_){}
-  try{source.disconnect();}catch(_){}
-}
-
-export function stopScene7376(){
+function stopWagon(){
   generation+=1;
-  stopSource(windSource);
-  stopSource(wagonSource);
-  stopSource(tilesSource);
-  windSource=null;
-  wagonSource=null;
-  tilesSource=null;
+  if(wagonSource){
+    try{wagonSource.stop();}catch(_){}
+    try{wagonSource.disconnect();}catch(_){}
+    wagonSource=null;
+  }
 }
 
-function makeSource(buffer,volume,loop=false){
-  const ctx=getContext();
-  const source=ctx.createBufferSource();
-  const gain=ctx.createGain();
-  source.buffer=buffer;
-  source.loop=loop;
-  gain.gain.value=volume;
-  source.connect(gain);
-  gain.connect(ctx.destination);
-  source.onended=()=>{
-    try{source.disconnect();gain.disconnect();}catch(_){}
-  };
-  return source;
-}
+export function stopScene7376(){stopWagon();}
 
-async function startScene(root,page,audioEnabled){
-  stopScene7376();
-  if(!audioEnabled||!SCENE_PAGES.has(page))return;
-
+async function startWagon(root,page){
+  stopWagon();
+  if(!SCENE_PAGES.has(page))return;
   const myGeneration=generation;
   const startedAt=performance.now();
   try{
     const ctx=getContext();
     if(!ctx)return;
     if(ctx.state!=='running')await ctx.resume();
-    const [windBuffer,wagonBuffer,tilesBuffer]=await loadBuffers();
+    const buffer=await loadWagon();
     if(myGeneration!==generation||currentPage(root)!==page)return;
-
-    const timing=TIMING.get(page)||{wagon:5,tiles:8};
     const elapsed=(performance.now()-startedAt)/1000;
-
-    windSource=makeSource(windBuffer,.24,true);
-    windSource.start();
-
-    wagonSource=makeSource(wagonBuffer,.9,false);
-    wagonSource.start(ctx.currentTime+Math.max(.05,timing.wagon-elapsed));
-
-    tilesSource=makeSource(tilesBuffer,.9,false);
-    tilesSource.start(ctx.currentTime+Math.max(.05,timing.tiles-elapsed));
+    const source=ctx.createBufferSource();
+    const gain=ctx.createGain();
+    source.buffer=buffer;
+    source.loop=false;
+    gain.gain.value=.9;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    wagonSource=source;
+    source.onended=()=>{
+      if(wagonSource===source)wagonSource=null;
+      try{source.disconnect();gain.disconnect();}catch(_){}
+    };
+    source.start(ctx.currentTime+Math.max(.05,(WAGON_DELAY.get(page)||5)-elapsed));
   }catch(error){
-    console.warn('Pages 73-76 scene audio failed.',error);
+    console.warn('Wagon sound failed.',error);
   }
 }
 
 export function installScene7376(root,store){
-  if(root.dataset.scene7376Installed==='1')return;
-  root.dataset.scene7376Installed='1';
-
+  if(root.dataset.scene7376Installed==='234')return;
+  root.dataset.scene7376Installed='234';
   let lastPage=-1;
   let lastAudioEnabled=null;
 
-  const unlock=()=>{
+  root.addEventListener('pointerdown',()=>{
     if(!store.getState().audioOn)return;
     const ctx=getContext();
     if(ctx&&ctx.state!=='running')void ctx.resume();
-    void loadBuffers().catch(()=>{});
-  };
+    void loadWagon().catch(()=>{});
+  },{capture:true});
 
   const sync=()=>{
     const page=currentPage(root);
@@ -140,12 +93,10 @@ export function installScene7376(root,store){
     if(page===lastPage&&audioEnabled===lastAudioEnabled)return;
     lastPage=page;
     lastAudioEnabled=audioEnabled;
-    if(SCENE_PAGES.has(page)&&audioEnabled)void startScene(root,page,true);
-    else stopScene7376();
+    if(SCENE_PAGES.has(page)&&audioEnabled)void startWagon(root,page);
+    else stopWagon();
   };
 
-  root.addEventListener('pointerdown',unlock,{capture:true});
-  const observer=new MutationObserver(sync);
-  observer.observe(root,{childList:true,subtree:true,characterData:true});
+  new MutationObserver(sync).observe(root,{childList:true,subtree:true,characterData:true});
   sync();
 }
