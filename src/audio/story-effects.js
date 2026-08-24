@@ -3,7 +3,7 @@ import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, st
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
 const DOOR_VOLUME=1;
-const RAIN_VOLUME=.16;
+const RAIN_VOLUME=.08;
 
 function bellVolumeForPhase(phaseIndex){
   return phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
