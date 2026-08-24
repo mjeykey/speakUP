@@ -9,40 +9,50 @@ const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 // Zero-based source pages where the characters are actually outside and exposed to the storm.
-// Rain is deliberately off in the stables, inside the wagon, inside the watchtower, and beyond the mountain gate.
+// Rain is deliberately off in the stables, inside the wagon, inside the watchtower,
+// and beyond the mountain gate.
 const OUTDOOR_RAIN_PAGES=new Set([2,26,27,28,29,30,31,40,45,46,51,52,53,54,55,56,57]);
-const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=268',import.meta.url).href;
-const RAIN_VOLUME=.24;
+const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=269',import.meta.url).href;
+const RAIN_VOLUME=.28;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
-const DEBUG_BUILD='B268';
+const DEBUG_BUILD='B269';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
 
-function stopStoryRain(){
-  if(!storyRainAudio)return;
-  try{storyRainAudio.pause();}catch(_){}
-  try{storyRainAudio.currentTime=0;}catch(_){}
-  storyRainAudio=null;
-}
-
-function ensureStoryRain(enabled=true){
-  if(!enabled){stopStoryRain();return;}
-  if(storyRainAudio&&!storyRainAudio.paused&&!storyRainAudio.ended){
-    storyRainAudio.volume=RAIN_VOLUME;
-    return;
-  }
-  stopStoryRain();
+function getStoryRainAudio(){
+  if(storyRainAudio)return storyRainAudio;
   const audio=new Audio(RAIN_URL);
   audio.setAttribute('playsinline','');
   audio.preload='auto';
   audio.loop=true;
+  audio.muted=false;
   audio.volume=RAIN_VOLUME;
+  audio.onerror=()=>console.warn('Story rain media error.');
   storyRainAudio=audio;
-  audio.onerror=()=>{if(storyRainAudio===audio)storyRainAudio=null;};
-  void audio.play().catch(error=>{
-    if(storyRainAudio===audio)storyRainAudio=null;
+  return audio;
+}
+
+function stopStoryRain(){
+  const audio=storyRainAudio;
+  if(!audio)return;
+  try{audio.pause();}catch(_){}
+  try{audio.currentTime=0;}catch(_){}
+}
+
+function ensureStoryRain(enabled=true){
+  const audio=getStoryRainAudio();
+  if(!enabled){
+    stopStoryRain();
+    return;
+  }
+  audio.muted=false;
+  audio.loop=true;
+  audio.volume=RAIN_VOLUME;
+  if(!audio.paused&&!audio.ended)return;
+  try{audio.currentTime=0;}catch(_){}
+  void Promise.resolve(audio.play()).catch(error=>{
     console.warn('Story rain playback failed.',error);
   });
 }
@@ -105,6 +115,10 @@ export function renderStory(root,store){
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
+
+  // Create the rain element once while the story is being initialized.
+  // It is kept for the whole app session and only paused/resumed between scenes.
+  if(storyId==='fantasy-1')getStoryRainAudio();
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
@@ -217,6 +231,8 @@ export function renderStory(root,store){
     if(target.phaseIndex===2)stopStoryNarration();
 
     const audioEnabled=Boolean(store.getState().audioOn);
+    // This call happens directly inside the user's navigation click.
+    // Android therefore permits the persistent rain element to resume.
     syncRain(target.pageIndex,audioEnabled);
 
     const currentSound=phaseSound(pageIndex,phaseIndex);
