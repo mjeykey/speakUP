@@ -52,7 +52,10 @@ export function playStorySfx(name,options={}){
 }
 
 export function isStorySfxPlaying(name){
-  if(name==='rain')return Boolean(rainAudio&&!rainAudio.paused&&!rainAudio.ended&&!rainAudio.muted);
+  if(name==='rain'){
+    const smoothPlaying=Boolean(rainAudio&&!rainAudio.paused&&!rainAudio.ended&&!rainAudio.muted);
+    return smoothPlaying||baseIsStorySfxPlaying('rain');
+  }
   return baseIsStorySfxPlaying(name);
 }
 
@@ -70,6 +73,7 @@ export function preloadStorySfx(name){
 }
 
 export function stopStoryRainSfx(){
+  if(baseIsStorySfxPlaying('rain'))baseTransitionStorySfx({keepRain:false});
   stopRain();
 }
 
