@@ -1,10 +1,11 @@
 import { renderStory as renderBaseStory } from './story-live.js?v=219';
+import { stopStoryEffects } from '../audio/story-effects.js?v=218';
 
 const TILE_BREAK_DELAY_MS=5000;
-const WAGON_IMPACT_DELAY_MS=7200;
+const WAGON_IMPACT_DELAY_MS=6000;
 const EFFECT_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=221',import.meta.url).href;
-const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=223',import.meta.url).href;
+const WAGON_IMPACT_URL=new URL('../../assets/audio/dragon-studio-hammer-smash-effect-382731-mobile.mp3?v=224',import.meta.url).href;
 let tileBreakTimer=0;
 let tileBreakAudio=null;
 let tileBreakBlobUrl='';
@@ -82,7 +83,7 @@ function scheduleWagonImpact(root,scheduledPage){
       audio.setAttribute('playsinline','');
       audio.preload='auto';
       audio.loop=false;
-      audio.volume=.72;
+      audio.volume=.78;
       wagonImpactAudio=audio;
       audio.onended=()=>{if(wagonImpactAudio===audio)wagonImpactAudio=null;};
       audio.onerror=()=>{if(wagonImpactAudio===audio)wagonImpactAudio=null;};
@@ -100,6 +101,7 @@ export function renderStory(root,store){
   const syncEffects=()=>{
     const page=currentDisplayPage(root);
     const audioEnabled=Boolean(store.getState().audioOn);
+
     if(!audioEnabled||!EFFECT_PAGES.has(page)){
       stopTileBreak();
       stopWagonImpact();
@@ -107,6 +109,7 @@ export function renderStory(root,store){
       return;
     }
 
+    stopStoryEffects();
     if(page!==lastPage){
       scheduleTileBreak(root,page);
       scheduleWagonImpact(root,page);
