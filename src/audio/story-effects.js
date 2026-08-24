@@ -3,6 +3,7 @@ import { isStorySfxPlaying, preloadStorySfx, playStorySfx, setStorySfxVolume, st
 const BELL_NORMAL_VOLUME=.90;
 const BELL_LEARNING_VOLUME=.68;
 const DOOR_VOLUME=1;
+const RAIN_VOLUME=.24;
 
 function bellVolumeForPhase(phaseIndex){
   return phaseIndex===1||phaseIndex===3?BELL_LEARNING_VOLUME:BELL_NORMAL_VOLUME;
@@ -23,7 +24,7 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
   if(storyId!=='fantasy-1'||!enabled||!isCurrent())return;
 
   if(ambientSound==='rain'&&!isStorySfxPlaying('rain')){
-    void playStorySfx('rain',{enabled:true,loop:true,volume:.40});
+    void playStorySfx('rain',{enabled:true,loop:true,volume:RAIN_VOLUME});
   }
 
   if(!sound||sound==='none'||sound==='rain'||sound==='door-creak')return;
@@ -31,14 +32,12 @@ export function ensureStoryEffect({storyId,sound,ambientSound='none',phaseIndex,
   if(sound==='bell')setStorySfxVolume('bell',bellVolumeForPhase(phaseIndex));
   if(isStorySfxPlaying(sound))return;
 
-  const volume=sound==='lightning-strike'?1:sound==='storm-wind'?0.72:sound==='rain'?0.40:sound==='ocean-waves'?0.45:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
+  const volume=sound==='lightning-strike'?1:sound==='storm-wind'?0.72:sound==='rain'?RAIN_VOLUME:sound==='ocean-waves'?0.45:sound==='bell'?bellVolumeForPhase(phaseIndex):0.30;
   const start=()=>{
     if(!isCurrent()||isStorySfxPlaying(sound))return;
     void playStorySfx(sound,{enabled:true,loop:sound==='rain'||sound==='ocean-waves'||sound==='storm-wind',volume});
   };
 
-  // Start effects directly while the page-change tap is still active.
-  // Delaying through a resolved preload promise can make Android block the MP3.
   start();
 }
 
