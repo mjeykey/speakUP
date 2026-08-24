@@ -2,7 +2,6 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { isStorySfxReady, preloadStorySfx, playStorySfx } from '../audio/story-sfx.js?v=208';
 
 const MODES = [
   ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
@@ -36,7 +35,6 @@ export function renderMenu(root, store) {
   const waitingForStory = learningLevel === 'l1' && state.mode === 'story' && !state.selectedStory;
   const waitingForL2 = learningLevel === 'l2' && !state.selectedL2Topic;
   const waitingForL3 = learningLevel === 'l3' && !state.selectedL3Topic;
-  const fantasyNeedsRain = learningLevel === 'l1' && state.mode === 'story' && state.selectedStory === 'fantasy-1' && !isStorySfxReady('rain');
   const waiting = waitingForStory || waitingForL2 || waitingForL3;
 
   let startLabel = 'Start';
@@ -66,10 +64,6 @@ export function renderMenu(root, store) {
     <div class="settings-row"><label>Lernsprache<select data-learning>${languageOptions}</select></label><label>Übersetzung<select data-native>${nativeOptions}</select></label></div>
     <div class="menu-action"><button class="primary-button menu-start-button" data-start ${waiting ? 'disabled' : ''}>${startLabel}</button></div>
   </div></section>`;
-
-  if (fantasyNeedsRain) {
-    void preloadStorySfx('rain');
-  }
 
   const levelRoot = root.querySelector('[data-learning-levels]');
   LEVELS.forEach(([id,title,description]) => {
@@ -150,7 +144,6 @@ export function renderMenu(root, store) {
     }
     if (current.mode === 'story' && !current.selectedStory) return;
     if (current.mode === 'story' && current.selectedStory === 'fantasy-1') {
-      void playStorySfx('rain', { enabled:Boolean(current.audioOn), loop:true, volume:0.28 });
       store.setState({ screen:'story' });
       return;
     }
