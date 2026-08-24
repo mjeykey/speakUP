@@ -2,9 +2,17 @@ const SCENE_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
 const ROOF_ACCENT_DELAY_MS=620;
 const CERAMIC_BREAK_DELAY_MS=3000;
-const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=241',import.meta.url).href;
-const ROOF_ACCENT_B64_URL=new URL('../../assets/audio/roof-break-accent.b64?v=241',import.meta.url).href;
-const CERAMIC_BREAK_B64_URL=new URL('../../assets/audio/ceramic-tile-break.b64?v=241',import.meta.url).href;
+const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=242',import.meta.url).href;
+const CERAMIC_BREAK_B64_URL=new URL('../../assets/audio/ceramic-tile-break.b64?v=242',import.meta.url).href;
+const ROOF_ACCENT_PART_URLS=[
+  new URL('../../assets/audio/roof-break-accent.part0?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part1?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part2?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part3?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part4?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part5?v=242',import.meta.url).href,
+  new URL('../../assets/audio/roof-break-accent.part6?v=242',import.meta.url).href
+];
 
 let tileTimer=0;
 let accentTimer=0;
@@ -52,9 +60,33 @@ function createBase64AudioSource(url){
   };
 }
 
+function createChunkedAudioSource(urls){
+  let objectUrl='';
+  let loadPromise=null;
+
+  return async function audioSource(){
+    if(objectUrl)return objectUrl;
+    if(loadPromise)return loadPromise;
+
+    loadPromise=(async()=>{
+      const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
+      const failed=responses.find(response=>!response.ok);
+      if(failed)throw new Error(`HTTP ${failed.status}`);
+      const parts=await Promise.all(responses.map(response=>response.arrayBuffer()));
+      objectUrl=URL.createObjectURL(new Blob(parts,{type:'audio/mpeg'}));
+      return objectUrl;
+    })().catch(error=>{
+      loadPromise=null;
+      throw error;
+    });
+
+    return loadPromise;
+  };
+}
+
 const tileBreakSrc=createBase64AudioSource(TILE_BREAK_B64_URL);
-const roofAccentSrc=createBase64AudioSource(ROOF_ACCENT_B64_URL);
 const ceramicBreakSrc=createBase64AudioSource(CERAMIC_BREAK_B64_URL);
+const roofAccentSrc=createChunkedAudioSource(ROOF_ACCENT_PART_URLS);
 
 function stopTrack(track){
   if(!track)return;
