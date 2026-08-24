@@ -1,13 +1,17 @@
 const SCENE_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
 const ROOF_ACCENT_DELAY_MS=620;
+const CERAMIC_BREAK_DELAY_MS=3000;
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=241',import.meta.url).href;
 const ROOF_ACCENT_B64_URL=new URL('../../assets/audio/roof-break-accent.b64?v=241',import.meta.url).href;
+const CERAMIC_BREAK_B64_URL=new URL('../../assets/audio/ceramic-tile-break.b64?v=241',import.meta.url).href;
 
 let tileTimer=0;
 let accentTimer=0;
+let ceramicTimer=0;
 let tileAudio=null;
 let accentAudio=null;
+let ceramicAudio=null;
 let lastPage=-1;
 let lastEnabled=null;
 let playedPage=-1;
@@ -50,6 +54,7 @@ function createBase64AudioSource(url){
 
 const tileBreakSrc=createBase64AudioSource(TILE_BREAK_B64_URL);
 const roofAccentSrc=createBase64AudioSource(ROOF_ACCENT_B64_URL);
+const ceramicBreakSrc=createBase64AudioSource(CERAMIC_BREAK_B64_URL);
 
 function stopTrack(track){
   if(!track)return;
@@ -62,19 +67,27 @@ function stopTrack(track){
 function stopSceneAudio(){
   clearTimeout(tileTimer);
   clearTimeout(accentTimer);
+  clearTimeout(ceramicTimer);
   tileTimer=0;
   accentTimer=0;
+  ceramicTimer=0;
   stopTrack(tileAudio);
   stopTrack(accentAudio);
+  stopTrack(ceramicAudio);
   tileAudio=null;
   accentAudio=null;
+  ceramicAudio=null;
 }
 
 async function primeSceneAudio(){
   if(primed)return;
   try{
-    const [tileSrc,accentSrc]=await Promise.all([tileBreakSrc(),roofAccentSrc()]);
-    const probes=[new Audio(tileSrc),new Audio(accentSrc)];
+    const [tileSrc,accentSrc,ceramicSrc]=await Promise.all([
+      tileBreakSrc(),
+      roofAccentSrc(),
+      ceramicBreakSrc()
+    ]);
+    const probes=[new Audio(tileSrc),new Audio(accentSrc),new Audio(ceramicSrc)];
     await Promise.all(probes.map(async probe=>{
       probe.setAttribute('playsinline','');
       probe.muted=true;
@@ -103,6 +116,25 @@ async function playRoofAccent(root,page,store){
     await track.play();
   }catch(error){
     console.warn('Roof-break accent playback failed.',error);
+  }
+}
+
+async function playCeramicBreak(root,page,store){
+  if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
+  try{
+    const track=new Audio(await ceramicBreakSrc());
+    if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
+    stopTrack(ceramicAudio);
+    track.setAttribute('playsinline','');
+    track.preload='auto';
+    track.loop=false;
+    track.volume=.9;
+    ceramicAudio=track;
+    track.onended=()=>{if(ceramicAudio===track)ceramicAudio=null;};
+    track.onerror=()=>{if(ceramicAudio===track)ceramicAudio=null;};
+    await track.play();
+  }catch(error){
+    console.warn('Ceramic tile-break playback failed.',error);
   }
 }
 
@@ -137,6 +169,12 @@ async function playTileBreak(root,page,store){
       accentTimer=0;
       void playRoofAccent(root,page,store);
     },ROOF_ACCENT_DELAY_MS);
+
+    clearTimeout(ceramicTimer);
+    ceramicTimer=window.setTimeout(()=>{
+      ceramicTimer=0;
+      void playCeramicBreak(root,page,store);
+    },CERAMIC_BREAK_DELAY_MS);
   }catch(error){
     playedPage=-1;
     console.warn('Tile-break playback failed.',error);
@@ -162,7 +200,7 @@ export function stopScene7376(){
 export function installScene7376(root,store){
   if(root.dataset.tileBreakInstalled==='1')return;
   root.dataset.tileBreakInstalled='1';
-  void Promise.all([tileBreakSrc(),roofAccentSrc()]).catch(()=>{});
+  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc()]).catch(()=>{});
 
   const unlock=()=>{
     if(store.getState().audioOn)void primeSceneAudio();
