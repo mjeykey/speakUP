@@ -1,14 +1,11 @@
 const SCENE_PAGES=new Set([73,74,75,76]);
-const TILE_WORDS=new Set([
-  'tile','tiles','telha','telhas','ziegel','dachziegel',
-  'teja','tejas','tuile','tuiles','tegola','tegole',
-  'crijep','crijepovi','crijepove','crjepovi','crjepove'
-]);
-const TILE_URL=new URL('../../assets/audio/freesound_community-tiles-smashing-90254-mobile.mp3?v=237',import.meta.url).href;
-const GAP_DELAY_MS=1900;
+const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
+const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=238',import.meta.url).href;
 
 let timer=0;
-let track=null;
+let audio=null;
+let blobUrl='';
+let loadPromise=null;
 let lastPage=-1;
 let lastEnabled=null;
 let playedPage=-1;
@@ -23,103 +20,110 @@ function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function normalizeWord(value){
-  return String(value||'')
-    .normalize('NFD')
-    .replace(/\p{M}/gu,'')
-    .toLocaleLowerCase()
-    .replace(/[^\p{L}]/gu,'');
+async function tileBreakSrc(){
+  if(blobUrl)return blobUrl;
+  if(loadPromise)return loadPromise;
+  loadPromise=(async()=>{
+    const response=await fetch(TILE_BREAK_B64_URL,{cache:'force-cache'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const encoded=(await response.text()).replace(/\s+/g,'');
+    const binary=atob(encoded);
+    const bytes=new Uint8Array(binary.length);
+    for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
+    blobUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
+    return blobUrl;
+  })().catch(error=>{
+    loadPromise=null;
+    throw error;
+  });
+  return loadPromise;
 }
 
-function textWords(value){
-  return String(value||'').match(/\p{L}+(?:[â€™'-]\p{L}+)*/gu)||[];
+function stopTileBreak(){
+  clearTimeout(timer);
+  timer=0;
+  if(!audio)return;
+  try{
+    audio.pause();
+    audio.currentTime=0;
+  }catch(_){}
+  audio=null;
 }
 
-function visibleText(root){
-  return [...root.querySelectorAll('.story-copy')]
-    .map(node=>node.textContent||'')
-    .join(' ')
-    .trim();
+async function primeTileBreak(){
+  if(primed)return;
+  try{
+    const probe=new Audio(await tileBreakSrc());
+    probe.setAttribute('playsinline','');
+    probe.muted=true;
+    probe.volume=0;
+    await probe.play();
+    probe.pause();
+    probe.currentTime=0;
+    primed=true;
+  }catch(_){}
 }
 
-function targetPosition(text){
-  const words=textWords(text);
-  const exact=words.findIndex(word=>TILE_WORDS.has(normalizeWord(word)));
-  return{
-    index:exact>=0?exact:Math.max(0,Math.round(words.length*.68)),
-    matched:exact>=0?normalizeWord(words[exact]):''
+async function playTileBreak(root,page){
+  if(playedPage===page||currentPage(root)!==page||!isTargetStory(root))return;
+  playedPage=page;
+  try{
+    const track=new Audio(await tileBreakSrc());
+    if(currentPage(root)!==page||!isTargetStory(root))return;
+    track.setAttribute('playsinline','');
+    track.preload='auto';
+    track.loop=false;
+    track.volume=.9;
+    audio=track;
+    track.onended=()=>{if(audio===track)audio=null;};
+    track.onerror=()=>{if(audio===track)audio=null;};
+    await track.play();
+  }catch(error){
+    playedPage=-1;
+    console.warn('Tile-break playback failed.',error);
+  }
+}
+
+function scheduleTileBreak(root,page){
+  stopTileBreak();
+  const delay=TILE_BREAK_DELAY_BY_PAGE.get(page)??8000;
+  timer=window.setTimeout(()=>{
+    timer=0;
+    void playTileBreak(root,page);
+  },delay);
+}
+
+export function stopScene7376(){
+  lastPage=-1;
+  lastEnabled=null;
+  playedPage=-1;
+  stopTileBreak();
+}
+
+export function installScene7376(root,store){
+  if(root.dataset.tileBreakInstalled==='1')return;
+  root.dataset.tileBreakInstalled='1';
+  void tileBreakSrc().catch(()=>{});
+
+  const unlock=()=>{
+    if(store.getState().audioOn)void primeTileBreak();
   };
+
+  const sync=()=>{
+    const page=currentPage(root);
+    const enabled=Boolean(store.getState().audioOn);
+    if(page===lastPage&&enabled===lastEnabled)return;
+    lastPage=page;
+    lastEnabled=enabled;
+    playedPage=-1;
+    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleTileBreak(root,page);
+    else stopTileBreak();
+  };
+
+  root.addEventListener('pointerdown',unlock,{capture:true});
+  root.addEventListener('click',unlock,{capture:true});
+
+  const observer=new MutationObserver(sync);
+  observer.observe(root,{childList:true,subtree:true,characterData:true});
+  sync();
 }
-
-function fallbackDelay(root,page){
-  if(page===75)return GAP_DELAY_MS;
-  const target=targetPosition(visibleText(root));
-  const rate=page===73&&['telha','telhas'].includes(target.matched)?.62:page===73?.88:.62;
-  const delay=350+target.index*(265/rate);
-  return Math.max(2200,Math.min(8500,Math.round(delay)));
-}
-
-function installSpeechBoundaryBridge(){
-  const synth=window.speechSynthesis;
-  if(!synth||synth.__speakUpStoryWordBridgeInstalled)return;
-  synth.__speakUpStoryWordBridgeInstalled=true;
-  const routedSpeak=synth.speak.bind(synth);
-  synth.speak=utterance=>{
-    if(utterance&&!utterance.__speakUpStoryWordBridge){
-      utterance.__speakUpStoryWordBridge=true;
-      const previousBoundary=utterance.onboundary;
-      utterance.onboundary=event=>{
-        try{previousBoundary?.call(utterance,event);}catch(_){}
-        const text=String(utterance.text||'');
-        const index=Math.max(0,Number(event.charIndex)||0);
-        const word=text.slice(index).match(/^\s*([\p{L}]+(?:[â€™'-][WÓJÊJŠKİJOË–ÌW_	ÉÎÂˆYŠ]ÛÜ™
-\™]\›ÂˆÚ[™İË™\Ü]Ú]™[
-™]Èİ\İÛQ]™[
-	ÜÜXZİ\œİÜK]ÛÜ™	ËÂˆ]Z[İÛÜ™Ú\’[™^š[™^^BˆJJNÂˆNÂˆBˆ™]\›ˆ›İ]YÜXZÊ]\˜[˜ÙJNÂˆNÂŸB‚™[˜İ[Ûˆ[œİ\™U˜XÚÊ
-^ÂˆYŠ˜XÚÊ\™]\›ˆ˜XÚÎÂˆ˜XÚÏYØİ[Y[˜Ü™X]Q[[Y[
-	Ø]Y[ÉÊNÂˆ˜XÚËœÜ˜ÏUSWÕT“Âˆ˜XÚËœ™[ØYIØ]]ÉÎÂˆ˜XÚË›ÛÜY˜[ÙNÂˆ˜XÚË›Û[YOLNÂˆ˜XÚËœÙ]]šX]J	Ü^\Ú[›[™IË	ÉÊNÂˆ˜XÚËœİ[K™\Ü^OIÛ›Û™IÎÂˆ˜XÚË™]\Ù]œİÜU˜XÚÏIİ[KXœ™XZÉÎÂˆØİ[Y[˜›ÙK˜\[™Ú[
-˜XÚÊNÂˆ˜XÚË›ØY
-
-NÂˆ™]\›ˆ˜XÚÎÂŸB‚˜\Ş[˜È[˜İ[Ûˆš[YU˜XÚÊ
-^ÂˆYŠš[YY
-\™]\›ÂˆÛÛœİ]Y[ÏY[œİ\™U˜XÚÊ
-NÂˆÛÛœİ™]š[İ\Ó]]YX]Y[Ë›]]YÂˆ^Âˆ]Y[Ë›]]Y]YNÂˆ]Y[Ë˜İ\œ™[[YOLÂˆ]ØZ]]Y[Ëœ^J
-NÂˆ]Y[Ëœ]\ÙJ
-NÂˆ]Y[Ë˜İ\œ™[[YOLÂˆ]Y[Ë›]]Y\™]š[İ\Ó]]YÂˆš[YY]YNÂˆXØ]Ú
-Ê^Âˆ]Y[Ë›]]Y\™]š[İ\Ó]]YÂˆBŸB‚™[˜İ[ÛˆİÜ[J
-^ÂˆÛX\•[Y[İ]
-[Y\ŠNÂˆ[Y\LÂˆYŠ]˜XÚÊ\™]\›Âˆ^Âˆ˜XÚËœ]\ÙJ
-NÂˆ˜XÚË˜İ\œ™[[YOLÂˆXØ]Ú
-Ê^ßBŸB‚˜\Ş[˜È[˜İ[Ûˆ^U[J›ÛİYÙJ^ÂˆYŠ^YYYÙOOO\YÙ_İ\œ™[YÙJ›Ûİ
-HOO\YÙ_Z\Õ\™Ù]İÜJ›Ûİ
-J\™]\›Âˆ^YYYÙO\YÙNÂˆÛÛœİ]Y[ÏY[œİ\™U˜XÚÊ
-NÂˆ^Âˆ]Y[Ëœ]\ÙJ
-NÂˆ]Y[Ë˜İ\œ™[[YOLÂˆ]Y[Ë›]]YY˜[ÙNÂˆ]Y[Ë›Û[YOLNÂˆ]ØZ]]Y[Ëœ^J
-NÂˆXØ]Ú
-\œ›ÜŠ^Âˆ^YYYÙOKLNÂˆÛÛœÛÛKØ\›Š	Õ[HÛİ[™^X˜XÚÈ˜Z[Y‰Ë\œ›ÜŠNÂˆBŸB‚™[˜İ[ÛˆØÚY[U[J›ÛİYÙJ^ÂˆİÜ[J
-NÂˆ[Y\]Ú[™İËœÙ][Y[İ]
-
-
-OOÂˆ[Y\LÂˆ›ÚY^U[J›ÛİYÙJNÂˆK˜[˜XÚÑ[^J›ÛİYÙJJNÂŸB‚™^Ü[˜İ[ÛˆİÜØÙ[™MÌÍÍŠ
-^Âˆ\İYÙOKLNÂˆ\İ[˜X›Y[[Âˆ^YYYÙOKLNÂˆİÜ[J
-NÂŸB‚™^Ü[˜İ[Ûˆ[œİ[ØÙ[™MÌÍÍŠ›ÛİİÜ™J^ÂˆYŠ›Ûİ™]\Ù][Pœ™XZÒ[œİ[YOOIÌIÊ\™]\›Âˆ›Ûİ™]\Ù][Pœ™XZÒ[œİ[YIÌIÎÂˆ[œİ\™U˜XÚÊ
-NÂˆ[œİ[ÜYXÚ›İ[™\PœšYÙJ
-NÂ‚ˆÛÛœİ[›ØÚÏJ
-OOÂˆYŠİÜ™K™Ù]İ]J
-K˜]Y[ÓÛŠ]›ÚYš[YU˜XÚÊ
-NÂˆNÂ‚ˆÛÛœİÛ”İÜUÛÜ™Y]™[OÂˆÛÛœİYÙOXİ\œ™[YÙJ›Ûİ
-NÂˆÛÛœİ[˜X›YP›ÛÛX[ŠİÜ™K™Ù]İ]J
-K˜]Y[ÓÛŠNÂˆÛÛœİÛÜ™[›Ü›X[^™UÛÜ™
-]™[™]Z[ËÛÜ™
-NÂˆYŠY[˜X›YTĞÑS‘WÔQÑTËš\ÊYÙJ_Z\Õ\™Ù]İÜJ›Ûİ
-_USWÕÓÔ‘Ëš\ÊÛÜ™
-J\™]\›ÂˆÛX\•[Y[İ]
-[Y\ŠNÂˆ[Y\LÂˆ›ÚY^U[J›ÛİYÙJNÂˆNÂ‚ˆÛÛœİŞ[˜ÏJ
-OOÂˆÛÛœİYÙOXİ\œ™[YÙJ›Ûİ
-NÂˆÛÛœİ[˜X›YP›ÛÛX[ŠİÜ™K™Ù]İ]J
-K˜]Y[ÓÛŠNÂˆYŠYÙOOO[\İYÙI‰™[˜X›YOO[\İ[˜X›Y
-\™]\›Âˆ\İYÙO\YÙNÂˆ\İ[˜X›YY[˜X›YÂˆ^YYYÙOKLNÂˆYŠ[˜X›Y	‰”ĞÑS‘WÔQÑTËš\ÊYÙJI‰š\Õ\™Ù]İÜJ›Ûİ
-J\ØÚY[U[J›ÛİYÙJNÂˆ[ÙHİÜ[J
-NÂˆNÂ‚ˆ›Ûİ˜Y]™[\İ[™\Š	ÜÚ[\™İÛ‰Ë[›ØÚËØØ\\™NY_JNÂˆ›Ûİ˜Y]™[\İ[™\Š	ØÛXÚÉË[›ØÚËØØ\\™NY_JNÂˆÚ[™İË˜Y]™[\İ[™\Š	ÜÜXZİ\œİÜK]ÛÜ™	ËÛ”İÜUÛÜ™
-NÂ‚ˆÛÛœİØœÙ\™\[™]È]]][Û“ØœÙ\™\ŠŞ[˜ÊNÂˆØœÙ\™\‹›ØœÙ\™J›ÛİØÚ[\İYKİX™YNYKÚ\˜Xİ\‘]NY_JNÂˆŞ[˜Ê
-NÂŸB
