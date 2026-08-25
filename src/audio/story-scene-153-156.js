@@ -1,7 +1,7 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 
 const SCENE_PAGES=new Set([153,154,155,156]);
-const RAIN_URL=new URL('../../assets/audio/juliush-rain-on-a-car-roof-nature-sounds-8448.mp3?v=280',import.meta.url).href;
+const RAIN_URL=new URL('../../assets/audio/juliush-rain-on-a-car-roof-nature-sounds-8448.mp3?v=281',import.meta.url).href;
 
 let lastPage=-1;
 let lastEnabled=null;
@@ -12,7 +12,7 @@ const rain=new Audio(RAIN_URL);
 rain.setAttribute('playsinline','');
 rain.preload='auto';
 rain.loop=true;
-rain.volume=1;
+rain.volume=.32;
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
@@ -29,7 +29,7 @@ function stopScene(){
     rain.pause();
     rain.currentTime=0;
     rain.muted=false;
-    rain.volume=1;
+    rain.volume=.32;
   }catch(_){}
 }
 
@@ -66,7 +66,7 @@ async function playScene(root,store){
     rain.pause();
     rain.currentTime=0;
     rain.muted=false;
-    rain.volume=1;
+    rain.volume=.32;
     await rain.play();
     if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn){
       stopScene();
