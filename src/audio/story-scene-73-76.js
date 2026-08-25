@@ -2,8 +2,10 @@ const SCENE_PAGES=new Set([73,74,75,76]);
 const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
 const ROOF_ACCENT_DELAY_MS=620;
 const CERAMIC_BREAK_DELAY_MS=3000;
+const WIND_VOLUME=.30;
 const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=242',import.meta.url).href;
 const CERAMIC_BREAK_B64_URL=new URL('../../assets/audio/ceramic-tile-break.b64?v=242',import.meta.url).href;
+const WIND_URL=new URL('../../assets/audio/wind-73-76-loop.mp3?v=273',import.meta.url).href;
 const ROOF_ACCENT_PART_URLS=[
   new URL('../../assets/audio/roof-break-accent.part0?v=242',import.meta.url).href,
   new URL('../../assets/audio/roof-break-accent.part1?v=242',import.meta.url).href,
@@ -13,12 +15,6 @@ const ROOF_ACCENT_PART_URLS=[
   new URL('../../assets/audio/roof-break-accent.part5?v=242',import.meta.url).href,
   new URL('../../assets/audio/roof-break-accent.part6?v=242',import.meta.url).href
 ];
-const WIND_PART_URLS=[
-  new URL('../../assets/audio/wind-blowing-73-76.part0?v=271',import.meta.url).href,
-  new URL('../../assets/audio/wind-blowing-73-76.part1?v=271',import.meta.url).href,
-  new URL('../../assets/audio/wind-blowing-73-76.part2?v=271',import.meta.url).href,
-  new URL('../../assets/audio/wind-blowing-73-76.part3?v=271',import.meta.url).href
-];
 
 let tileTimer=0;
 let accentTimer=0;
@@ -26,11 +22,19 @@ let ceramicTimer=0;
 let tileAudio=null;
 let accentAudio=null;
 let ceramicAudio=null;
-let windAudio=null;
 let lastPage=-1;
 let lastEnabled=null;
 let playedPage=-1;
-let primed=false;
+let impactsPrimed=false;
+let windPrimed=false;
+
+const windAudio=new Audio(WIND_URL);
+windAudio.setAttribute('playsinline','');
+windAudio.preload='auto';
+windAudio.loop=true;
+windAudio.muted=false;
+windAudio.volume=WIND_VOLUME;
+windAudio.onerror=()=>console.warn('Wind ambience playback failed.');
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
@@ -91,40 +95,9 @@ function createChunkedAudioSource(urls){
   };
 }
 
-function createChunkedBase64AudioSource(urls){
-  let objectUrl='';
-  let loadPromise=null;
-
-  return async function audioSource(){
-    if(objectUrl)return objectUrl;
-    if(loadPromise)return loadPromise;
-
-    loadPromise=(async()=>{
-      const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
-      const failed=responses.find(response=>!response.ok);
-      if(failed)throw new Error(`HTTP ${failed.status}`);
-      const encodedParts=await Promise.all(responses.map(response=>response.text()));
-      const byteParts=encodedParts.map(encoded=>{
-        const binary=atob(encoded.replace(/\s+/g,''));
-        const bytes=new Uint8Array(binary.length);
-        for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
-        return bytes;
-      });
-      objectUrl=URL.createObjectURL(new Blob(byteParts,{type:'audio/mpeg'}));
-      return objectUrl;
-    })().catch(error=>{
-      loadPromise=null;
-      throw error;
-    });
-
-    return loadPromise;
-  };
-}
-
 const tileBreakSrc=createBase64AudioSource(TILE_BREAK_B64_URL);
 const ceramicBreakSrc=createBase64AudioSource(CERAMIC_BREAK_B64_URL);
 const roofAccentSrc=createChunkedAudioSource(ROOF_ACCENT_PART_URLS);
-const windSrc=createChunkedBase64AudioSource(WIND_PART_URLS);
 
 function stopTrack(track){
   if(!track)return;
@@ -149,47 +122,61 @@ function stopImpactAudio(){
   ceramicAudio=null;
 }
 
+function stopWind(){
+  try{
+    windAudio.pause();
+    windAudio.currentTime=0;
+    windAudio.muted=false;
+    windAudio.volume=WIND_VOLUME;
+  }catch(_){}
+}
+
 function stopSceneAudio(){
   stopImpactAudio();
-  stopTrack(windAudio);
+  stopWind();
 }
 
-async function getWindAudio(){
-  if(windAudio)return windAudio;
-  const track=new Audio(await windSrc());
-  track.setAttribute('playsinline','');
-  track.preload='auto';
-  track.loop=true;
-  track.muted=false;
-  track.volume=.30;
-  track.onerror=()=>console.warn('Wind ambience playback failed.');
-  windAudio=track;
-  return track;
+function startWind(){
+  windPrimed=true;
+  windAudio.muted=false;
+  windAudio.loop=true;
+  windAudio.volume=WIND_VOLUME;
+  if(!windAudio.paused&&!windAudio.ended)return;
+  void windAudio.play().catch(error=>console.warn('Wind ambience playback failed.',error));
 }
 
-async function ensureWind(root,page,store){
+function ensureWind(root,page,store){
   if(!SCENE_PAGES.has(page)||currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-  try{
-    const track=await getWindAudio();
-    if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-    track.muted=false;
-    track.loop=true;
-    track.volume=.30;
-    if(!track.paused&&!track.ended)return;
-    await track.play();
-  }catch(error){
-    console.warn('Wind ambience playback failed.',error);
-  }
+  startWind();
 }
 
-async function primeSceneAudio(){
-  if(primed)return;
+function primeWindFromGesture(){
+  if(windPrimed||!windAudio.paused)return;
   try{
-    const [tileSrc,accentSrc,ceramicSrc,windTrack]=await Promise.all([
+    windAudio.muted=true;
+    windAudio.volume=0;
+    const playback=windAudio.play();
+    Promise.resolve(playback).then(()=>{
+      if(SCENE_PAGES.has(currentPage(document)))return;
+      windAudio.pause();
+      windAudio.currentTime=0;
+      windAudio.muted=false;
+      windAudio.volume=WIND_VOLUME;
+      windPrimed=true;
+    }).catch(()=>{
+      windAudio.muted=false;
+      windAudio.volume=WIND_VOLUME;
+    });
+  }catch(_){}
+}
+
+async function primeImpactAudio(){
+  if(impactsPrimed)return;
+  try{
+    const [tileSrc,accentSrc,ceramicSrc]=await Promise.all([
       tileBreakSrc(),
       roofAccentSrc(),
-      ceramicBreakSrc(),
-      getWindAudio()
+      ceramicBreakSrc()
     ]);
     const probes=[new Audio(tileSrc),new Audio(accentSrc),new Audio(ceramicSrc)];
     await Promise.all(probes.map(async probe=>{
@@ -200,14 +187,7 @@ async function primeSceneAudio(){
       probe.pause();
       probe.currentTime=0;
     }));
-    windTrack.muted=true;
-    windTrack.volume=0;
-    await windTrack.play();
-    windTrack.pause();
-    windTrack.currentTime=0;
-    windTrack.muted=false;
-    windTrack.volume=.30;
-    primed=true;
+    impactsPrimed=true;
   }catch(_){}
 }
 
@@ -294,12 +274,19 @@ async function playTileBreak(root,page,store){
 
 function scheduleScene(root,page,store){
   stopImpactAudio();
-  void ensureWind(root,page,store);
+  ensureWind(root,page,store);
   const delay=TILE_BREAK_DELAY_BY_PAGE.get(page)??8000;
   tileTimer=window.setTimeout(()=>{
     tileTimer=0;
     void playTileBreak(root,page,store);
   },delay);
+}
+
+function gestureEntersOrIsInScene(root,event){
+  const page=currentPage(root);
+  if(SCENE_PAGES.has(page))return true;
+  const nextButton=event?.target?.closest?.('[data-next]');
+  return page===72&&Boolean(nextButton);
 }
 
 export function stopScene7376(){
@@ -312,20 +299,31 @@ export function stopScene7376(){
 export function installScene7376(root,store){
   if(root.dataset.tileBreakInstalled==='1')return;
   root.dataset.tileBreakInstalled='1';
-  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc(),windSrc()]).catch(()=>{});
 
-  const unlock=()=>{
-    if(store.getState().audioOn)void primeSceneAudio();
+  try{windAudio.load();}catch(_){}
+  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc()]).catch(()=>{});
+
+  const unlock=event=>{
+    if(!store.getState().audioOn)return;
+    if(gestureEntersOrIsInScene(root,event))startWind();
+    else primeWindFromGesture();
+    void primeImpactAudio();
   };
 
   const sync=()=>{
     const page=currentPage(root);
     const enabled=Boolean(store.getState().audioOn);
-    if(page===lastPage&&enabled===lastEnabled)return;
+    const active=enabled&&SCENE_PAGES.has(page)&&isTargetStory(root);
+
+    if(page===lastPage&&enabled===lastEnabled){
+      if(active)ensureWind(root,page,store);
+      return;
+    }
+
     lastPage=page;
     lastEnabled=enabled;
     playedPage=-1;
-    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleScene(root,page,store);
+    if(active)scheduleScene(root,page,store);
     else stopSceneAudio();
   };
 
