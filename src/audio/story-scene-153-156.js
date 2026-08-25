@@ -1,16 +1,19 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 
 const SCENE_PAGES=new Set([153,154,155,156]);
-const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=277',import.meta.url).href;
-const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=277',import.meta.url).href;
+const RAIN_PART_URLS=[
+  new URL('../../assets/audio/rain-wagon-roof-loop.part0.b64?v=278',import.meta.url).href,
+  new URL('../../assets/audio/rain-wagon-roof-loop.part1.b64?v=278',import.meta.url).href,
+  new URL('../../assets/audio/rain-wagon-roof-loop.part2.b64?v=278',import.meta.url).href
+];
 
 let lastPage=-1;
 let lastEnabled=null;
 let active=false;
 let primed=false;
-let rainMain=null;
-let rainTexture=null;
-let wind=null;
+let rain=null;
+let objectUrl='';
+let loadPromise=null;
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
@@ -21,39 +24,63 @@ function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function stopTrack(track){
-  if(!track)return;
-  try{track.pause();}catch(_){}
-  try{track.currentTime=0;}catch(_){}
+async function roofRainSrc(){
+  if(objectUrl)return objectUrl;
+  if(loadPromise)return loadPromise;
+
+  loadPromise=(async()=>{
+    const responses=await Promise.all(
+      RAIN_PART_URLS.map(url=>fetch(url,{cache:'force-cache'}))
+    );
+    const failed=responses.find(response=>!response.ok);
+    if(failed)throw new Error(`HTTP ${failed.status}`);
+
+    const encoded=(await Promise.all(responses.map(response=>response.text())))
+      .join('')
+      .replace(/\s+/g,'');
+    const binary=atob(encoded);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+
+    objectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
+    return objectUrl;
+  })().catch(error=>{
+    loadPromise=null;
+    throw error;
+  });
+
+  return loadPromise;
 }
 
 function stopScene(){
   active=false;
-  stopTrack(rainMain);
-  stopTrack(rainTexture);
-  stopTrack(wind);
-  rainMain=null;
-  rainTexture=null;
-  wind=null;
+  if(!rain)return;
+  try{
+    rain.pause();
+    rain.currentTime=0;
+  }catch(_){}
+  rain=null;
 }
 
-function makeTrack(src,{volume=1,rate=1}={}){
+function makeTrack(src,{volume=.46}={}){
   const track=new Audio(src);
   track.setAttribute('playsinline','');
   track.preload='auto';
   track.loop=true;
   track.volume=volume;
-  track.playbackRate=rate;
   return track;
 }
 
 async function primeScene(){
   if(primed)return;
-  const probes=[makeTrack(RAIN_URL,{volume:0}),makeTrack(WIND_URL,{volume:0})];
-  probes.forEach(track=>{track.muted=true;});
-  await Promise.allSettled(probes.map(track=>track.play()));
-  probes.forEach(track=>{try{track.pause();track.currentTime=0;}catch(_){}});
-  primed=true;
+  try{
+    const probe=makeTrack(await roofRainSrc(),{volume:0});
+    probe.muted=true;
+    await probe.play();
+    probe.pause();
+    probe.currentTime=0;
+    primed=true;
+  }catch(_){}
 }
 
 async function playScene(root,store){
@@ -62,24 +89,20 @@ async function playScene(root,store){
 
   stopStoryEffects();
 
-  const main=makeTrack(RAIN_URL,{volume:.82,rate:1});
-  const texture=makeTrack(RAIN_URL,{volume:.34,rate:1.035});
-  const gusts=makeTrack(WIND_URL,{volume:.42,rate:1});
+  try{
+    const track=makeTrack(await roofRainSrc(),{volume:.46});
+    if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn)return;
 
-  rainMain=main;
-  rainTexture=texture;
-  wind=gusts;
-
-  const tracks=[main,texture,gusts];
-  const results=await Promise.allSettled(tracks.map(track=>track.play()));
-
-  if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn){
-    stopScene();
-    return;
+    rain=track;
+    await track.play();
+    active=true;
+    track.onerror=()=>{
+      if(rain===track)stopScene();
+    };
+  }catch(error){
+    active=false;
+    console.warn('Wagon-roof rain playback failed.',error);
   }
-
-  active=results.some(result=>result.status==='fulfilled');
-  if(!active)stopScene();
 }
 
 export function stopScene153156(){
@@ -89,8 +112,9 @@ export function stopScene153156(){
 }
 
 export function installScene153156(root,store){
-  if(root.dataset.wagonStorm153156Installed==='1')return;
-  root.dataset.wagonStorm153156Installed='1';
+  if(root.dataset.wagonRoofRain153156Installed==='1')return;
+  root.dataset.wagonRoofRain153156Installed='1';
+  void roofRainSrc().catch(()=>{});
 
   const unlock=()=>{
     if(store.getState().audioOn)void primeScene();
