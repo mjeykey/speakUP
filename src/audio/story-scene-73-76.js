@@ -26,7 +26,6 @@ let lastPage=-1;
 let lastEnabled=null;
 let playedPage=-1;
 let impactsPrimed=false;
-let windPrimed=false;
 
 const windAudio=new Audio(WIND_URL);
 windAudio.setAttribute('playsinline','');
@@ -41,6 +40,17 @@ function currentPage(root){
   return match?Number(match[1]):0;
 }
 
+function savedDisplayPage(store){
+  const state=store.getState();
+  const storyId=state.selectedStory||'everyday';
+  if(storyId!=='fantasy-1')return 0;
+  const key=[storyId,state.learningLanguage,state.nativeLanguage].join('|');
+  const saved=state.progress?.story?.[key];
+  const sourcePage=Math.max(Number(saved?.pageIndex)||0,0);
+  const phase=Math.max(Number(saved?.phaseIndex)||0,0);
+  return sourcePage*4+phase+1;
+}
+
 function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
@@ -52,7 +62,6 @@ function createBase64AudioSource(url){
   return async function audioSource(){
     if(objectUrl)return objectUrl;
     if(loadPromise)return loadPromise;
-
     loadPromise=(async()=>{
       const response=await fetch(url,{cache:'force-cache'});
       if(!response.ok)throw new Error(`HTTP ${response.status}`);
@@ -66,7 +75,6 @@ function createBase64AudioSource(url){
       loadPromise=null;
       throw error;
     });
-
     return loadPromise;
   };
 }
@@ -78,7 +86,6 @@ function createChunkedAudioSource(urls){
   return async function audioSource(){
     if(objectUrl)return objectUrl;
     if(loadPromise)return loadPromise;
-
     loadPromise=(async()=>{
       const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
       const failed=responses.find(response=>!response.ok);
@@ -90,7 +97,6 @@ function createChunkedAudioSource(urls){
       loadPromise=null;
       throw error;
     });
-
     return loadPromise;
   };
 }
@@ -137,7 +143,6 @@ function stopSceneAudio(){
 }
 
 function startWind(){
-  windPrimed=true;
   windAudio.muted=false;
   windAudio.loop=true;
   windAudio.volume=WIND_VOLUME;
@@ -148,26 +153,6 @@ function startWind(){
 function ensureWind(root,page,store){
   if(!SCENE_PAGES.has(page)||currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
   startWind();
-}
-
-function primeWindFromGesture(){
-  if(windPrimed||!windAudio.paused)return;
-  try{
-    windAudio.muted=true;
-    windAudio.volume=0;
-    const playback=windAudio.play();
-    Promise.resolve(playback).then(()=>{
-      if(SCENE_PAGES.has(currentPage(document)))return;
-      windAudio.pause();
-      windAudio.currentTime=0;
-      windAudio.muted=false;
-      windAudio.volume=WIND_VOLUME;
-      windPrimed=true;
-    }).catch(()=>{
-      windAudio.muted=false;
-      windAudio.volume=WIND_VOLUME;
-    });
-  }catch(_){}
 }
 
 async function primeImpactAudio(){
@@ -297,16 +282,21 @@ export function stopScene7376(){
 }
 
 export function installScene7376(root,store){
-  if(root.dataset.tileBreakInstalled==='1')return;
+  const savedPage=savedDisplayPage(store);
+  if(root.dataset.tileBreakInstalled==='1'){
+    if(store.getState().audioOn&&SCENE_PAGES.has(savedPage))startWind();
+    return;
+  }
   root.dataset.tileBreakInstalled='1';
 
   try{windAudio.load();}catch(_){}
   void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc()]).catch(()=>{});
 
+  if(store.getState().audioOn&&SCENE_PAGES.has(savedPage))startWind();
+
   const unlock=event=>{
     if(!store.getState().audioOn)return;
     if(gestureEntersOrIsInScene(root,event))startWind();
-    else primeWindFromGesture();
     void primeImpactAudio();
   };
 
