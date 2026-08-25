@@ -1,320 +1,98 @@
 const SCENE_PAGES=new Set([73,74,75,76]);
-const TILE_BREAK_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
-const ROOF_ACCENT_DELAY_MS=620;
-const CERAMIC_BREAK_DELAY_MS=3000;
-const WIND_VOLUME=.30;
-const TILE_BREAK_B64_URL=new URL('../../assets/audio/tile-break.b64?v=242',import.meta.url).href;
-const CERAMIC_BREAK_B64_URL=new URL('../../assets/audio/ceramic-tile-break.b64?v=242',import.meta.url).href;
-const WIND_URL=new URL('../../assets/audio/wind-73-76-loop.mp3?v=273',import.meta.url).href;
-const ROOF_ACCENT_PART_URLS=[
-  new URL('../../assets/audio/roof-break-accent.part0?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part1?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part2?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part3?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part4?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part5?v=242',import.meta.url).href,
-  new URL('../../assets/audio/roof-break-accent.part6?v=242',import.meta.url).href
-];
+const TILE_DELAY_BY_PAGE=new Map([[73,7200],[74,9200],[75,7600],[76,9200]]);
+const TILE_URL=new URL('../../assets/audio/freesound_community-tiles-smashing-90254-mobile.mp3?v=275',import.meta.url).href;
 
-let tileTimer=0;
-let accentTimer=0;
-let ceramicTimer=0;
-let tileAudio=null;
-let accentAudio=null;
-let ceramicAudio=null;
+let timer=0;
 let lastPage=-1;
 let lastEnabled=null;
-let playedPage=-1;
-let impactsPrimed=false;
+let primed=false;
 
-const windAudio=new Audio(WIND_URL);
-windAudio.setAttribute('playsinline','');
-windAudio.preload='auto';
-windAudio.loop=true;
-windAudio.muted=false;
-windAudio.volume=WIND_VOLUME;
-windAudio.onerror=()=>console.warn('Wind ambience playback failed.');
+const tileAudio=new Audio(TILE_URL);
+tileAudio.setAttribute('playsinline','');
+tileAudio.preload='auto';
+tileAudio.loop=false;
+tileAudio.volume=.9;
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
   return match?Number(match[1]):0;
 }
 
-function savedDisplayPage(store){
-  const state=store.getState();
-  const storyId=state.selectedStory||'everyday';
-  if(storyId!=='fantasy-1')return 0;
-  const key=[storyId,state.learningLanguage,state.nativeLanguage].join('|');
-  const saved=state.progress?.story?.[key];
-  const sourcePage=Math.max(Number(saved?.pageIndex)||0,0);
-  const phase=Math.max(Number(saved?.phaseIndex)||0,0);
-  return sourcePage*4+phase+1;
-}
-
 function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function createBase64AudioSource(url){
-  let objectUrl='';
-  let loadPromise=null;
-
-  return async function audioSource(){
-    if(objectUrl)return objectUrl;
-    if(loadPromise)return loadPromise;
-    loadPromise=(async()=>{
-      const response=await fetch(url,{cache:'force-cache'});
-      if(!response.ok)throw new Error(`HTTP ${response.status}`);
-      const encoded=(await response.text()).replace(/\s+/g,'');
-      const binary=atob(encoded);
-      const bytes=new Uint8Array(binary.length);
-      for(let index=0;index<binary.length;index+=1)bytes[index]=binary.charCodeAt(index);
-      objectUrl=URL.createObjectURL(new Blob([bytes],{type:'audio/mpeg'}));
-      return objectUrl;
-    })().catch(error=>{
-      loadPromise=null;
-      throw error;
-    });
-    return loadPromise;
-  };
-}
-
-function createChunkedAudioSource(urls){
-  let objectUrl='';
-  let loadPromise=null;
-
-  return async function audioSource(){
-    if(objectUrl)return objectUrl;
-    if(loadPromise)return loadPromise;
-    loadPromise=(async()=>{
-      const responses=await Promise.all(urls.map(url=>fetch(url,{cache:'force-cache'})));
-      const failed=responses.find(response=>!response.ok);
-      if(failed)throw new Error(`HTTP ${failed.status}`);
-      const parts=await Promise.all(responses.map(response=>response.arrayBuffer()));
-      objectUrl=URL.createObjectURL(new Blob(parts,{type:'audio/mpeg'}));
-      return objectUrl;
-    })().catch(error=>{
-      loadPromise=null;
-      throw error;
-    });
-    return loadPromise;
-  };
-}
-
-const tileBreakSrc=createBase64AudioSource(TILE_BREAK_B64_URL);
-const ceramicBreakSrc=createBase64AudioSource(CERAMIC_BREAK_B64_URL);
-const roofAccentSrc=createChunkedAudioSource(ROOF_ACCENT_PART_URLS);
-
-function stopTrack(track){
-  if(!track)return;
+function stopTiles(){
+  clearTimeout(timer);
+  timer=0;
   try{
-    track.pause();
-    track.currentTime=0;
+    tileAudio.pause();
+    tileAudio.currentTime=0;
+    tileAudio.muted=false;
+    tileAudio.volume=.9;
   }catch(_){}
 }
 
-function stopImpactAudio(){
-  clearTimeout(tileTimer);
-  clearTimeout(accentTimer);
-  clearTimeout(ceramicTimer);
-  tileTimer=0;
-  accentTimer=0;
-  ceramicTimer=0;
-  stopTrack(tileAudio);
-  stopTrack(accentAudio);
-  stopTrack(ceramicAudio);
-  tileAudio=null;
-  accentAudio=null;
-  ceramicAudio=null;
+function primeTiles(){
+  if(primed)return;
+  tileAudio.muted=true;
+  tileAudio.volume=0;
+  const promise=tileAudio.play();
+  if(!promise||typeof promise.then!=='function')return;
+  promise.then(()=>{
+    tileAudio.pause();
+    tileAudio.currentTime=0;
+    tileAudio.muted=false;
+    tileAudio.volume=.9;
+    primed=true;
+  }).catch(()=>{
+    tileAudio.muted=false;
+    tileAudio.volume=.9;
+  });
 }
 
-function stopWind(){
-  try{
-    windAudio.pause();
-    windAudio.currentTime=0;
-    windAudio.muted=false;
-    windAudio.volume=WIND_VOLUME;
-  }catch(_){}
-}
-
-function stopSceneAudio(){
-  stopImpactAudio();
-  stopWind();
-}
-
-function startWind(){
-  windAudio.muted=false;
-  windAudio.loop=true;
-  windAudio.volume=WIND_VOLUME;
-  if(!windAudio.paused&&!windAudio.ended)return;
-  void windAudio.play().catch(error=>console.warn('Wind ambience playback failed.',error));
-}
-
-function ensureWind(root,page,store){
-  if(!SCENE_PAGES.has(page)||currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-  startWind();
-}
-
-async function primeImpactAudio(){
-  if(impactsPrimed)return;
-  try{
-    const [tileSrc,accentSrc,ceramicSrc]=await Promise.all([
-      tileBreakSrc(),
-      roofAccentSrc(),
-      ceramicBreakSrc()
-    ]);
-    const probes=[new Audio(tileSrc),new Audio(accentSrc),new Audio(ceramicSrc)];
-    await Promise.all(probes.map(async probe=>{
-      probe.setAttribute('playsinline','');
-      probe.muted=true;
-      probe.volume=0;
-      await probe.play();
-      probe.pause();
-      probe.currentTime=0;
-    }));
-    impactsPrimed=true;
-  }catch(_){}
-}
-
-async function playRoofAccent(root,page,store){
-  if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-  try{
-    const track=new Audio(await roofAccentSrc());
+function scheduleTiles(root,page,store){
+  stopTiles();
+  const delay=TILE_DELAY_BY_PAGE.get(page)??8000;
+  timer=window.setTimeout(async()=>{
+    timer=0;
     if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-    stopTrack(accentAudio);
-    track.setAttribute('playsinline','');
-    track.preload='auto';
-    track.loop=false;
-    track.volume=.52;
-    accentAudio=track;
-    track.onended=()=>{if(accentAudio===track)accentAudio=null;};
-    track.onerror=()=>{if(accentAudio===track)accentAudio=null;};
-    await track.play();
-  }catch(error){
-    console.warn('Roof-break accent playback failed.',error);
-  }
-}
-
-async function playCeramicBreak(root,page,store){
-  if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-  try{
-    const track=new Audio(await ceramicBreakSrc());
-    if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-    stopTrack(ceramicAudio);
-    track.setAttribute('playsinline','');
-    track.preload='auto';
-    track.loop=false;
-    track.volume=.9;
-    ceramicAudio=track;
-    track.onended=()=>{if(ceramicAudio===track)ceramicAudio=null;};
-    track.onerror=()=>{if(ceramicAudio===track)ceramicAudio=null;};
-    await track.play();
-  }catch(error){
-    console.warn('Ceramic tile-break playback failed.',error);
-  }
-}
-
-async function playTileBreak(root,page,store){
-  if(playedPage===page||currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-  playedPage=page;
-  try{
-    const track=new Audio(await tileBreakSrc());
-    if(currentPage(root)!==page||!isTargetStory(root)||!store.getState().audioOn)return;
-    track.setAttribute('playsinline','');
-    track.preload='auto';
-    track.loop=false;
-    track.volume=.9;
-    track.playbackRate=.82;
-    tileAudio=track;
-    let playCount=1;
-    track.onended=()=>{
-      if(tileAudio!==track)return;
-      if(playCount<2&&currentPage(root)===page&&isTargetStory(root)&&store.getState().audioOn){
-        playCount+=1;
-        track.currentTime=0;
-        void track.play().catch(()=>{if(tileAudio===track)tileAudio=null;});
-        return;
-      }
-      tileAudio=null;
-    };
-    track.onerror=()=>{if(tileAudio===track)tileAudio=null;};
-    await track.play();
-
-    clearTimeout(accentTimer);
-    accentTimer=window.setTimeout(()=>{
-      accentTimer=0;
-      void playRoofAccent(root,page,store);
-    },ROOF_ACCENT_DELAY_MS);
-
-    clearTimeout(ceramicTimer);
-    ceramicTimer=window.setTimeout(()=>{
-      ceramicTimer=0;
-      void playCeramicBreak(root,page,store);
-    },CERAMIC_BREAK_DELAY_MS);
-  }catch(error){
-    playedPage=-1;
-    console.warn('Tile-break playback failed.',error);
-  }
-}
-
-function scheduleScene(root,page,store){
-  stopImpactAudio();
-  ensureWind(root,page,store);
-  const delay=TILE_BREAK_DELAY_BY_PAGE.get(page)??8000;
-  tileTimer=window.setTimeout(()=>{
-    tileTimer=0;
-    void playTileBreak(root,page,store);
+    try{
+      tileAudio.pause();
+      tileAudio.currentTime=0;
+      tileAudio.muted=false;
+      tileAudio.volume=.9;
+      await tileAudio.play();
+    }catch(error){
+      console.warn('Tiles playback failed.',error);
+    }
   },delay);
-}
-
-function gestureEntersOrIsInScene(root,event){
-  const page=currentPage(root);
-  if(SCENE_PAGES.has(page))return true;
-  const nextButton=event?.target?.closest?.('[data-next]');
-  return page===72&&Boolean(nextButton);
 }
 
 export function stopScene7376(){
   lastPage=-1;
   lastEnabled=null;
-  playedPage=-1;
-  stopSceneAudio();
+  stopTiles();
 }
 
 export function installScene7376(root,store){
-  const savedPage=savedDisplayPage(store);
-  if(root.dataset.tileBreakInstalled==='1'){
-    if(store.getState().audioOn&&SCENE_PAGES.has(savedPage))startWind();
-    return;
-  }
-  root.dataset.tileBreakInstalled='1';
+  if(root.dataset.tilesOnlyInstalled==='1')return;
+  root.dataset.tilesOnlyInstalled='1';
 
-  try{windAudio.load();}catch(_){}
-  void Promise.all([tileBreakSrc(),roofAccentSrc(),ceramicBreakSrc()]).catch(()=>{});
+  try{tileAudio.load();}catch(_){}
 
-  if(store.getState().audioOn&&SCENE_PAGES.has(savedPage))startWind();
-
-  const unlock=event=>{
-    if(!store.getState().audioOn)return;
-    if(gestureEntersOrIsInScene(root,event))startWind();
-    void primeImpactAudio();
+  const unlock=()=>{
+    if(store.getState().audioOn)primeTiles();
   };
 
   const sync=()=>{
     const page=currentPage(root);
     const enabled=Boolean(store.getState().audioOn);
-    const active=enabled&&SCENE_PAGES.has(page)&&isTargetStory(root);
-
-    if(page===lastPage&&enabled===lastEnabled){
-      if(active)ensureWind(root,page,store);
-      return;
-    }
-
+    if(page===lastPage&&enabled===lastEnabled)return;
     lastPage=page;
     lastEnabled=enabled;
-    playedPage=-1;
-    if(active)scheduleScene(root,page,store);
-    else stopSceneAudio();
+    if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root))scheduleTiles(root,page,store);
+    else stopTiles();
   };
 
   root.addEventListener('pointerdown',unlock,{capture:true});
