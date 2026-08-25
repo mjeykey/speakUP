@@ -1,4 +1,6 @@
-const MUFFLED_TALKING_URL=new URL('../../assets/audio/muffled-talking-165-168-mobile.mp3?v=283',import.meta.url).href;
+import { stopStoryEffects } from './story-effects.js?v=270';
+
+const MUFFLED_TALKING_URL=new URL('../../assets/audio/muffled-talking-165-168-mobile.mp3?v=285',import.meta.url).href;
 const FIRST_PAGE=165;
 const LAST_PAGE=168;
 const VOLUME=.28;
@@ -40,6 +42,8 @@ function stop(){
 }
 
 function start(){
+  // Dedicated scene: suppress generic location wind/SFX so the voices stay clean.
+  stopStoryEffects();
   const player=getAudio();
   player.muted=false;
   player.loop=true;

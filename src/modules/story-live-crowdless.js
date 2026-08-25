@@ -15,8 +15,15 @@ function applyStorySoundOverrides(){
   if(fantasyStory.pages[24])fantasyStory.pages[24].sound='engine-start';
 
   // Visible pages 153–156 = source paragraph 39 (zero-based index 38).
-  // Dedicated rain-on-wagon-roof plus wind ambience handles this range.
+  // Dedicated rain-on-wagon-roof scene handles this range.
   if(fantasyStory.pages[38])fantasyStory.pages[38].sound='none';
+
+  // Visible pages 157–176 = source paragraphs 40–44 (zero-based 39–43).
+  // Dedicated scene modules own these sounds. Rain on 161–164 still comes
+  // from OUTDOOR_RAIN_PAGES in story-live.js and therefore keeps running.
+  [39,40,41,42,43].forEach(index=>{
+    if(fantasyStory.pages[index])fantasyStory.pages[index].sound='none';
+  });
 }
 
 export function renderStory(root,store){

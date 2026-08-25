@@ -1,12 +1,8 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 import { getBase64AudioSource } from './story-b64-source.js?v=285';
 
-const SCENE_PAGES=new Set([157,158,159,160]);
-const PART_URLS=[
-  new URL('../../assets/audio/door-157-160.part00.b64?v=285',import.meta.url).href,
-  new URL('../../assets/audio/door-157-160.part01.b64?v=285',import.meta.url).href
-];
-
+const SCENE_PAGES=new Set([173,174,175,176]);
+const PART_URLS=[0,1,2,3].map(index=>new URL(`../../assets/audio/keys-173-176.part0${index}.b64?v=285`,import.meta.url).href);
 let audio=null;
 let requestedPage=-1;
 let lastPage=-1;
@@ -16,18 +12,7 @@ function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
   return match?Number(match[1]):0;
 }
-
-function isTargetStory(root){
-  return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
-}
-
-function stopAudio(reset=true){
-  if(audio){
-    try{audio.pause();}catch(_){}
-    try{audio.currentTime=0;}catch(_){}
-  }
-  if(reset)requestedPage=-1;
-}
+function isTargetStory(root){return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');}
 
 async function getAudio(){
   if(audio)return audio;
@@ -35,9 +20,14 @@ async function getAudio(){
   player.setAttribute('playsinline','');
   player.preload='auto';
   player.loop=false;
-  player.volume=.95;
+  player.volume=.88;
   audio=player;
   return player;
+}
+
+function stopKeys(reset=true){
+  if(audio){try{audio.pause();audio.currentTime=0;}catch(_){}}
+  if(reset)requestedPage=-1;
 }
 
 async function playForPage(root,store,page,{pending=false}={}){
@@ -45,17 +35,17 @@ async function playForPage(root,store,page,{pending=false}={}){
   if(!SCENE_PAGES.has(page)||!store.getState().audioOn||!isTargetStory(root))return;
   requestedPage=page;
   stopStoryEffects();
-  stopAudio(false);
+  stopKeys(false);
   try{
     const player=await getAudio();
     if(!pending&&currentPage(root)!==page){requestedPage=-1;return;}
     player.muted=false;
-    player.volume=.95;
+    player.volume=.88;
     player.currentTime=0;
     await player.play();
   }catch(error){
     requestedPage=-1;
-    console.warn('Wooden-door playback failed.',error);
+    console.warn('Keys playback failed.',error);
   }
 }
 
@@ -63,13 +53,12 @@ function navigationTarget(root,event){
   const button=event.target?.closest?.('[data-next],[data-prev]');
   if(!button)return 0;
   const page=currentPage(root);
-  if(!page)return 0;
-  return page+(button.matches('[data-next]')?1:-1);
+  return page? page+(button.matches('[data-next]')?1:-1):0;
 }
 
-export function installScene157160(root,store){
-  if(root.dataset.woodDoor157160Installed==='1')return;
-  root.dataset.woodDoor157160Installed='1';
+export function installScene173176(root,store){
+  if(root.dataset.keys173176Installed==='1')return;
+  root.dataset.keys173176Installed='1';
   void getBase64AudioSource(PART_URLS).catch(()=>{});
 
   const sync=()=>{
@@ -81,14 +70,14 @@ export function installScene157160(root,store){
     if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
       stopStoryEffects();
       if(requestedPage!==page)void playForPage(root,store,page);
-    }else stopAudio();
+    }else stopKeys();
   };
 
   const handlePointer=event=>{
     const target=navigationTarget(root,event);
     if(target){
       if(SCENE_PAGES.has(target)&&store.getState().audioOn&&isTargetStory(root))void playForPage(root,store,target,{pending:true});
-      else if(SCENE_PAGES.has(currentPage(root)))stopAudio();
+      else if(SCENE_PAGES.has(currentPage(root)))stopKeys();
       return;
     }
     const page=currentPage(root);

@@ -1,13 +1,13 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
-import { getBase64AudioSource } from './story-b64-source.js?v=285';
 
-const SCENE_PAGES=new Set([157,158,159,160]);
-const PART_URLS=[
-  new URL('../../assets/audio/door-157-160.part00.b64?v=285',import.meta.url).href,
-  new URL('../../assets/audio/door-157-160.part01.b64?v=285',import.meta.url).href
-];
+const SCENE_PAGES=new Set([161,162,163,164]);
+const FLOOR_URL=new URL('../../assets/audio/floorcracking-161-164.mp3?v=285',import.meta.url).href;
+const player=new Audio(FLOOR_URL);
+player.setAttribute('playsinline','');
+player.preload='auto';
+player.loop=false;
+player.volume=.72;
 
-let audio=null;
 let requestedPage=-1;
 let lastPage=-1;
 let lastEnabled=null;
@@ -21,23 +21,9 @@ function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function stopAudio(reset=true){
-  if(audio){
-    try{audio.pause();}catch(_){}
-    try{audio.currentTime=0;}catch(_){}
-  }
+function stopFloor(reset=true){
+  try{player.pause();player.currentTime=0;}catch(_){}
   if(reset)requestedPage=-1;
-}
-
-async function getAudio(){
-  if(audio)return audio;
-  const player=new Audio(await getBase64AudioSource(PART_URLS));
-  player.setAttribute('playsinline','');
-  player.preload='auto';
-  player.loop=false;
-  player.volume=.95;
-  audio=player;
-  return player;
 }
 
 async function playForPage(root,store,page,{pending=false}={}){
@@ -45,17 +31,16 @@ async function playForPage(root,store,page,{pending=false}={}){
   if(!SCENE_PAGES.has(page)||!store.getState().audioOn||!isTargetStory(root))return;
   requestedPage=page;
   stopStoryEffects();
-  stopAudio(false);
+  stopFloor(false);
   try{
-    const player=await getAudio();
     if(!pending&&currentPage(root)!==page){requestedPage=-1;return;}
     player.muted=false;
-    player.volume=.95;
+    player.volume=.72;
     player.currentTime=0;
     await player.play();
   }catch(error){
     requestedPage=-1;
-    console.warn('Wooden-door playback failed.',error);
+    console.warn('Floor-cracking playback failed.',error);
   }
 }
 
@@ -63,14 +48,13 @@ function navigationTarget(root,event){
   const button=event.target?.closest?.('[data-next],[data-prev]');
   if(!button)return 0;
   const page=currentPage(root);
-  if(!page)return 0;
-  return page+(button.matches('[data-next]')?1:-1);
+  return page? page+(button.matches('[data-next]')?1:-1):0;
 }
 
-export function installScene157160(root,store){
-  if(root.dataset.woodDoor157160Installed==='1')return;
-  root.dataset.woodDoor157160Installed='1';
-  void getBase64AudioSource(PART_URLS).catch(()=>{});
+export function installScene161164(root,store){
+  if(root.dataset.floorCrack161164Installed==='1')return;
+  root.dataset.floorCrack161164Installed='1';
+  try{player.load();}catch(_){}
 
   const sync=()=>{
     const page=currentPage(root);
@@ -79,20 +63,21 @@ export function installScene157160(root,store){
     lastPage=page;
     lastEnabled=enabled;
     if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
+      // stop generic wind/effects only; the separate story rain keeps running.
       stopStoryEffects();
       if(requestedPage!==page)void playForPage(root,store,page);
-    }else stopAudio();
+    }else stopFloor();
   };
 
   const handlePointer=event=>{
     const target=navigationTarget(root,event);
     if(target){
       if(SCENE_PAGES.has(target)&&store.getState().audioOn&&isTargetStory(root))void playForPage(root,store,target,{pending:true});
-      else if(SCENE_PAGES.has(currentPage(root)))stopAudio();
+      else if(SCENE_PAGES.has(currentPage(root)))stopFloor();
       return;
     }
     const page=currentPage(root);
-    if(SCENE_PAGES.has(page)&&store.getState().audioOn&&isTargetStory(root)&&(!audio||audio.paused)){
+    if(SCENE_PAGES.has(page)&&store.getState().audioOn&&isTargetStory(root)&&player.paused){
       requestedPage=-1;
       void playForPage(root,store,page,{pending:true});
     }
