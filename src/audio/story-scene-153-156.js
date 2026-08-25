@@ -1,19 +1,33 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 
 const SCENE_PAGES=new Set([153,154,155,156]);
+const DIRECT_RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=279',import.meta.url).href;
+const WIND_URL=new URL('../../assets/audio/dragon-studio-wind-blowing-sfx-06-423674-mobile.mp3?v=279',import.meta.url).href;
 const RAIN_PART_URLS=[
-  new URL('../../assets/audio/rain-wagon-roof-loop.part0.b64?v=278',import.meta.url).href,
-  new URL('../../assets/audio/rain-wagon-roof-loop.part1.b64?v=278',import.meta.url).href,
-  new URL('../../assets/audio/rain-wagon-roof-loop.part2.b64?v=278',import.meta.url).href
+  new URL('../../assets/audio/rain-wagon-roof-loop.part0.b64?v=279',import.meta.url).href,
+  new URL('../../assets/audio/rain-wagon-roof-loop.part1.b64?v=279',import.meta.url).href,
+  new URL('../../assets/audio/rain-wagon-roof-loop.part2.b64?v=279',import.meta.url).href
 ];
 
 let lastPage=-1;
 let lastEnabled=null;
 let active=false;
 let primed=false;
-let rain=null;
+let roofRain=null;
 let objectUrl='';
 let loadPromise=null;
+
+function makeLoop(src,volume){
+  const track=new Audio(src);
+  track.setAttribute('playsinline','');
+  track.preload='auto';
+  track.loop=true;
+  track.volume=volume;
+  return track;
+}
+
+const directRain=makeLoop(DIRECT_RAIN_URL,.96);
+const wind=makeLoop(WIND_URL,.28);
 
 function currentPage(root){
   const match=root.querySelector('.story-progress')?.textContent?.match(/(\d+)/);
@@ -52,35 +66,53 @@ async function roofRainSrc(){
   return loadPromise;
 }
 
+async function ensureRoofRain(){
+  if(roofRain)return roofRain;
+  roofRain=makeLoop(await roofRainSrc(),.82);
+  return roofRain;
+}
+
+function resetTrack(track){
+  if(!track)return;
+  try{track.pause();}catch(_){}
+  try{track.currentTime=0;}catch(_){}
+}
+
 function stopScene(){
   active=false;
-  if(!rain)return;
-  try{
-    rain.pause();
-    rain.currentTime=0;
-  }catch(_){}
-  rain=null;
+  resetTrack(directRain);
+  resetTrack(wind);
+  resetTrack(roofRain);
 }
 
-function makeTrack(src,{volume=.46}={}){
-  const track=new Audio(src);
-  track.setAttribute('playsinline','');
-  track.preload='auto';
-  track.loop=true;
-  track.volume=volume;
-  return track;
+function primeTrack(track){
+  const oldMuted=track.muted;
+  const oldVolume=track.volume;
+  track.muted=true;
+  track.volume=0;
+  const promise=track.play();
+  if(!promise||typeof promise.then!=='function'){
+    track.muted=oldMuted;
+    track.volume=oldVolume;
+    return;
+  }
+  promise.then(()=>{
+    track.pause();
+    track.currentTime=0;
+    track.muted=oldMuted;
+    track.volume=oldVolume;
+  }).catch(()=>{
+    track.muted=oldMuted;
+    track.volume=oldVolume;
+  });
 }
 
-async function primeScene(){
+function primeScene(){
   if(primed)return;
-  try{
-    const probe=makeTrack(await roofRainSrc(),{volume:0});
-    probe.muted=true;
-    await probe.play();
-    probe.pause();
-    probe.currentTime=0;
-    primed=true;
-  }catch(_){}
+  primeTrack(directRain);
+  primeTrack(wind);
+  primed=true;
+  void ensureRoofRain().then(track=>primeTrack(track)).catch(()=>{});
 }
 
 async function playScene(root,store){
@@ -89,20 +121,35 @@ async function playScene(root,store){
 
   stopStoryEffects();
 
-  try{
-    const track=makeTrack(await roofRainSrc(),{volume:.46});
-    if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn)return;
+  directRain.volume=.96;
+  wind.volume=.28;
+  directRain.currentTime=0;
+  wind.currentTime=0;
 
-    rain=track;
-    await track.play();
-    active=true;
-    track.onerror=()=>{
-      if(rain===track)stopScene();
-    };
-  }catch(error){
-    active=false;
-    console.warn('Wagon-roof rain playback failed.',error);
+  const immediate=await Promise.allSettled([
+    directRain.play(),
+    wind.play()
+  ]);
+
+  if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn){
+    stopScene();
+    return;
   }
+
+  active=immediate.some(result=>result.status==='fulfilled');
+
+  try{
+    const roof=await ensureRoofRain();
+    if(!SCENE_PAGES.has(currentPage(root))||!isTargetStory(root)||!store.getState().audioOn)return;
+    roof.volume=.82;
+    roof.currentTime=0;
+    await roof.play();
+    active=true;
+  }catch(error){
+    console.warn('Wagon-roof rain layer failed.',error);
+  }
+
+  if(!active)stopScene();
 }
 
 export function stopScene153156(){
@@ -114,10 +161,11 @@ export function stopScene153156(){
 export function installScene153156(root,store){
   if(root.dataset.wagonRoofRain153156Installed==='1')return;
   root.dataset.wagonRoofRain153156Installed='1';
-  void roofRainSrc().catch(()=>{});
+  try{directRain.load();wind.load();}catch(_){}
+  void ensureRoofRain().catch(()=>{});
 
   const unlock=()=>{
-    if(store.getState().audioOn)void primeScene();
+    if(store.getState().audioOn)primeScene();
   };
 
   const sync=()=>{
