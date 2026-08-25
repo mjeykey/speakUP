@@ -13,6 +13,10 @@ function applyStorySoundOverrides(){
   // Visible pages 97–100 = source paragraph 25 (zero-based index 24).
   // Use the same engine-start sound as the earlier engine scene.
   if(fantasyStory.pages[24])fantasyStory.pages[24].sound='engine-start';
+
+  // Visible pages 153–156 = source paragraph 39 (zero-based index 38).
+  // Dedicated rain-on-wagon-roof plus wind ambience handles this range.
+  if(fantasyStory.pages[38])fantasyStory.pages[38].sound='none';
 }
 
 export function renderStory(root,store){
