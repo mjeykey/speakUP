@@ -1,8 +1,8 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 
 const SCENE_PAGES=new Set([161,162,163,164]);
-const FLOOR_URL=new URL('../../assets/audio/floorcracking-161-164.mp3?v=285',import.meta.url).href;
-const player=new Audio(FLOOR_URL);
+const WOOD_CREAK_URL=new URL('../../assets/audio/voicebosch-creaking-wood-199971-mobile.mp3?v=286',import.meta.url).href;
+const player=new Audio(WOOD_CREAK_URL);
 player.setAttribute('playsinline','');
 player.preload='auto';
 player.loop=false;
@@ -21,7 +21,7 @@ function isTargetStory(root){
   return /Last Wagon of Avarin/i.test(root.querySelector('.story-subtitle')?.textContent||'');
 }
 
-function stopFloor(reset=true){
+function stopWoodCreak(reset=true){
   try{player.pause();player.currentTime=0;}catch(_){}
   if(reset)requestedPage=-1;
 }
@@ -31,7 +31,7 @@ async function playForPage(root,store,page,{pending=false}={}){
   if(!SCENE_PAGES.has(page)||!store.getState().audioOn||!isTargetStory(root))return;
   requestedPage=page;
   stopStoryEffects();
-  stopFloor(false);
+  stopWoodCreak(false);
   try{
     if(!pending&&currentPage(root)!==page){requestedPage=-1;return;}
     player.muted=false;
@@ -40,7 +40,7 @@ async function playForPage(root,store,page,{pending=false}={}){
     await player.play();
   }catch(error){
     requestedPage=-1;
-    console.warn('Floor-cracking playback failed.',error);
+    console.warn('Wood-creaking playback failed.',error);
   }
 }
 
@@ -52,8 +52,8 @@ function navigationTarget(root,event){
 }
 
 export function installScene161164(root,store){
-  if(root.dataset.floorCrack161164Installed==='1')return;
-  root.dataset.floorCrack161164Installed='1';
+  if(root.dataset.woodCreak161164Installed==='1')return;
+  root.dataset.woodCreak161164Installed='1';
   try{player.load();}catch(_){}
 
   const sync=()=>{
@@ -63,17 +63,17 @@ export function installScene161164(root,store){
     lastPage=page;
     lastEnabled=enabled;
     if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
-      // stop generic wind/effects only; the separate story rain keeps running.
+      // Stop generic effects only; the separate story rain keeps running in this scene.
       stopStoryEffects();
       if(requestedPage!==page)void playForPage(root,store,page);
-    }else stopFloor();
+    }else stopWoodCreak();
   };
 
   const handlePointer=event=>{
     const target=navigationTarget(root,event);
     if(target){
       if(SCENE_PAGES.has(target)&&store.getState().audioOn&&isTargetStory(root))void playForPage(root,store,target,{pending:true});
-      else if(SCENE_PAGES.has(currentPage(root)))stopFloor();
+      else if(SCENE_PAGES.has(currentPage(root)))stopWoodCreak();
       return;
     }
     const page=currentPage(root);
