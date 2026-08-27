@@ -1,12 +1,12 @@
 import { stopStoryEffects } from './story-effects.js?v=270';
 
 const SCENE_PAGES=new Set([161,162,163,164]);
-const WOOD_CREAK_URL=new URL('../../assets/audio/voicebosch-creaking-wood-199971-mobile.mp3?v=286',import.meta.url).href;
+const WOOD_CREAK_URL=new URL('../../assets/audio/voicebosch-creaking-wood-199971-mobile.mp3?v=287',import.meta.url).href;
 const player=new Audio(WOOD_CREAK_URL);
 player.setAttribute('playsinline','');
 player.preload='auto';
 player.loop=false;
-player.volume=.72;
+player.volume=1;
 
 let requestedPage=-1;
 let lastPage=-1;
@@ -35,7 +35,7 @@ async function playForPage(root,store,page,{pending=false}={}){
   try{
     if(!pending&&currentPage(root)!==page){requestedPage=-1;return;}
     player.muted=false;
-    player.volume=.72;
+    player.volume=1;
     player.currentTime=0;
     await player.play();
   }catch(error){
@@ -63,7 +63,6 @@ export function installScene161164(root,store){
     lastPage=page;
     lastEnabled=enabled;
     if(enabled&&SCENE_PAGES.has(page)&&isTargetStory(root)){
-      // Stop generic effects only; the separate story rain keeps running in this scene.
       stopStoryEffects();
       if(requestedPage!==page)void playForPage(root,store,page);
     }else stopWoodCreak();
@@ -84,6 +83,7 @@ export function installScene161164(root,store){
   };
 
   root.addEventListener('pointerdown',handlePointer,{capture:true});
+  root.addEventListener('click',handlePointer,{capture:true});
   const observer=new MutationObserver(sync);
   observer.observe(root,{childList:true,subtree:true,characterData:true});
   sync();
