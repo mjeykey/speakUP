@@ -1,7 +1,7 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
 import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
-import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=3';
+import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=290';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 
@@ -80,7 +80,7 @@ function getStoryWoodCreakAudio(){
   const audio=new Audio(WOOD_CREAK_URL);
   audio.setAttribute('playsinline','');
   audio.preload='auto';
-  audio.loop=true;
+  audio.loop=false;
   audio.muted=false;
   audio.volume=WOOD_CREAK_VOLUME;
   audio.onerror=()=>console.warn('Wagon wood-creak media error.');
@@ -95,20 +95,37 @@ function stopStoryWoodCreak(){
   try{audio.currentTime=0;}catch(_){}
 }
 
-function ensureStoryWoodCreak(enabled=true){
+function playStoryWoodCreakOnce(){
   const audio=getStoryWoodCreakAudio();
-  if(!enabled){
-    stopStoryWoodCreak();
-    return;
-  }
+  stopStoryWoodCreak();
   audio.muted=false;
-  audio.loop=true;
+  audio.loop=false;
   audio.volume=WOOD_CREAK_VOLUME;
-  if(!audio.paused&&!audio.ended)return;
   try{audio.currentTime=0;}catch(_){}
   void Promise.resolve(audio.play()).catch(error=>{
     console.warn('Wagon wood-creak playback failed.',error);
   });
+}
+
+const WOOD_CREAK_TERMS=[
+  'wagon','carruagem','wagen','carruaje','carrozza','voiture','carrosse',
+  'vagn','karoca','колесниц','вагон','馬車','马车'
+];
+
+function woodCreakMarker(text){
+  const value=String(text||'');
+  const lower=value.toLocaleLowerCase();
+  const indexes=WOOD_CREAK_TERMS.map(term=>lower.indexOf(term)).filter(index=>index>=0);
+  if(indexes.length)return Math.min(...indexes);
+  const sentenceEnd=value.search(/[.!?]/);
+  return sentenceEnd>0?Math.max(0,sentenceEnd-8):Math.floor(value.length*.42);
+}
+
+function woodCreakFallbackDelay(text,rate){
+  const marker=woodCreakMarker(text);
+  const words=String(text||'').slice(0,marker).trim().split(/\s+/).filter(Boolean).length;
+  const wordsPerSecond=2.45*Math.max(.55,Number(rate)||.82);
+  return Math.max(1200,Math.min(6500,Math.round((words/wordsPerSecond)*1000)));
 }
 
 function playVerifiedDoor(){
@@ -177,9 +194,7 @@ export function renderStory(root,store){
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&OUTDOOR_RAIN_PAGES.has(sourcePage);
-  const woodCreakAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&sourcePage===WOOD_CREAK_SOURCE_PAGE;
   const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
-  const syncWoodCreak=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryWoodCreak(Boolean(audioEnabled&&woodCreakAllowed(sourcePage)));
   const locationAmbience=(sourcePage=pageIndex)=>LOCATION_AMBIENCE_RANGES.find(range=>sourcePage>=range.from&&sourcePage<=range.to)||null;
   const syncLocationAmbience=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>{
     const ambience=storyId==='fantasy-1'?locationAmbience(sourcePage):null;
@@ -225,14 +240,32 @@ export function renderStory(root,store){
   }
 
   async function narrate(text,voice,audioEnabled,rate,token,current){
+    const creakCue=storyId==='fantasy-1'&&pageIndex===WOOD_CREAK_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled;
+    const marker=creakCue?woodCreakMarker(text):-1;
+    let creakDone=false;
+    let fallbackTimer=null;
+    const triggerCreak=()=>{
+      if(!creakCue||creakDone||token!==renderToken||page()!==current)return;
+      creakDone=true;
+      if(fallbackTimer){window.clearTimeout(fallbackTimer);fallbackTimer=null;}
+      playStoryWoodCreakOnce();
+    };
     await narrateStory({
       text,
       voice,
       enabled:audioEnabled,
       rate,
       sound:phaseSound(),
-      isCurrent:isTokenCurrent(token)
+      isCurrent:isTokenCurrent(token),
+      onStart:()=>{
+        if(!creakCue)return;
+        fallbackTimer=window.setTimeout(triggerCreak,woodCreakFallbackDelay(text,rate));
+      },
+      onBoundary:event=>{
+        if(creakCue&&Number(event.charIndex)>=marker)triggerCreak();
+      }
     });
+    if(fallbackTimer){window.clearTimeout(fallbackTimer);fallbackTimer=null;}
   }
 
   async function renderPhase(){
@@ -240,8 +273,8 @@ export function renderStory(root,store){
     const token=++renderToken;
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
+    stopStoryWoodCreak();
     syncRain(pageIndex,audioEnabled);
-    syncWoodCreak(pageIndex,audioEnabled);
     syncLocationAmbience(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
 
@@ -297,7 +330,6 @@ export function renderStory(root,store){
     const audioEnabled=Boolean(store.getState().audioOn);
     // These calls happen directly inside the user's navigation click, which keeps mobile audio reliable.
     syncRain(target.pageIndex,audioEnabled);
-    syncWoodCreak(target.pageIndex,audioEnabled);
     syncLocationAmbience(target.pageIndex,audioEnabled);
 
     const currentSound=phaseSound(pageIndex,phaseIndex);
