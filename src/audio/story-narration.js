@@ -73,7 +73,7 @@ export function stopStoryNarration(){
   cancelActiveStorySpeech();
 }
 
-export async function narrateStory({text,voice,enabled=true,rate=.82,sound='none',isCurrent=()=>true}={}){
+export async function narrateStory({text,voice,enabled=true,rate=.82,sound='none',isCurrent=()=>true,onStart=null,onBoundary=null}={}){
   const value=String(text||'').replace(/\s+/g,' ').trim();
   if(!enabled||!value||!synth||!isCurrent())return false;
 
@@ -107,6 +107,14 @@ export async function narrateStory({text,voice,enabled=true,rate=.82,sound='none
       if(settled)return;
       settled=true;
       resolve(runId===storySpeechRunId&&isCurrent());
+    };
+    utterance.onstart=()=>{
+      if(runId!==storySpeechRunId||!isCurrent())return;
+      try{onStart?.({text:value,rate:utterance.rate,voice:utterance.lang});}catch(error){console.warn('Story narration start hook failed.',error);}
+    };
+    utterance.onboundary=event=>{
+      if(runId!==storySpeechRunId||!isCurrent())return;
+      try{onBoundary?.({charIndex:Number(event.charIndex)||0,name:event.name||'',elapsedTime:Number(event.elapsedTime)||0});}catch(error){console.warn('Story narration boundary hook failed.',error);}
     };
     utterance.onend=finish;
     utterance.onerror=finish;
