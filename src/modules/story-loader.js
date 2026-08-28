@@ -5,7 +5,6 @@ import { installScene8184 } from '../audio/story-scene-81-84.js?v=276';
 import { installScene8992Direct } from '../audio/story-scene-89-92-direct.js?v=254';
 import { installScene153156 } from '../audio/story-scene-153-156.js?v=283';
 import { installScene157160 } from '../audio/story-scene-157-160.js?v=285';
-import { installScene161164 } from '../audio/story-scene-161-164.js?v=287';
 import { installScene169172 } from '../audio/story-scene-169-172.js?v=285';
 import { installScene173176 } from '../audio/story-scene-173-176.js?v=285';
 
@@ -16,7 +15,6 @@ export function renderStory(root,store){
   installScene8992Direct(root,store);
   installScene153156(root,store);
   installScene157160(root,store);
-  installScene161164(root,store);
   installScene169172(root,store);
   installScene173176(root,store);
   return renderBaseStory(root,store);

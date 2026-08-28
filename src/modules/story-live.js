@@ -28,9 +28,13 @@ const LOCATION_AMBIENCE_RANGES=[
 
 const RAIN_URL=new URL('../../assets/audio/rain-natural-mobile.mp3?v=269',import.meta.url).href;
 const RAIN_VOLUME=.28;
+const WOOD_CREAK_SOURCE_PAGE=40;
+const WOOD_CREAK_URL=new URL('../../assets/audio/wood-creak-161-164-core.mp3?v=289',import.meta.url).href;
+const WOOD_CREAK_VOLUME=1;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
+let storyWoodCreakAudio=null;
 const DEBUG_BUILD='B270';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
@@ -68,6 +72,42 @@ function ensureStoryRain(enabled=true){
   try{audio.currentTime=0;}catch(_){}
   void Promise.resolve(audio.play()).catch(error=>{
     console.warn('Story rain playback failed.',error);
+  });
+}
+
+function getStoryWoodCreakAudio(){
+  if(storyWoodCreakAudio)return storyWoodCreakAudio;
+  const audio=new Audio(WOOD_CREAK_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.loop=true;
+  audio.muted=false;
+  audio.volume=WOOD_CREAK_VOLUME;
+  audio.onerror=()=>console.warn('Wagon wood-creak media error.');
+  storyWoodCreakAudio=audio;
+  return audio;
+}
+
+function stopStoryWoodCreak(){
+  const audio=storyWoodCreakAudio;
+  if(!audio)return;
+  try{audio.pause();}catch(_){}
+  try{audio.currentTime=0;}catch(_){}
+}
+
+function ensureStoryWoodCreak(enabled=true){
+  const audio=getStoryWoodCreakAudio();
+  if(!enabled){
+    stopStoryWoodCreak();
+    return;
+  }
+  audio.muted=false;
+  audio.loop=true;
+  audio.volume=WOOD_CREAK_VOLUME;
+  if(!audio.paused&&!audio.ended)return;
+  try{audio.currentTime=0;}catch(_){}
+  void Promise.resolve(audio.play()).catch(error=>{
+    console.warn('Wagon wood-creak playback failed.',error);
   });
 }
 
@@ -132,12 +172,14 @@ export function renderStory(root,store){
 
   // Create the rain element once while the story is being initialized.
   // It is kept for the whole app session and only paused/resumed between scenes.
-  if(storyId==='fantasy-1')getStoryRainAudio();
+  if(storyId==='fantasy-1'){getStoryRainAudio();getStoryWoodCreakAudio();}
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&OUTDOOR_RAIN_PAGES.has(sourcePage);
+  const woodCreakAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&sourcePage===WOOD_CREAK_SOURCE_PAGE;
   const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
+  const syncWoodCreak=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryWoodCreak(Boolean(audioEnabled&&woodCreakAllowed(sourcePage)));
   const locationAmbience=(sourcePage=pageIndex)=>LOCATION_AMBIENCE_RANGES.find(range=>sourcePage>=range.from&&sourcePage<=range.to)||null;
   const syncLocationAmbience=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>{
     const ambience=storyId==='fantasy-1'?locationAmbience(sourcePage):null;
@@ -157,6 +199,7 @@ export function renderStory(root,store){
   const leave=()=>{
     renderToken+=1;
     stopStoryRain();
+    stopStoryWoodCreak();
     stopStoryNarration();
     stopStoryEffects();
     store.setState({screen:'menu'});
@@ -198,6 +241,7 @@ export function renderStory(root,store){
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
     syncRain(pageIndex,audioEnabled);
+    syncWoodCreak(pageIndex,audioEnabled);
     syncLocationAmbience(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
 
@@ -253,6 +297,7 @@ export function renderStory(root,store){
     const audioEnabled=Boolean(store.getState().audioOn);
     // These calls happen directly inside the user's navigation click, which keeps mobile audio reliable.
     syncRain(target.pageIndex,audioEnabled);
+    syncWoodCreak(target.pageIndex,audioEnabled);
     syncLocationAmbience(target.pageIndex,audioEnabled);
 
     const currentSound=phaseSound(pageIndex,phaseIndex);
