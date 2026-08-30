@@ -4,6 +4,7 @@ import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=290';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
+import { getStorySfxSrc } from '../audio/story-sfx.js?v=268';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
@@ -31,10 +32,15 @@ const RAIN_VOLUME=.28;
 const WOOD_CREAK_SOURCE_PAGE=40;
 const WOOD_CREAK_URL=new URL('../../assets/audio/wood-creak-161-164-core.mp3?v=289',import.meta.url).href;
 const WOOD_CREAK_VOLUME=1;
+const FIGHT_CROWD_SOURCE_PAGE=47;
+const FIGHT_CROWD_URL=getStorySfxSrc('crowd');
+const FIGHT_CROWD_VOLUME=.40;
+const FIGHT_CROWD_RATE=.72;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
 let storyWoodCreakAudio=null;
+let storyFightCrowdAudio=null;
 const DEBUG_BUILD='B270';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
@@ -105,6 +111,63 @@ function playStoryWoodCreakOnce(){
   void Promise.resolve(audio.play()).catch(error=>{
     console.warn('Wagon wood-creak playback failed.',error);
   });
+}
+
+function getStoryFightCrowdAudio(){
+  if(storyFightCrowdAudio)return storyFightCrowdAudio;
+  const audio=new Audio(FIGHT_CROWD_URL);
+  audio.setAttribute('playsinline','');
+  audio.preload='auto';
+  audio.loop=false;
+  audio.muted=false;
+  audio.volume=FIGHT_CROWD_VOLUME;
+  audio.playbackRate=FIGHT_CROWD_RATE;
+  audio.onerror=()=>console.warn('Fight crowd cue failed to load.');
+  storyFightCrowdAudio=audio;
+  return audio;
+}
+
+function stopStoryFightCrowd(){
+  const audio=storyFightCrowdAudio;
+  if(!audio)return;
+  try{audio.pause();}catch(_){}
+  try{audio.currentTime=0;}catch(_){}
+}
+
+function playStoryFightCrowdOnce(){
+  const audio=getStoryFightCrowdAudio();
+  stopStoryFightCrowd();
+  audio.muted=false;
+  audio.loop=false;
+  audio.volume=FIGHT_CROWD_VOLUME;
+  audio.playbackRate=FIGHT_CROWD_RATE;
+  try{audio.currentTime=0;}catch(_){}
+  void Promise.resolve(audio.play()).catch(error=>{
+    console.warn('Fight crowd cue playback failed.',error);
+  });
+}
+
+const FIGHT_CROWD_TERMS=[
+  'passengers shouted','passageiros gritavam','passagiere schrien','fahrgäste schrien',
+  'pasajeros gritaron','pasajeros gritaban','passagers criaient','passeggeri gridavano',
+  'putnici su vikali','putnici vikali'
+];
+
+function fightCrowdMarker(text){
+  const value=String(text||'');
+  const lower=value.toLocaleLowerCase();
+  const indexes=FIGHT_CROWD_TERMS.map(term=>lower.indexOf(term)).filter(index=>index>=0);
+  if(indexes.length)return Math.min(...indexes);
+  const whileIndex=lower.indexOf('while ');
+  if(whileIndex>=0)return whileIndex;
+  return Math.floor(value.length*.68);
+}
+
+function fightCrowdFallbackDelay(text,rate){
+  const marker=fightCrowdMarker(text);
+  const words=String(text||'').slice(0,marker).trim().split(/\s+/).filter(Boolean).length;
+  const wordsPerSecond=2.45*Math.max(.55,Number(rate)||.82);
+  return Math.max(1200,Math.min(9000,Math.round((words/wordsPerSecond)*1000)));
 }
 
 const WOOD_CREAK_TERMS=[
@@ -215,6 +278,7 @@ export function renderStory(root,store){
     renderToken+=1;
     stopStoryRain();
     stopStoryWoodCreak();
+    stopStoryFightCrowd();
     stopStoryNarration();
     stopStoryEffects();
     store.setState({screen:'menu'});
@@ -241,14 +305,24 @@ export function renderStory(root,store){
 
   async function narrate(text,voice,audioEnabled,rate,token,current){
     const creakCue=storyId==='fantasy-1'&&pageIndex===WOOD_CREAK_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled;
-    const marker=creakCue?woodCreakMarker(text):-1;
+    const fightCue=storyId==='fantasy-1'&&pageIndex===FIGHT_CROWD_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled;
+    const creakMarker=creakCue?woodCreakMarker(text):-1;
+    const fightMarker=fightCue?fightCrowdMarker(text):-1;
     let creakDone=false;
-    let fallbackTimer=null;
+    let fightDone=false;
+    let creakFallbackTimer=null;
+    let fightFallbackTimer=null;
     const triggerCreak=()=>{
       if(!creakCue||creakDone||token!==renderToken||page()!==current)return;
       creakDone=true;
-      if(fallbackTimer){window.clearTimeout(fallbackTimer);fallbackTimer=null;}
+      if(creakFallbackTimer){window.clearTimeout(creakFallbackTimer);creakFallbackTimer=null;}
       playStoryWoodCreakOnce();
+    };
+    const triggerFightCrowd=()=>{
+      if(!fightCue||fightDone||token!==renderToken||page()!==current)return;
+      fightDone=true;
+      if(fightFallbackTimer){window.clearTimeout(fightFallbackTimer);fightFallbackTimer=null;}
+      playStoryFightCrowdOnce();
     };
     await narrateStory({
       text,
@@ -258,14 +332,17 @@ export function renderStory(root,store){
       sound:phaseSound(),
       isCurrent:isTokenCurrent(token),
       onStart:()=>{
-        if(!creakCue)return;
-        fallbackTimer=window.setTimeout(triggerCreak,woodCreakFallbackDelay(text,rate));
+        if(creakCue)creakFallbackTimer=window.setTimeout(triggerCreak,woodCreakFallbackDelay(text,rate));
+        if(fightCue)fightFallbackTimer=window.setTimeout(triggerFightCrowd,fightCrowdFallbackDelay(text,rate));
       },
       onBoundary:event=>{
-        if(creakCue&&Number(event.charIndex)>=marker)triggerCreak();
+        const charIndex=Number(event.charIndex);
+        if(creakCue&&charIndex>=creakMarker)triggerCreak();
+        if(fightCue&&charIndex>=fightMarker)triggerFightCrowd();
       }
     });
-    if(fallbackTimer){window.clearTimeout(fallbackTimer);fallbackTimer=null;}
+    if(creakFallbackTimer){window.clearTimeout(creakFallbackTimer);creakFallbackTimer=null;}
+    if(fightFallbackTimer){window.clearTimeout(fightFallbackTimer);fightFallbackTimer=null;}
   }
 
   async function renderPhase(){
@@ -274,6 +351,7 @@ export function renderStory(root,store){
     const current=page();
     const audioEnabled=Boolean(store.getState().audioOn);
     stopStoryWoodCreak();
+    stopStoryFightCrowd();
     syncRain(pageIndex,audioEnabled);
     syncLocationAmbience(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
