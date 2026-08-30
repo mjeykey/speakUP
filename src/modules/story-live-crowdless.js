@@ -6,6 +6,11 @@ function applyStorySoundOverrides(){
     if(page.sound==='crowd')page.sound='none';
   });
 
+  // Visible pages 189–192 = source paragraph 48 (zero-based index 47).
+  // This is the fight in the aisle, where passengers are shouting.
+  // Keep the crowd effect on this one scene while older crowd markers remain muted.
+  if(fantasyStory.pages[47])fantasyStory.pages[47].sound='crowd';
+
   // Visible pages 81–84 = source paragraph 21 (zero-based index 20).
   // A dedicated continuous water-stream scene handles this range.
   if(fantasyStory.pages[20])fantasyStory.pages[20].sound='none';
