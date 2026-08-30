@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-test('page 189 crowd cue is slow and starts only at the matching words', async ({ page }) => {
+test('page 189 plays a slow crowd cue only between the matching text parts', async ({ page }) => {
   await page.addInitScript(() => {
     window.__speakupAudioPlays = [];
-    window.__speakupStoryUtterance = null;
+    window.__speakupStoryUtterances = [];
 
     HTMLMediaElement.prototype.play = function () {
       window.__speakupAudioPlays.push({
         src:this.src || this.currentSrc || '',
         rate:Number(this.playbackRate)||1,
+        volume:Number(this.volume),
         loop:Boolean(this.loop)
       });
       try{this.dispatchEvent(new Event('playing'));}catch(_){}
@@ -38,10 +39,10 @@ test('page 189 crowd cue is slow and starts only at the matching words', async (
       addEventListener:()=>{},
       removeEventListener:()=>{},
       resume:()=>{},
-      cancel:()=>{},
+      cancel(){this.speaking=false;},
       speak(utterance){
         this.speaking=true;
-        window.__speakupStoryUtterance=utterance;
+        window.__speakupStoryUtterances.push(utterance);
         utterance.onstart?.();
       }
     };
@@ -82,32 +83,37 @@ test('page 189 crowd cue is slow and starts only at the matching words', async (
   await expect(page.locator('.story-progress')).toContainText('Seite 189');
 
   const crowdSrc=await page.evaluate(async()=>{
-    const module=await import('/src/audio/story-sfx.js?v=test-189-cue');
+    const module=await import('/src/audio/story-sfx.js?v=test-189-sequence');
     return module.getStorySfxSrc('crowd');
   });
 
-  const crowdPlays=()=>page.evaluate(src=>window.__speakupAudioPlays.filter(item=>item.src===src),crowdSrc);
+  await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(1);
 
-  await expect.poll(async()=>(await crowdPlays()).length).toBe(0);
+  const firstText=await page.evaluate(()=>window.__speakupStoryUtterances[0].text);
+  expect(firstText.toLocaleLowerCase()).not.toContain('passageiros gritavam');
+  expect(firstText.toLocaleLowerCase()).toContain('lutaram no corredor');
 
-  const cueIndex=await page.evaluate(()=>{
-    const utterance=window.__speakupStoryUtterance;
-    if(!utterance)throw new Error('Story utterance was not created');
-    const text=String(utterance.text||'').toLocaleLowerCase();
-    const index=text.indexOf('passageiros gritavam');
-    if(index<0)throw new Error('Expected Portuguese fight cue was not found');
-    utterance.onboundary?.({charIndex:Math.max(0,index-1),name:'word',elapsedTime:0});
-    return index;
+  const audibleCrowdPlays=()=>page.evaluate(src=>
+    window.__speakupAudioPlays.filter(item=>item.src===src && item.volume>.01),
+    crowdSrc
+  );
+
+  await expect.poll(async()=>(await audibleCrowdPlays()).length).toBe(0);
+
+  await page.evaluate(()=>{
+    const utterance=window.__speakupStoryUtterances[0];
+    window.speechSynthesis.speaking=false;
+    utterance.onend?.();
   });
 
-  await expect.poll(async()=>(await crowdPlays()).length).toBe(0);
+  await expect.poll(async()=>(await audibleCrowdPlays()).length).toBe(1);
 
-  await page.evaluate(index=>{
-    window.__speakupStoryUtterance?.onboundary?.({charIndex:index,name:'word',elapsedTime:0});
-  },cueIndex);
-
-  await expect.poll(async()=>(await crowdPlays()).length).toBe(1);
-  const [play]=await crowdPlays();
-  expect(play.rate).toBeCloseTo(.72,2);
+  const [play]=await audibleCrowdPlays();
+  expect(play.rate).toBeCloseTo(.65,2);
+  expect(play.volume).toBeCloseTo(.48,2);
   expect(play.loop).toBe(false);
+
+  await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(2);
+  const secondText=await page.evaluate(()=>window.__speakupStoryUtterances[1].text);
+  expect(secondText.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
 });
