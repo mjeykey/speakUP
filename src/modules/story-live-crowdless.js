@@ -6,10 +6,9 @@ function applyStorySoundOverrides(){
     if(page.sound==='crowd')page.sound='none';
   });
 
-  // Visible pages 189–192 = source paragraph 48 (zero-based index 47).
-  // This is the fight in the aisle, where passengers are shouting.
-  // Keep the crowd effect on this one scene while older crowd markers remain muted.
-  if(fantasyStory.pages[47])fantasyStory.pages[47].sound='crowd';
+  // Visible pages 189–192 use a dedicated phrase-timed fight cue in story-live.js.
+  // Keep the normal page-level crowd effect disabled so it cannot fire too early.
+  if(fantasyStory.pages[47])fantasyStory.pages[47].sound='none';
 
   // Visible pages 81–84 = source paragraph 21 (zero-based index 20).
   // A dedicated continuous water-stream scene handles this range.
