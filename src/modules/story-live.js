@@ -34,8 +34,8 @@ const WOOD_CREAK_URL=new URL('../../assets/audio/wood-creak-161-164-core.mp3?v=2
 const WOOD_CREAK_VOLUME=1;
 const FIGHT_CROWD_SOURCE_PAGE=47;
 const FIGHT_CROWD_URL=getStorySfxSrc('crowd');
-const FIGHT_CROWD_VOLUME=.40;
-const FIGHT_CROWD_RATE=.72;
+const FIGHT_CROWD_VOLUME=.48;
+const FIGHT_CROWD_RATE=.65;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
@@ -134,6 +134,20 @@ function stopStoryFightCrowd(){
   try{audio.currentTime=0;}catch(_){}
 }
 
+function primeStoryFightCrowd(){
+  const audio=getStoryFightCrowdAudio();
+  if(!audio.paused&&!audio.ended)return;
+  audio.muted=false;
+  audio.loop=false;
+  audio.volume=0;
+  audio.playbackRate=FIGHT_CROWD_RATE;
+  try{audio.currentTime=0;}catch(_){}
+  void Promise.resolve(audio.play()).then(()=>{
+    try{audio.pause();audio.currentTime=0;}catch(_){}
+    audio.volume=FIGHT_CROWD_VOLUME;
+  }).catch(()=>{});
+}
+
 function playStoryFightCrowdOnce(){
   const audio=getStoryFightCrowdAudio();
   stopStoryFightCrowd();
@@ -142,32 +156,36 @@ function playStoryFightCrowdOnce(){
   audio.volume=FIGHT_CROWD_VOLUME;
   audio.playbackRate=FIGHT_CROWD_RATE;
   try{audio.currentTime=0;}catch(_){}
-  void Promise.resolve(audio.play()).catch(error=>{
+  return Promise.resolve(audio.play()).catch(error=>{
     console.warn('Fight crowd cue playback failed.',error);
+    return false;
   });
 }
 
 const FIGHT_CROWD_TERMS=[
-  'passengers shouted','passageiros gritavam','passagiere schrien','fahrgäste schrien',
-  'pasajeros gritaron','pasajeros gritaban','passagers criaient','passeggeri gridavano',
-  'putnici su vikali','putnici vikali'
+  'while passengers shouted',
+  'enquanto os passageiros gritavam',
+  'während die passagiere schrien',
+  'während die fahrgäste schrien',
+  'mientras los pasajeros gritaban',
+  'pendant que les passagers criaient',
+  'mentre i passeggeri gridavano',
+  'dok su putnici vikali'
 ];
 
-function fightCrowdMarker(text){
-  const value=String(text||'');
+function splitFightCrowdText(text){
+  const value=String(text||'').replace(/\s+/g,' ').trim();
   const lower=value.toLocaleLowerCase();
-  const indexes=FIGHT_CROWD_TERMS.map(term=>lower.indexOf(term)).filter(index=>index>=0);
-  if(indexes.length)return Math.min(...indexes);
-  const whileIndex=lower.indexOf('while ');
-  if(whileIndex>=0)return whileIndex;
-  return Math.floor(value.length*.68);
-}
-
-function fightCrowdFallbackDelay(text,rate){
-  const marker=fightCrowdMarker(text);
-  const words=String(text||'').slice(0,marker).trim().split(/\s+/).filter(Boolean).length;
-  const wordsPerSecond=2.45*Math.max(.55,Number(rate)||.82);
-  return Math.max(1200,Math.min(9000,Math.round((words/wordsPerSecond)*1000)));
+  for(const term of FIGHT_CROWD_TERMS){
+    const index=lower.indexOf(term);
+    if(index>0){
+      return{
+        before:value.slice(0,index).trim(),
+        after:value.slice(index).trim()
+      };
+    }
+  }
+  return null;
 }
 
 const WOOD_CREAK_TERMS=[
@@ -306,23 +324,39 @@ export function renderStory(root,store){
   async function narrate(text,voice,audioEnabled,rate,token,current){
     const creakCue=storyId==='fantasy-1'&&pageIndex===WOOD_CREAK_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled;
     const fightCue=storyId==='fantasy-1'&&pageIndex===FIGHT_CROWD_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled;
+    const fightSplit=fightCue?splitFightCrowdText(text):null;
+
+    if(fightSplit){
+      await narrateStory({
+        text:fightSplit.before,
+        voice,
+        enabled:audioEnabled,
+        rate,
+        sound:'none',
+        isCurrent:isTokenCurrent(token)
+      });
+      if(token!==renderToken||page()!==current)return;
+      await playStoryFightCrowdOnce();
+      if(token!==renderToken||page()!==current)return;
+      await narrateStory({
+        text:fightSplit.after,
+        voice,
+        enabled:audioEnabled,
+        rate,
+        sound:'none',
+        isCurrent:isTokenCurrent(token)
+      });
+      return;
+    }
+
     const creakMarker=creakCue?woodCreakMarker(text):-1;
-    const fightMarker=fightCue?fightCrowdMarker(text):-1;
     let creakDone=false;
-    let fightDone=false;
     let creakFallbackTimer=null;
-    let fightFallbackTimer=null;
     const triggerCreak=()=>{
       if(!creakCue||creakDone||token!==renderToken||page()!==current)return;
       creakDone=true;
       if(creakFallbackTimer){window.clearTimeout(creakFallbackTimer);creakFallbackTimer=null;}
       playStoryWoodCreakOnce();
-    };
-    const triggerFightCrowd=()=>{
-      if(!fightCue||fightDone||token!==renderToken||page()!==current)return;
-      fightDone=true;
-      if(fightFallbackTimer){window.clearTimeout(fightFallbackTimer);fightFallbackTimer=null;}
-      playStoryFightCrowdOnce();
     };
     await narrateStory({
       text,
@@ -333,16 +367,12 @@ export function renderStory(root,store){
       isCurrent:isTokenCurrent(token),
       onStart:()=>{
         if(creakCue)creakFallbackTimer=window.setTimeout(triggerCreak,woodCreakFallbackDelay(text,rate));
-        if(fightCue)fightFallbackTimer=window.setTimeout(triggerFightCrowd,fightCrowdFallbackDelay(text,rate));
       },
       onBoundary:event=>{
-        const charIndex=Number(event.charIndex);
-        if(creakCue&&charIndex>=creakMarker)triggerCreak();
-        if(fightCue&&charIndex>=fightMarker)triggerFightCrowd();
+        if(creakCue&&Number(event.charIndex)>=creakMarker)triggerCreak();
       }
     });
     if(creakFallbackTimer){window.clearTimeout(creakFallbackTimer);creakFallbackTimer=null;}
-    if(fightFallbackTimer){window.clearTimeout(fightFallbackTimer);fightFallbackTimer=null;}
   }
 
   async function renderPhase(){
@@ -352,6 +382,7 @@ export function renderStory(root,store){
     const audioEnabled=Boolean(store.getState().audioOn);
     stopStoryWoodCreak();
     stopStoryFightCrowd();
+    if(storyId==='fantasy-1'&&pageIndex===FIGHT_CROWD_SOURCE_PAGE&&phaseIndex!==2&&audioEnabled)primeStoryFightCrowd();
     syncRain(pageIndex,audioEnabled);
     syncLocationAmbience(pageIndex,audioEnabled);
     syncEffect(current,audioEnabled,token);
