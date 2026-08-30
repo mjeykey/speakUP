@@ -19,6 +19,8 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Test page 189 audio
+        run: npx playwright test tests/story-audio-189.spec.js --project=desktop-chromium
       - name: Run static QA
         run: npm test
       - name: Run browser QA
