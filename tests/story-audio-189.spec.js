@@ -15,16 +15,39 @@ test('page 189 crowd cue is slow and starts only at the matching words', async (
       return Promise.resolve();
     };
 
-    const synth=window.speechSynthesis;
-    if(synth){
-      synth.getVoices=()=>[];
-      synth.resume=()=>{};
-      synth.cancel=()=>{};
-      synth.speak=utterance=>{
+    class FakeSpeechSynthesisUtterance {
+      constructor(text){
+        this.text=String(text||'');
+        this.lang='';
+        this.rate=1;
+        this.pitch=1;
+        this.voice=null;
+        this.onstart=null;
+        this.onboundary=null;
+        this.onend=null;
+        this.onerror=null;
+      }
+    }
+
+    const fakeVoice={lang:'pt-PT',name:'SpeakUP Test Voice'};
+    const fakeSynth={
+      speaking:false,
+      pending:false,
+      paused:false,
+      getVoices:()=>[fakeVoice],
+      addEventListener:()=>{},
+      removeEventListener:()=>{},
+      resume:()=>{},
+      cancel:()=>{},
+      speak(utterance){
+        this.speaking=true;
         window.__speakupStoryUtterance=utterance;
         utterance.onstart?.();
-      };
-    }
+      }
+    };
+
+    Object.defineProperty(window,'SpeechSynthesisUtterance',{configurable:true,value:FakeSpeechSynthesisUtterance});
+    Object.defineProperty(window,'speechSynthesis',{configurable:true,value:fakeSynth});
 
     localStorage.setItem('speakup-progress-v1', JSON.stringify({
       learningLanguage:'en-GB',
