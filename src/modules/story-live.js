@@ -34,8 +34,8 @@ const WOOD_CREAK_URL=new URL('../../assets/audio/wood-creak-161-164-core.mp3?v=2
 const WOOD_CREAK_VOLUME=1;
 const FIGHT_CROWD_SOURCE_PAGE=47;
 const FIGHT_CROWD_URL=getStorySfxSrc('crowd');
-const FIGHT_CROWD_VOLUME=.48;
-const FIGHT_CROWD_RATE=.65;
+const FIGHT_CROWD_VOLUME=.78;
+const FIGHT_CROWD_RATE=.50;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
@@ -136,30 +136,51 @@ function stopStoryFightCrowd(){
 
 function primeStoryFightCrowd(){
   const audio=getStoryFightCrowdAudio();
-  if(!audio.paused&&!audio.ended)return;
   audio.muted=false;
-  audio.loop=false;
+  audio.loop=true;
   audio.volume=0;
   audio.playbackRate=FIGHT_CROWD_RATE;
   try{audio.currentTime=0;}catch(_){}
-  void Promise.resolve(audio.play()).then(()=>{
-    try{audio.pause();audio.currentTime=0;}catch(_){}
-    audio.volume=FIGHT_CROWD_VOLUME;
-  }).catch(()=>{});
+  if(!audio.paused&&!audio.ended)return;
+  void Promise.resolve(audio.play()).catch(()=>{});
 }
 
-function playStoryFightCrowdOnce(){
+function waitForStoryFightCrowd(audio,timeoutMs=6000){
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=()=>{
+      if(done)return;
+      done=true;
+      window.clearTimeout(timer);
+      audio.removeEventListener('ended',finish);
+      audio.removeEventListener('error',finish);
+      resolve();
+    };
+    const timer=window.setTimeout(finish,timeoutMs);
+    audio.addEventListener('ended',finish,{once:true});
+    audio.addEventListener('error',finish,{once:true});
+  });
+}
+
+async function playStoryFightCrowdOnce(){
   const audio=getStoryFightCrowdAudio();
-  stopStoryFightCrowd();
   audio.muted=false;
   audio.loop=false;
   audio.volume=FIGHT_CROWD_VOLUME;
   audio.playbackRate=FIGHT_CROWD_RATE;
   try{audio.currentTime=0;}catch(_){}
-  return Promise.resolve(audio.play()).catch(error=>{
-    console.warn('Fight crowd cue playback failed.',error);
-    return false;
-  });
+
+  if(audio.paused||audio.ended){
+    try{await audio.play();}
+    catch(error){
+      console.warn('Fight crowd cue playback failed.',error);
+      return false;
+    }
+  }
+
+  await waitForStoryFightCrowd(audio);
+  try{audio.pause();audio.currentTime=0;}catch(_){}
+  return true;
 }
 
 const FIGHT_CROWD_TERMS=[
@@ -440,6 +461,9 @@ export function renderStory(root,store){
     // These calls happen directly inside the user's navigation click, which keeps mobile audio reliable.
     syncRain(target.pageIndex,audioEnabled);
     syncLocationAmbience(target.pageIndex,audioEnabled);
+    if(storyId==='fantasy-1'&&target.pageIndex===FIGHT_CROWD_SOURCE_PAGE&&target.phaseIndex!==2&&audioEnabled){
+      primeStoryFightCrowd();
+    }
 
     const currentSound=phaseSound(pageIndex,phaseIndex);
     const targetSound=phaseSound(target.pageIndex,target.phaseIndex);
