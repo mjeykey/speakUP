@@ -1,18 +1,27 @@
 import { test, expect } from '@playwright/test';
 
-test('page 189 plays a slow crowd cue only between the matching text parts', async ({ page }) => {
+test('page 189 keeps speech and slow crowd cue fully separate', async ({ page }) => {
   await page.addInitScript(() => {
     window.__speakupAudioPlays = [];
     window.__speakupStoryUtterances = [];
+    window.__crowdEndedAt = 0;
 
     HTMLMediaElement.prototype.play = function () {
-      window.__speakupAudioPlays.push({
+      const entry={
         src:this.src || this.currentSrc || '',
         rate:Number(this.playbackRate)||1,
         volume:Number(this.volume),
-        loop:Boolean(this.loop)
-      });
+        loop:Boolean(this.loop),
+        at:performance.now()
+      };
+      window.__speakupAudioPlays.push(entry);
       try{this.dispatchEvent(new Event('playing'));}catch(_){}
+      if(entry.volume>.01){
+        setTimeout(()=>{
+          window.__crowdEndedAt=performance.now();
+          try{this.dispatchEvent(new Event('ended'));}catch(_){}
+        },80);
+      }
       return Promise.resolve();
     };
 
@@ -42,6 +51,7 @@ test('page 189 plays a slow crowd cue only between the matching text parts', asy
       cancel(){this.speaking=false;},
       speak(utterance){
         this.speaking=true;
+        utterance.__startedAt=performance.now();
         window.__speakupStoryUtterances.push(utterance);
         utterance.onstart?.();
       }
@@ -83,15 +93,15 @@ test('page 189 plays a slow crowd cue only between the matching text parts', asy
   await expect(page.locator('.story-progress')).toContainText('Seite 189');
 
   const crowdSrc=await page.evaluate(async()=>{
-    const module=await import('/src/audio/story-sfx.js?v=test-189-sequence');
+    const module=await import('/src/audio/story-sfx.js?v=test-189-separated');
     return module.getStorySfxSrc('crowd');
   });
 
   await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(1);
 
   const firstText=await page.evaluate(()=>window.__speakupStoryUtterances[0].text);
-  expect(firstText.toLocaleLowerCase()).not.toContain('passageiros gritavam');
   expect(firstText.toLocaleLowerCase()).toContain('lutaram no corredor');
+  expect(firstText.toLocaleLowerCase()).not.toContain('passageiros gritavam');
 
   const audibleCrowdPlays=()=>page.evaluate(src=>
     window.__speakupAudioPlays.filter(item=>item.src===src && item.volume>.01),
@@ -109,11 +119,20 @@ test('page 189 plays a slow crowd cue only between the matching text parts', asy
   await expect.poll(async()=>(await audibleCrowdPlays()).length).toBe(1);
 
   const [play]=await audibleCrowdPlays();
-  expect(play.rate).toBeCloseTo(.65,2);
-  expect(play.volume).toBeCloseTo(.48,2);
+  expect(play.rate).toBeCloseTo(.50,2);
+  expect(play.volume).toBeCloseTo(.78,2);
   expect(play.loop).toBe(false);
 
+  // The second spoken part must not begin until the effect has ended.
+  await expect.poll(async()=>page.evaluate(()=>window.__crowdEndedAt>0)).toBe(true);
   await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(2);
-  const secondText=await page.evaluate(()=>window.__speakupStoryUtterances[1].text);
-  expect(secondText.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
+
+  const timing=await page.evaluate(()=>({
+    crowdEndedAt:window.__crowdEndedAt,
+    secondStartedAt:window.__speakupStoryUtterances[1].__startedAt,
+    secondText:window.__speakupStoryUtterances[1].text
+  }));
+
+  expect(timing.secondStartedAt).toBeGreaterThanOrEqual(timing.crowdEndedAt);
+  expect(timing.secondText.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
 });
