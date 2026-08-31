@@ -1,6 +1,6 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=303';
+import { getBase64AudioSource } from './story-b64-source.js?v=304';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=303',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=304',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
 
@@ -40,9 +40,9 @@ async function playOnce(){
 function matchInfo(text=''){
   const value=String(text).toLocaleLowerCase();
   let index=value.indexOf(EN);
-  if(index>=0)return {index, phrase:EN};
+  if(index>=0)return {index,anchor:index+EN.indexOf('rolled')};
   index=value.indexOf(PT);
-  if(index>=0)return {index, phrase:PT};
+  if(index>=0)return {index,anchor:index+PT.indexOf('rolou')};
   return null;
 }
 
@@ -86,18 +86,15 @@ export function installScene217220TreeRattle(){
 
     utterance.addEventListener?.('boundary',event=>{
       const charIndex=Number(event.charIndex);
-      if(Number.isFinite(charIndex)&&charIndex>=match.index)trigger();
+      if(Number.isFinite(charIndex)&&charIndex>=match.anchor)trigger();
     });
 
     const originalStart=utterance.onstart;
     utterance.onstart=event=>{
       originalStart?.call(utterance,event);
-      if(match.index<=2){
-        trigger();
-      }else{
-        // Deterministic Android fallback when word boundaries are missing.
-        timer=window.setTimeout(trigger,Math.max(250,Math.min(3600,match.index*43)));
-      }
+      const relativeAnchor=Math.max(0,match.anchor-match.index);
+      // Start as the tree begins to move (on “rolled”), not at “The tree”.
+      timer=window.setTimeout(trigger,Math.max(650,Math.min(4200,relativeAnchor*70)));
     };
 
     const originalEnd=utterance.onend;
