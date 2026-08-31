@@ -4,7 +4,7 @@ import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=290';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
-import { getStorySfxSrc } from '../audio/story-sfx.js?v=268';
+import { FIGHT_GRUNTS_189 } from '../audio/story-fight-grunts-189-data.js?v=295';
 
 const PHASES=['native','learning','gap','review'];
 const CHURCH_BELL_PAGES=new Set([1]);
@@ -33,14 +33,19 @@ const WOOD_CREAK_SOURCE_PAGE=40;
 const WOOD_CREAK_URL=new URL('../../assets/audio/wood-creak-161-164-core.mp3?v=289',import.meta.url).href;
 const WOOD_CREAK_VOLUME=1;
 const FIGHT_CROWD_SOURCE_PAGE=47;
-const FIGHT_CROWD_URL=getStorySfxSrc('crowd');
-const FIGHT_CROWD_VOLUME=.78;
-const FIGHT_CROWD_RATE=.50;
+const PASSENGER_SHOUTS_SOURCE=FIGHT_GRUNTS_189;
+const PASSENGER_SHOUT_LAYERS=[
+  {delay:0,start:.10,rate:.82,volume:.46},
+  {delay:150,start:.42,rate:.96,volume:.38},
+  {delay:310,start:.72,rate:1.10,volume:.31},
+  {delay:470,start:.98,rate:.74,volume:.25}
+];
+const PASSENGER_SHOUT_DURATION_MS=2850;
 const VERIFIED_DOOR_URL=new URL('../../assets/audio/freesound_community-heavy-metal-door-74594.mp3?v=205',import.meta.url).href;
 let verifiedDoorAudio=null;
 let storyRainAudio=null;
 let storyWoodCreakAudio=null;
-let storyFightCrowdAudio=null;
+let storyFightCrowdAudio=[];
 const DEBUG_BUILD='B270';
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const shuffle=items=>[...items].sort(()=>Math.random()-.5);
@@ -114,72 +119,77 @@ function playStoryWoodCreakOnce(){
 }
 
 function getStoryFightCrowdAudio(){
-  if(storyFightCrowdAudio)return storyFightCrowdAudio;
-  const audio=new Audio(FIGHT_CROWD_URL);
-  audio.setAttribute('playsinline','');
-  audio.preload='auto';
-  audio.loop=false;
-  audio.muted=false;
-  audio.volume=FIGHT_CROWD_VOLUME;
-  audio.playbackRate=FIGHT_CROWD_RATE;
-  audio.onerror=()=>console.warn('Fight crowd cue failed to load.');
-  storyFightCrowdAudio=audio;
-  return audio;
+  if(storyFightCrowdAudio.length)return storyFightCrowdAudio;
+  storyFightCrowdAudio=PASSENGER_SHOUT_LAYERS.map(layer=>{
+    const audio=new Audio(PASSENGER_SHOUTS_SOURCE);
+    audio.setAttribute('playsinline','');
+    audio.preload='auto';
+    audio.loop=false;
+    audio.muted=false;
+    audio.volume=0;
+    audio.playbackRate=layer.rate;
+    try{audio.preservesPitch=false;}catch(_){}
+    try{audio.webkitPreservesPitch=false;}catch(_){}
+    try{audio.mozPreservesPitch=false;}catch(_){}
+    audio.onerror=()=>console.warn('Passenger shout layer failed to load.');
+    return audio;
+  });
+  return storyFightCrowdAudio;
 }
 
 function stopStoryFightCrowd(){
-  const audio=storyFightCrowdAudio;
-  if(!audio)return;
-  try{audio.pause();}catch(_){}
-  try{audio.currentTime=0;}catch(_){}
+  const audios=storyFightCrowdAudio;
+  if(!audios.length)return;
+  audios.forEach(audio=>{
+    try{audio.pause();}catch(_){}
+    try{audio.currentTime=0;}catch(_){}
+    audio.volume=0;
+  });
 }
 
 function primeStoryFightCrowd(){
-  const audio=getStoryFightCrowdAudio();
-  audio.muted=false;
-  audio.loop=true;
-  audio.volume=0;
-  audio.playbackRate=FIGHT_CROWD_RATE;
-  try{audio.currentTime=0;}catch(_){}
-  if(!audio.paused&&!audio.ended)return;
-  void Promise.resolve(audio.play()).catch(()=>{});
-}
-
-function waitForStoryFightCrowd(audio,timeoutMs=6000){
-  return new Promise(resolve=>{
-    let done=false;
-    const finish=()=>{
-      if(done)return;
-      done=true;
-      window.clearTimeout(timer);
-      audio.removeEventListener('ended',finish);
-      audio.removeEventListener('error',finish);
-      resolve();
-    };
-    const timer=window.setTimeout(finish,timeoutMs);
-    audio.addEventListener('ended',finish,{once:true});
-    audio.addEventListener('error',finish,{once:true});
+  const audios=getStoryFightCrowdAudio();
+  audios.forEach((audio,index)=>{
+    const layer=PASSENGER_SHOUT_LAYERS[index];
+    audio.muted=false;
+    audio.loop=true;
+    audio.volume=0;
+    audio.playbackRate=layer.rate;
+    try{audio.currentTime=layer.start;}catch(_){}
+    if(!audio.paused&&!audio.ended)return;
+    void Promise.resolve(audio.play()).catch(()=>{});
   });
 }
 
 async function playStoryFightCrowdOnce(){
-  const audio=getStoryFightCrowdAudio();
-  audio.muted=false;
-  audio.loop=false;
-  audio.volume=FIGHT_CROWD_VOLUME;
-  audio.playbackRate=FIGHT_CROWD_RATE;
-  try{audio.currentTime=0;}catch(_){}
+  const audios=getStoryFightCrowdAudio();
+  const timers=[];
 
-  if(audio.paused||audio.ended){
-    try{await audio.play();}
-    catch(error){
-      console.warn('Fight crowd cue playback failed.',error);
-      return false;
-    }
-  }
+  audios.forEach((audio,index)=>{
+    const layer=PASSENGER_SHOUT_LAYERS[index];
+    audio.muted=false;
+    audio.loop=true;
+    audio.volume=0;
+    audio.playbackRate=layer.rate;
 
-  await waitForStoryFightCrowd(audio);
-  try{audio.pause();audio.currentTime=0;}catch(_){}
+    timers.push(window.setTimeout(()=>{
+      try{audio.currentTime=layer.start;}catch(_){}
+      audio.volume=layer.volume;
+      if(audio.paused||audio.ended){
+        void Promise.resolve(audio.play()).catch(error=>{
+          console.warn('Passenger shout playback failed.',error);
+        });
+      }
+    },layer.delay));
+  });
+
+  await new Promise(resolve=>window.setTimeout(resolve,PASSENGER_SHOUT_DURATION_MS));
+  timers.forEach(timer=>window.clearTimeout(timer));
+  audios.forEach(audio=>{
+    audio.volume=0;
+    audio.loop=false;
+    try{audio.pause();audio.currentTime=0;}catch(_){}
+  });
   return true;
 }
 
