@@ -1,25 +1,47 @@
+import { getBase64AudioSource } from './story-b64-source.js?v=299';
+
 const TARGET_TEXT='A claw struck the lower wall of the watchtower. Stone dust burst from the doorway.';
 const TARGET_TEXT_PT='Uma garra atingiu a parede inferior da torre de vigia. Poeira de pedra explodiu pela entrada.';
 
-const GROWL_URL=new URL('../../assets/audio/monster-growl-213.mp3?v=299',import.meta.url).href;
-const ROCK_URL=new URL('../../assets/audio/rocks-gravel-213.mp3?v=299',import.meta.url).href;
+const GROWL_PARTS=[new URL('../../assets/audio/monster-growl-213.b64?v=299',import.meta.url).href];
+const ROCK_PARTS=[new URL('../../assets/audio/rocks-gravel-213.b64?v=299',import.meta.url).href];
 
 let growl=null;
 let rocks=null;
+let growlPromise=null;
+let rocksPromise=null;
 let installed=false;
 
-function makeAudio(url,volume=1){
-  const audio=new Audio(url);
-  audio.setAttribute('playsinline','');
-  audio.preload='auto';
-  audio.loop=false;
-  audio.volume=volume;
-  return audio;
+async function getGrowl(){
+  if(growl)return growl;
+  if(growlPromise)return growlPromise;
+  growlPromise=(async()=>{
+    const src=await getBase64AudioSource(GROWL_PARTS);
+    const audio=new Audio(src);
+    audio.setAttribute('playsinline','');
+    audio.preload='auto';
+    audio.loop=false;
+    audio.volume=.9;
+    growl=audio;
+    return audio;
+  })().catch(error=>{growlPromise=null;throw error;});
+  return growlPromise;
 }
 
-function ensureAudio(){
-  if(!growl)growl=makeAudio(GROWL_URL,.9);
-  if(!rocks)rocks=makeAudio(ROCK_URL,.95);
+async function getRocks(){
+  if(rocks)return rocks;
+  if(rocksPromise)return rocksPromise;
+  rocksPromise=(async()=>{
+    const src=await getBase64AudioSource(ROCK_PARTS);
+    const audio=new Audio(src);
+    audio.setAttribute('playsinline','');
+    audio.preload='auto';
+    audio.loop=false;
+    audio.volume=.95;
+    rocks=audio;
+    return audio;
+  })().catch(error=>{rocksPromise=null;throw error;});
+  return rocksPromise;
 }
 
 function reset(audio){
@@ -27,10 +49,12 @@ function reset(audio){
   try{audio.pause();audio.currentTime=0;}catch(_){ }
 }
 
-function play(audio){
-  if(!audio)return Promise.resolve();
+async function playRocks(){
+  let audio;
+  try{audio=await getRocks();}catch(_){return;}
   reset(audio);
-  return Promise.resolve(audio.play()).catch(()=>{});
+  audio.volume=.95;
+  void Promise.resolve(audio.play()).catch(()=>{});
 }
 
 function isTarget(text=''){
@@ -39,8 +63,7 @@ function isTarget(text=''){
 }
 
 function strikeIndex(text=''){
-  const value=String(text);
-  const lower=value.toLocaleLowerCase();
+  const lower=String(text).toLocaleLowerCase();
   for(const term of ['struck','atingiu']){
     const index=lower.indexOf(term);
     if(index>=0)return index;
@@ -48,21 +71,27 @@ function strikeIndex(text=''){
   return -1;
 }
 
-export function installScene213ClawImpact(){
-  if(installed)return;
-  installed=true;
-  ensureAudio();
-
-  document.addEventListener('pointerdown',event=>{
-    if(!event.target.closest('[data-next],[data-prev],[data-start]'))return;
-    ensureAudio();
-    for(const audio of [growl,rocks]){
+function primeAudio(){
+  for(const promise of [getGrowl(),getRocks()]){
+    void promise.then(audio=>{
       const oldVolume=audio.volume;
       audio.volume=0;
+      reset(audio);
       void Promise.resolve(audio.play()).then(()=>{
         window.setTimeout(()=>{reset(audio);audio.volume=oldVolume;},60);
       }).catch(()=>{audio.volume=oldVolume;});
-    }
+    }).catch(()=>{});
+  }
+}
+
+export function installScene213ClawImpact(){
+  if(installed)return;
+  installed=true;
+  void getGrowl().catch(()=>{});
+  void getRocks().catch(()=>{});
+
+  document.addEventListener('pointerdown',event=>{
+    if(event.target.closest('[data-next],[data-prev],[data-start]'))primeAudio();
   },true);
 
   const synth=window.speechSynthesis;
@@ -81,8 +110,7 @@ export function installScene213ClawImpact(){
     const triggerRocks=()=>{
       if(rocksPlayed)return;
       rocksPlayed=true;
-      ensureAudio();
-      void play(rocks);
+      void playRocks();
     };
 
     utterance.addEventListener?.('boundary',event=>{
@@ -96,10 +124,6 @@ export function installScene213ClawImpact(){
       originalEnd?.call(utterance,event);
     };
 
-    ensureAudio();
-    reset(growl);
-    growl.volume=.9;
-
     let spoken=false;
     const startNarration=()=>{
       if(spoken)return;
@@ -107,9 +131,13 @@ export function installScene213ClawImpact(){
       originalSpeak(utterance);
     };
 
-    growl.addEventListener('ended',startNarration,{once:true});
-    void Promise.resolve(growl.play()).then(()=>{
-      window.setTimeout(startNarration,1800);
+    void getGrowl().then(audio=>{
+      reset(audio);
+      audio.volume=.9;
+      audio.addEventListener('ended',startNarration,{once:true});
+      void Promise.resolve(audio.play()).then(()=>{
+        window.setTimeout(startNarration,1800);
+      }).catch(startNarration);
     }).catch(startNarration);
   };
 
