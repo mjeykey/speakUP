@@ -1,8 +1,10 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=311';
+import { getBase64AudioSource } from './story-b64-source.js?v=312';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=311',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=312',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
+const FULL_EN='seventy people pulled as one';
+const FULL_PT='setenta pessoas puxaram como uma só';
 
 let audio=null;
 let audioPromise=null;
@@ -41,10 +43,16 @@ async function playOnce(){
 
 function matchInfo(text=''){
   const value=String(text).toLocaleLowerCase();
-  let index=value.indexOf(EN);
-  if(index>=0)return {index,anchor:index+EN.indexOf('rolled')};
-  index=value.indexOf(PT);
-  if(index>=0)return {index,anchor:index+PT.indexOf('rolou')};
+  const en=value.indexOf(EN);
+  if(en>=0){
+    const direct=en<=2;
+    return {delay:direct?350:(value.includes(FULL_EN)?4300:Math.max(1200,en*55))};
+  }
+  const pt=value.indexOf(PT);
+  if(pt>=0){
+    const direct=pt<=2;
+    return {delay:direct?350:(value.includes(FULL_PT)?4300:Math.max(1200,pt*55))};
+  }
   return null;
 }
 
@@ -64,7 +72,6 @@ export function installScene217220TreeRattle(){
   installed=true;
   void getAudio().catch(()=>{});
 
-  // Prime on any user interaction so Android/Chrome allows the later effect playback.
   document.addEventListener('pointerdown',prime,{capture:true});
 
   const synth=window.speechSynthesis;
@@ -85,25 +92,22 @@ export function installScene217220TreeRattle(){
       void playOnce();
     };
 
-    utterance.addEventListener?.('boundary',event=>{
-      const charIndex=Number(event.charIndex);
-      if(Number.isFinite(charIndex)&&charIndex>=match.anchor&&!played){
-        if(timer)window.clearTimeout(timer);
-        timer=window.setTimeout(trigger,300);
-      }
-    });
-
     const originalStart=utterance.onstart;
     utterance.onstart=event=>{
       originalStart?.call(utterance,event);
-      timer=window.setTimeout(trigger,Math.max(1800,Math.min(7000,match.anchor*55)));
+      timer=window.setTimeout(trigger,match.delay);
     };
 
     const originalEnd=utterance.onend;
     utterance.onend=event=>{
       if(timer)window.clearTimeout(timer);
-      if(!played)trigger();
       originalEnd?.call(utterance,event);
+    };
+
+    const originalError=utterance.onerror;
+    utterance.onerror=event=>{
+      if(timer)window.clearTimeout(timer);
+      originalError?.call(utterance,event);
     };
 
     return originalSpeak(utterance);
