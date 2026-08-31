@@ -8,7 +8,7 @@ import { installScene157160 } from '../audio/story-scene-157-160.js?v=285';
 import { installScene169172 } from '../audio/story-scene-169-172.js?v=285';
 import { installScene173176 } from '../audio/story-scene-173-176.js?v=285';
 import { installScene189192FightGrunts } from '../audio/story-scene-189-192-fight-grunts.js?v=298';
-import { installScene213ClawImpact } from '../audio/story-scene-213-claw-impact.js?v=299';
+import { installScene213ClawImpact } from '../audio/story-scene-213-claw-impact.js?v=300';
 
 export function renderStory(root,store){
   installScene7376(root,store);
