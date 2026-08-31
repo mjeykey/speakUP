@@ -14,7 +14,6 @@ function getAudio(){
   player.loop=false;
   player.muted=false;
   player.volume=1;
-  player.onerror=()=>console.warn('Tree sound media error.');
   audio=player;
   return player;
 }
@@ -30,6 +29,9 @@ function playOnce(){
   player.muted=false;
   player.loop=false;
   player.volume=1;
+  player.playbackRate=.72;
+  try{player.preservesPitch=true;}catch(_){}
+  try{player.webkitPreservesPitch=true;}catch(_){}
   try{player.currentTime=0;}catch(_){}
   void Promise.resolve(player.play()).catch(error=>console.warn('Tree sound playback failed.',error));
 }
@@ -68,12 +70,14 @@ export function installScene217220TreeRattle(root,store){
     if(page===currentPage)return;
     currentPage=page;
     if(timer)window.clearTimeout(timer);
+    // The narration reaches “the tree” near the end of this line. Keep the
+    // reliable page-based trigger, but place the effect later at that word.
     timer=window.setTimeout(()=>{
       timer=null;
       if(visibleStoryPage(target)!==page)return;
       if(store?.getState&&store.getState().audioOn===false)return;
       playOnce();
-    },2500);
+    },3900);
   };
 
   observer=new MutationObserver(scan);
