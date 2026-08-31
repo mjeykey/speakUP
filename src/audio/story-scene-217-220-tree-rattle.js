@@ -1,48 +1,67 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=318';
+const TREE_B64_URL=new URL('../../assets/audio/tree-rattle-217-220.b64?v=319',import.meta.url).href;
 
-const TREE_PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=318',import.meta.url).href];
-
-let audio=null;
-let audioPromise=null;
 let installed=false;
 let observer=null;
 let timer=null;
 let currentPage=null;
+let context=null;
+let buffer=null;
+let bufferPromise=null;
+let activeSource=null;
 
-async function getAudio(){
-  if(audio)return audio;
-  if(audioPromise)return audioPromise;
-  audioPromise=(async()=>{
-    const src=await getBase64AudioSource(TREE_PARTS);
-    const player=new Audio(src);
-    player.setAttribute('playsinline','');
-    player.preload='auto';
-    player.loop=false;
-    player.muted=false;
-    player.volume=1;
-    audio=player;
-    return player;
-  })().catch(error=>{audioPromise=null;throw error;});
-  return audioPromise;
+function getContext(){
+  if(context)return context;
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)return null;
+  context=new AudioContextClass();
+  return context;
 }
 
-function reset(){
-  if(!audio)return;
-  try{audio.pause();audio.currentTime=0;}catch(_){}
+async function getBuffer(){
+  if(buffer)return buffer;
+  if(bufferPromise)return bufferPromise;
+  bufferPromise=(async()=>{
+    const ctx=getContext();
+    if(!ctx)throw new Error('Web Audio unavailable');
+    const response=await fetch(TREE_B64_URL,{cache:'force-cache'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const encoded=(await response.text()).replace(/\s+/g,'');
+    const binary=atob(encoded);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    const decoded=await ctx.decodeAudioData(bytes.buffer.slice(0));
+    buffer=decoded;
+    return decoded;
+  })().catch(error=>{bufferPromise=null;throw error;});
+  return bufferPromise;
+}
+
+function stopActive(){
+  if(!activeSource)return;
+  try{activeSource.stop();}catch(_){}
+  activeSource=null;
 }
 
 async function playOnce(){
-  let player;
-  try{player=await getAudio();}catch(error){console.warn('Tree sound load failed.',error);return;}
-  reset();
-  player.muted=false;
-  player.loop=false;
-  player.volume=1;
-  player.playbackRate=.82;
-  try{player.preservesPitch=true;}catch(_){}
-  try{player.webkitPreservesPitch=true;}catch(_){}
-  try{player.currentTime=0;}catch(_){}
-  void Promise.resolve(player.play()).catch(error=>console.warn('Tree sound playback failed.',error));
+  try{
+    const ctx=getContext();
+    if(!ctx)return;
+    if(ctx.state==='suspended')await ctx.resume();
+    const decoded=await getBuffer();
+    stopActive();
+    const source=ctx.createBufferSource();
+    const gain=ctx.createGain();
+    source.buffer=decoded;
+    source.playbackRate.value=.72;
+    gain.gain.value=1;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.onended=()=>{if(activeSource===source)activeSource=null;};
+    activeSource=source;
+    source.start(0);
+  }catch(error){
+    console.warn('Tree sound playback failed.',error);
+  }
 }
 
 function visibleStoryPage(root){
@@ -52,22 +71,15 @@ function visibleStoryPage(root){
 }
 
 function prime(){
-  void getAudio().then(player=>{
-    const oldVolume=player.volume;
-    player.volume=0;
-    reset();
-    void Promise.resolve(player.play()).then(()=>{
-      window.setTimeout(()=>{reset();player.volume=oldVolume;},80);
-    }).catch(()=>{player.volume=oldVolume;});
-  }).catch(()=>{});
+  const ctx=getContext();
+  if(ctx?.state==='suspended')void ctx.resume().catch(()=>{});
+  void getBuffer().catch(()=>{});
 }
 
 export function installScene217220TreeRattle(root,store){
   if(installed)return;
   installed=true;
-  void getAudio().catch(()=>{});
-  // Keep priming on every real tap. The Base64 source is prepared asynchronously,
-  // so a one-shot first tap can happen before the audio element exists on Android.
+  void getBuffer().catch(()=>{});
   document.addEventListener('pointerdown',prime,{capture:true});
 
   const target=root||document.body;
@@ -77,6 +89,7 @@ export function installScene217220TreeRattle(root,store){
     if(!inRange){
       currentPage=null;
       if(timer){window.clearTimeout(timer);timer=null;}
+      stopActive();
       return;
     }
     if(page===currentPage)return;
