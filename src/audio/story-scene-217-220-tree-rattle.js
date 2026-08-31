@@ -1,6 +1,6 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=307';
+import { getBase64AudioSource } from './story-b64-source.js?v=308';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=307',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=308',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
 
@@ -18,8 +18,6 @@ async function getAudio(){
     player.preload='auto';
     player.loop=false;
     player.volume=1;
-    player.playbackRate=0.42;
-    if('preservesPitch' in player)player.preservesPitch=true;
     audio=player;
     return player;
   })().catch(error=>{audioPromise=null;throw error;});
@@ -36,7 +34,7 @@ async function playOnce(){
   try{player=await getAudio();}catch(_){return;}
   reset(player);
   player.loop=false;
-  player.playbackRate=0.42;
+  player.playbackRate=1;
   player.volume=1;
   try{await player.play();}catch(_){ }
 }
