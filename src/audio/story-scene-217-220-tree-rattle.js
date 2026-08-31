@@ -1,12 +1,13 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=304';
+import { getBase64AudioSource } from './story-b64-source.js?v=305';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=304',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=305',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
 
 let audio=null;
 let audioPromise=null;
 let installed=false;
+let stopTimer=null;
 
 async function getAudio(){
   if(audio)return audio;
@@ -16,7 +17,7 @@ async function getAudio(){
     const player=new Audio(src);
     player.setAttribute('playsinline','');
     player.preload='auto';
-    player.loop=false;
+    player.loop=true;
     player.volume=1;
     audio=player;
     return player;
@@ -25,6 +26,7 @@ async function getAudio(){
 }
 
 function reset(player=audio){
+  if(stopTimer){window.clearTimeout(stopTimer);stopTimer=null;}
   if(!player)return;
   try{player.pause();player.currentTime=0;}catch(_){ }
 }
@@ -33,8 +35,12 @@ async function playOnce(){
   let player;
   try{player=await getAudio();}catch(_){return;}
   reset(player);
+  player.loop=true;
   player.volume=1;
-  try{await player.play();}catch(_){ }
+  try{
+    await player.play();
+    stopTimer=window.setTimeout(()=>reset(player),4000);
+  }catch(_){ }
 }
 
 function matchInfo(text=''){
@@ -92,9 +98,8 @@ export function installScene217220TreeRattle(){
     const originalStart=utterance.onstart;
     utterance.onstart=event=>{
       originalStart?.call(utterance,event);
-      const relativeAnchor=Math.max(0,match.anchor-match.index);
-      // Start as the tree begins to move (on “rolled”), not at “The tree”.
-      timer=window.setTimeout(trigger,Math.max(650,Math.min(4200,relativeAnchor*70)));
+      // Android fallback: use the absolute position in the utterance, so it cannot fire during “Seventy people”.
+      timer=window.setTimeout(trigger,Math.max(700,Math.min(7000,match.anchor*47)));
     };
 
     const originalEnd=utterance.onend;
