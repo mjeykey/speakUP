@@ -7,7 +7,7 @@ import { installScene153156 } from '../audio/story-scene-153-156.js?v=283';
 import { installScene157160 } from '../audio/story-scene-157-160.js?v=285';
 import { installScene169172 } from '../audio/story-scene-169-172.js?v=285';
 import { installScene173176 } from '../audio/story-scene-173-176.js?v=285';
-import { installScene189192FightGrunts } from '../audio/story-scene-189-192-fight-grunts.js?v=296';
+import { installScene189192FightGrunts } from '../audio/story-scene-189-192-fight-grunts.js?v=298';
 
 export function renderStory(root,store){
   installScene7376(root,store);
