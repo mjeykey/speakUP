@@ -2,12 +2,12 @@ import { FIGHT_GRUNTS_189 } from './story-fight-grunts-189-data.js?v=295';
 
 const TARGET_PAGES=new Set([189,190,192]);
 const FIGHT_TERMS=[
-  'they fought in the aisle',
-  'eles lutaram no corredor',
-  'sie kämpften im gang',
+  'fought in the aisle',
+  'lutaram no corredor',
+  'kämpften im gang',
   'lucharon en el pasillo',
-  'ils se battirent dans l’allée',
-  'ils se sont battus dans l’allée',
+  'se battirent dans l’allée',
+  'se sont battus dans l’allée',
   'combatterono nel corridoio',
   'borili su se u prolazu'
 ];
