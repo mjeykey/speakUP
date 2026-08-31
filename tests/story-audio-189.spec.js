@@ -127,7 +127,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
     window.__speakupAudioPlays.filter(item=>
       item.src===src &&
       item.volume>.2 &&
-      Math.abs(item.rate-.75)>.02
+      item.volume<.9
     ).length,
     humanSrc
   )).toBe(4);
@@ -136,7 +136,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
     window.__speakupAudioPlays.filter(item=>
       item.src===src &&
       item.volume>.2 &&
-      Math.abs(item.rate-.75)>.02
+      item.volume<.9
     ),
     humanSrc
   );
