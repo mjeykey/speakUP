@@ -1,12 +1,17 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=301';
+import { getBase64AudioSource } from './story-b64-source.js?v=302';
 
-const TARGET_EN='“Again!” Kael shouted. Seventy people pulled as one. The tree rolled away from the road.';
-const TARGET_PT='“Outra vez!”, gritou Kael. Setenta pessoas puxaram como uma só. A árvore rolou para fora da estrada.';
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=301',import.meta.url).href];
+const TARGET_PAGES=new Set([217,218,219,220]);
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=302',import.meta.url).href];
 
 let audio=null;
 let audioPromise=null;
 let installed=false;
+
+function currentPage(){
+  const text=document.querySelector('.story-progress')?.textContent||'';
+  const match=text.match(/(\d+)/);
+  return match?Number(match[1]):0;
+}
 
 async function getAudio(){
   if(audio)return audio;
@@ -17,7 +22,7 @@ async function getAudio(){
     player.setAttribute('playsinline','');
     player.preload='auto';
     player.loop=false;
-    player.volume=.95;
+    player.volume=1;
     audio=player;
     return player;
   })().catch(error=>{audioPromise=null;throw error;});
@@ -33,13 +38,8 @@ async function playOnce(){
   let player;
   try{player=await getAudio();}catch(_){return;}
   reset();
-  player.volume=.95;
+  player.volume=1;
   void Promise.resolve(player.play()).catch(()=>{});
-}
-
-function isTarget(text=''){
-  const value=String(text).trim();
-  return value.includes(TARGET_EN)||value.includes(TARGET_PT);
 }
 
 function anchorIndex(text=''){
@@ -57,7 +57,7 @@ function prime(){
     player.volume=0;
     try{player.currentTime=0;}catch(_){ }
     void Promise.resolve(player.play()).then(()=>{
-      window.setTimeout(()=>{try{player.pause();player.currentTime=0;player.volume=oldVolume;}catch(_){ }},60);
+      window.setTimeout(()=>{try{player.pause();player.currentTime=0;player.volume=oldVolume;}catch(_){ }},80);
     }).catch(()=>{player.volume=oldVolume;});
   }).catch(()=>{});
 }
@@ -76,12 +76,12 @@ export function installScene217220TreeRattle(){
   const originalSpeak=synth.speak.bind(synth);
 
   synth.speak=utterance=>{
-    if(!utterance||!isTarget(utterance.text)||utterance.__speakupTreeRattleInserted){
-      return originalSpeak(utterance);
-    }
+    const page=currentPage();
+    const anchor=anchorIndex(utterance?.text);
+    const shouldInsert=TARGET_PAGES.has(page)&&anchor>=0&&!utterance?.__speakupTreeRattleInserted;
+    if(!shouldInsert)return originalSpeak(utterance);
 
     utterance.__speakupTreeRattleInserted=true;
-    const anchor=anchorIndex(utterance.text);
     let played=false;
     let fallbackTimer=null;
 
@@ -94,14 +94,14 @@ export function installScene217220TreeRattle(){
 
     utterance.addEventListener?.('boundary',event=>{
       const charIndex=Number(event.charIndex);
-      if(Number.isFinite(charIndex)&&anchor>=0&&charIndex>=anchor)trigger();
+      if(Number.isFinite(charIndex)&&charIndex>=anchor)trigger();
     });
 
     const originalStart=utterance.onstart;
     utterance.onstart=event=>{
       originalStart?.call(utterance,event);
-      // Android/Chrome sometimes omits word-boundary events. Time this to the second sentence as fallback.
-      fallbackTimer=window.setTimeout(trigger,3300);
+      const estimatedMs=Math.max(250,Math.min(4200,anchor*52));
+      fallbackTimer=window.setTimeout(trigger,estimatedMs);
     };
 
     const originalEnd=utterance.onend;
