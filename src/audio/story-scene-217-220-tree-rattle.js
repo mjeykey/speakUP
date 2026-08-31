@@ -1,6 +1,6 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=308';
+import { getBase64AudioSource } from './story-b64-source.js?v=309';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=308',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=309',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
 
