@@ -1,17 +1,12 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=302';
+import { getBase64AudioSource } from './story-b64-source.js?v=303';
 
-const TARGET_PAGES=new Set([217,218,219,220]);
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=302',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=303',import.meta.url).href];
+const EN='the tree rolled away from the road';
+const PT='a árvore rolou para fora da estrada';
 
 let audio=null;
 let audioPromise=null;
 let installed=false;
-
-function currentPage(){
-  const text=document.querySelector('.story-progress')?.textContent||'';
-  const match=text.match(/(\d+)/);
-  return match?Number(match[1]):0;
-}
 
 async function getAudio(){
   if(audio)return audio;
@@ -29,35 +24,35 @@ async function getAudio(){
   return audioPromise;
 }
 
-function reset(){
-  if(!audio)return;
-  try{audio.pause();audio.currentTime=0;}catch(_){ }
+function reset(player=audio){
+  if(!player)return;
+  try{player.pause();player.currentTime=0;}catch(_){ }
 }
 
 async function playOnce(){
   let player;
   try{player=await getAudio();}catch(_){return;}
-  reset();
+  reset(player);
   player.volume=1;
-  void Promise.resolve(player.play()).catch(()=>{});
+  try{await player.play();}catch(_){ }
 }
 
-function anchorIndex(text=''){
+function matchInfo(text=''){
   const value=String(text).toLocaleLowerCase();
-  for(const term of ['the tree','a árvore']){
-    const index=value.indexOf(term);
-    if(index>=0)return index;
-  }
-  return -1;
+  let index=value.indexOf(EN);
+  if(index>=0)return {index, phrase:EN};
+  index=value.indexOf(PT);
+  if(index>=0)return {index, phrase:PT};
+  return null;
 }
 
 function prime(){
   void getAudio().then(player=>{
     const oldVolume=player.volume;
     player.volume=0;
-    try{player.currentTime=0;}catch(_){ }
+    reset(player);
     void Promise.resolve(player.play()).then(()=>{
-      window.setTimeout(()=>{try{player.pause();player.currentTime=0;player.volume=oldVolume;}catch(_){ }},80);
+      window.setTimeout(()=>{reset(player);player.volume=oldVolume;},80);
     }).catch(()=>{player.volume=oldVolume;});
   }).catch(()=>{});
 }
@@ -76,37 +71,38 @@ export function installScene217220TreeRattle(){
   const originalSpeak=synth.speak.bind(synth);
 
   synth.speak=utterance=>{
-    const page=currentPage();
-    const anchor=anchorIndex(utterance?.text);
-    const shouldInsert=TARGET_PAGES.has(page)&&anchor>=0&&!utterance?.__speakupTreeRattleInserted;
-    if(!shouldInsert)return originalSpeak(utterance);
+    const match=matchInfo(utterance?.text);
+    if(!utterance||!match||utterance.__speakupTreeRattleInserted)return originalSpeak(utterance);
 
     utterance.__speakupTreeRattleInserted=true;
     let played=false;
-    let fallbackTimer=null;
-
+    let timer=null;
     const trigger=()=>{
       if(played)return;
       played=true;
-      if(fallbackTimer)window.clearTimeout(fallbackTimer);
+      if(timer)window.clearTimeout(timer);
       void playOnce();
     };
 
     utterance.addEventListener?.('boundary',event=>{
       const charIndex=Number(event.charIndex);
-      if(Number.isFinite(charIndex)&&charIndex>=anchor)trigger();
+      if(Number.isFinite(charIndex)&&charIndex>=match.index)trigger();
     });
 
     const originalStart=utterance.onstart;
     utterance.onstart=event=>{
       originalStart?.call(utterance,event);
-      const estimatedMs=Math.max(250,Math.min(4200,anchor*52));
-      fallbackTimer=window.setTimeout(trigger,estimatedMs);
+      if(match.index<=2){
+        trigger();
+      }else{
+        // Deterministic Android fallback when word boundaries are missing.
+        timer=window.setTimeout(trigger,Math.max(250,Math.min(3600,match.index*43)));
+      }
     };
 
     const originalEnd=utterance.onend;
     utterance.onend=event=>{
-      if(fallbackTimer)window.clearTimeout(fallbackTimer);
+      if(timer)window.clearTimeout(timer);
       if(!played)trigger();
       originalEnd?.call(utterance,event);
     };
