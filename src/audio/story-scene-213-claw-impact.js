@@ -1,10 +1,10 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=299';
+import { getBase64AudioSource } from './story-b64-source.js?v=300';
 
 const TARGET_TEXT='A claw struck the lower wall of the watchtower. Stone dust burst from the doorway.';
 const TARGET_TEXT_PT='Uma garra atingiu a parede inferior da torre de vigia. Poeira de pedra explodiu pela entrada.';
 
-const GROWL_PARTS=[new URL('../../assets/audio/monster-growl-213.b64?v=299',import.meta.url).href];
-const ROCK_PARTS=[new URL('../../assets/audio/rocks-gravel-213.b64?v=299',import.meta.url).href];
+const GROWL_PARTS=[new URL('../../assets/audio/monster-growl-213.b64?v=300',import.meta.url).href];
+const ROCK_PARTS=[new URL('../../assets/audio/rocks-gravel-213.b64?v=300',import.meta.url).href];
 
 let growl=null;
 let rocks=null;
@@ -37,7 +37,7 @@ async function getRocks(){
     audio.setAttribute('playsinline','');
     audio.preload='auto';
     audio.loop=false;
-    audio.volume=.95;
+    audio.volume=.98;
     rocks=audio;
     return audio;
   })().catch(error=>{rocksPromise=null;throw error;});
@@ -53,7 +53,7 @@ async function playRocks(){
   let audio;
   try{audio=await getRocks();}catch(_){return;}
   reset(audio);
-  audio.volume=.95;
+  audio.volume=.98;
   void Promise.resolve(audio.play()).catch(()=>{});
 }
 
@@ -90,9 +90,7 @@ export function installScene213ClawImpact(){
   void getGrowl().catch(()=>{});
   void getRocks().catch(()=>{});
 
-  document.addEventListener('pointerdown',event=>{
-    if(event.target.closest('[data-next],[data-prev],[data-start]'))primeAudio();
-  },true);
+  document.addEventListener('pointerdown',primeAudio,{once:false,capture:true});
 
   const synth=window.speechSynthesis;
   if(!synth||typeof synth.speak!=='function'||synth.__speakupScene213Wrapped)return;
@@ -106,10 +104,12 @@ export function installScene213ClawImpact(){
     utterance.__speakupScene213Inserted=true;
     const anchor=strikeIndex(utterance.text);
     let rocksPlayed=false;
+    let fallbackTimer=0;
 
     const triggerRocks=()=>{
       if(rocksPlayed)return;
       rocksPlayed=true;
+      if(fallbackTimer)window.clearTimeout(fallbackTimer);
       void playRocks();
     };
 
@@ -118,10 +118,25 @@ export function installScene213ClawImpact(){
       if(Number.isFinite(charIndex)&&anchor>=0&&charIndex>=anchor)triggerRocks();
     });
 
+    const originalStart=utterance.onstart;
+    utterance.onstart=event=>{
+      originalStart?.call(utterance,event);
+      // Android/Chrome speech synthesis often does not emit word-boundary events.
+      // "struck" is the third spoken word, so this timer guarantees the impact there.
+      fallbackTimer=window.setTimeout(triggerRocks,760);
+    };
+
     const originalEnd=utterance.onend;
     utterance.onend=event=>{
+      if(fallbackTimer)window.clearTimeout(fallbackTimer);
       if(!rocksPlayed)triggerRocks();
       originalEnd?.call(utterance,event);
+    };
+
+    const originalError=utterance.onerror;
+    utterance.onerror=event=>{
+      if(fallbackTimer)window.clearTimeout(fallbackTimer);
+      originalError?.call(utterance,event);
     };
 
     let spoken=false;
