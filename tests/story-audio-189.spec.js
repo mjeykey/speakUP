@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-test('page 189 keeps speech and slow crowd cue fully separate', async ({ page }) => {
+test('page 189 plays fight grunts before crowd shouting with no overlap', async ({ page }) => {
   await page.addInitScript(() => {
     window.__speakupAudioPlays = [];
+    window.__speakupAudioEnds = [];
     window.__speakupStoryUtterances = [];
-    window.__crowdEndedAt = 0;
 
     HTMLMediaElement.prototype.play = function () {
       const entry={
@@ -18,7 +18,7 @@ test('page 189 keeps speech and slow crowd cue fully separate', async ({ page })
       try{this.dispatchEvent(new Event('playing'));}catch(_){}
       if(entry.volume>.01){
         setTimeout(()=>{
-          window.__crowdEndedAt=performance.now();
+          window.__speakupAudioEnds.push({src:entry.src,at:performance.now()});
           try{this.dispatchEvent(new Event('ended'));}catch(_){}
         },80);
       }
@@ -92,9 +92,10 @@ test('page 189 keeps speech and slow crowd cue fully separate', async ({ page })
   await expect(page.locator('.story-screen')).toBeVisible();
   await expect(page.locator('.story-progress')).toContainText('Seite 189');
 
-  const crowdSrc=await page.evaluate(async()=>{
-    const module=await import('/src/audio/story-sfx.js?v=test-189-separated');
-    return module.getStorySfxSrc('crowd');
+  const sources=await page.evaluate(async()=>{
+    const crowd=await import('/src/audio/story-sfx.js?v=test-189-order');
+    const fight=await import('/src/audio/story-fight-grunts-189-data.js?v=test-189-order');
+    return{crowdSrc:crowd.getStorySfxSrc('crowd'),fightSrc:fight.FIGHT_GRUNTS_189};
   });
 
   await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(1);
@@ -103,36 +104,45 @@ test('page 189 keeps speech and slow crowd cue fully separate', async ({ page })
   expect(firstText.toLocaleLowerCase()).toContain('lutaram no corredor');
   expect(firstText.toLocaleLowerCase()).not.toContain('passageiros gritavam');
 
-  const audibleCrowdPlays=()=>page.evaluate(src=>
-    window.__speakupAudioPlays.filter(item=>item.src===src && item.volume>.01),
-    crowdSrc
-  );
-
-  await expect.poll(async()=>(await audibleCrowdPlays()).length).toBe(0);
-
   await page.evaluate(()=>{
     const utterance=window.__speakupStoryUtterances[0];
     window.speechSynthesis.speaking=false;
     utterance.onend?.();
   });
 
-  await expect.poll(async()=>(await audibleCrowdPlays()).length).toBe(1);
+  await expect.poll(async()=>page.evaluate(src=>
+    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.01).length,
+    sources.fightSrc
+  )).toBe(1);
 
-  const [play]=await audibleCrowdPlays();
-  expect(play.rate).toBeCloseTo(.50,2);
-  expect(play.volume).toBeCloseTo(.78,2);
-  expect(play.loop).toBe(false);
+  await expect.poll(async()=>page.evaluate(src=>
+    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.01).length,
+    sources.crowdSrc
+  )).toBe(1);
 
-  // The second spoken part must not begin until the effect has ended.
-  await expect.poll(async()=>page.evaluate(()=>window.__crowdEndedAt>0)).toBe(true);
+  const order=await page.evaluate(({fightSrc,crowdSrc})=>{
+    const fightPlay=window.__speakupAudioPlays.find(item=>item.src===fightSrc&&item.volume>.01);
+    const fightEnd=window.__speakupAudioEnds.find(item=>item.src===fightSrc);
+    const crowdPlay=window.__speakupAudioPlays.find(item=>item.src===crowdSrc&&item.volume>.01);
+    const crowdEnd=window.__speakupAudioEnds.find(item=>item.src===crowdSrc);
+    return{fightPlay,fightEnd,crowdPlay,crowdEnd};
+  },sources);
+
+  expect(order.fightPlay.rate).toBeCloseTo(.75,2);
+  expect(order.fightPlay.volume).toBeCloseTo(.92,2);
+  expect(order.fightPlay.loop).toBe(false);
+  expect(order.crowdPlay.rate).toBeCloseTo(.50,2);
+  expect(order.crowdPlay.at).toBeGreaterThanOrEqual(order.fightEnd.at);
+
   await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(2);
-
-  const timing=await page.evaluate(()=>({
-    crowdEndedAt:window.__crowdEndedAt,
-    secondStartedAt:window.__speakupStoryUtterances[1].__startedAt,
-    secondText:window.__speakupStoryUtterances[1].text
+  const second=await page.evaluate(()=>({
+    text:window.__speakupStoryUtterances[1].text,
+    startedAt:window.__speakupStoryUtterances[1].__startedAt,
+    crowdEnd:window.__speakupAudioEnds.find(item=>item.src.includes('data:audio'))?.at||0,
+    ends:window.__speakupAudioEnds
   }));
 
-  expect(timing.secondStartedAt).toBeGreaterThanOrEqual(timing.crowdEndedAt);
-  expect(timing.secondText.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
+  expect(second.text.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
+  const crowdEnd=order.crowdEnd?.at||0;
+  expect(second.startedAt).toBeGreaterThanOrEqual(crowdEnd);
 });
