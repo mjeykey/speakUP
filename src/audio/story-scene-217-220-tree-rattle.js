@@ -1,6 +1,6 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=317';
+import { getBase64AudioSource } from './story-b64-source.js?v=318';
 
-const TREE_PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=317',import.meta.url).href];
+const TREE_PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=318',import.meta.url).href];
 
 let audio=null;
 let audioPromise=null;
@@ -66,7 +66,9 @@ export function installScene217220TreeRattle(root,store){
   if(installed)return;
   installed=true;
   void getAudio().catch(()=>{});
-  document.addEventListener('pointerdown',prime,{capture:true,once:true});
+  // Keep priming on every real tap. The Base64 source is prepared asynchronously,
+  // so a one-shot first tap can happen before the audio element exists on Android.
+  document.addEventListener('pointerdown',prime,{capture:true});
 
   const target=root||document.body;
   const scan=()=>{
