@@ -1,6 +1,6 @@
-import { getBase64AudioSource } from './story-b64-source.js?v=310';
+import { getBase64AudioSource } from './story-b64-source.js?v=311';
 
-const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=310',import.meta.url).href];
+const PARTS=[new URL('../../assets/audio/tree-rattle-217-220.b64?v=311',import.meta.url).href];
 const EN='the tree rolled away from the road';
 const PT='a árvore rolou para fora da estrada';
 
@@ -64,9 +64,8 @@ export function installScene217220TreeRattle(){
   installed=true;
   void getAudio().catch(()=>{});
 
-  document.addEventListener('pointerdown',event=>{
-    if(event.target.closest('[data-next],[data-prev],[data-start]'))prime();
-  },true);
+  // Prime on any user interaction so Android/Chrome allows the later effect playback.
+  document.addEventListener('pointerdown',prime,{capture:true});
 
   const synth=window.speechSynthesis;
   if(!synth||typeof synth.speak!=='function'||synth.__speakupTreeRattleWrapped)return;
