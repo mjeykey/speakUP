@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('page 189 plays fight grunts before crowd shouting with no overlap', async ({ page }) => {
+test('page 189 plays fight grunts then layered passenger shouts with no overlap', async ({ page }) => {
   await page.addInitScript(() => {
     window.__speakupAudioPlays = [];
     window.__speakupAudioEnds = [];
@@ -18,7 +18,7 @@ test('page 189 plays fight grunts before crowd shouting with no overlap', async 
       try{this.dispatchEvent(new Event('playing'));}catch(_){}
       if(entry.volume>.01){
         setTimeout(()=>{
-          window.__speakupAudioEnds.push({src:entry.src,at:performance.now()});
+          window.__speakupAudioEnds.push({src:entry.src,rate:entry.rate,volume:entry.volume,at:performance.now()});
           try{this.dispatchEvent(new Event('ended'));}catch(_){}
         },80);
       }
@@ -92,10 +92,9 @@ test('page 189 plays fight grunts before crowd shouting with no overlap', async 
   await expect(page.locator('.story-screen')).toBeVisible();
   await expect(page.locator('.story-progress')).toContainText('Seite 189');
 
-  const sources=await page.evaluate(async()=>{
-    const crowd=await import('/src/audio/story-sfx.js?v=test-189-order');
-    const fight=await import('/src/audio/story-fight-grunts-189-data.js?v=test-189-order');
-    return{crowdSrc:crowd.getStorySfxSrc('crowd'),fightSrc:fight.FIGHT_GRUNTS_189};
+  const humanSrc=await page.evaluate(async()=>{
+    const fight=await import('/src/audio/story-fight-grunts-189-data.js?v=test-189-layered');
+    return fight.FIGHT_GRUNTS_189;
   });
 
   await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(1);
@@ -111,38 +110,49 @@ test('page 189 plays fight grunts before crowd shouting with no overlap', async 
   });
 
   await expect.poll(async()=>page.evaluate(src=>
-    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.01).length,
-    sources.fightSrc
+    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01).length,
+    humanSrc
   )).toBe(1);
+
+  const fightTiming=await page.evaluate(src=>{
+    const play=window.__speakupAudioPlays.find(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01);
+    const end=window.__speakupAudioEnds.find(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01);
+    return{play,end};
+  },humanSrc);
+
+  expect(fightTiming.play.volume).toBeCloseTo(.92,2);
+  expect(fightTiming.play.loop).toBe(false);
 
   await expect.poll(async()=>page.evaluate(src=>
-    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.01).length,
-    sources.crowdSrc
-  )).toBe(1);
+    window.__speakupAudioPlays.filter(item=>
+      item.src===src &&
+      item.volume>.2 &&
+      Math.abs(item.rate-.75)>.02
+    ).length,
+    humanSrc
+  )).toBe(4);
 
-  const order=await page.evaluate(({fightSrc,crowdSrc})=>{
-    const fightPlay=window.__speakupAudioPlays.find(item=>item.src===fightSrc&&item.volume>.01);
-    const fightEnd=window.__speakupAudioEnds.find(item=>item.src===fightSrc);
-    const crowdPlay=window.__speakupAudioPlays.find(item=>item.src===crowdSrc&&item.volume>.01);
-    const crowdEnd=window.__speakupAudioEnds.find(item=>item.src===crowdSrc);
-    return{fightPlay,fightEnd,crowdPlay,crowdEnd};
-  },sources);
+  const passenger=await page.evaluate(src=>
+    window.__speakupAudioPlays.filter(item=>
+      item.src===src &&
+      item.volume>.2 &&
+      Math.abs(item.rate-.75)>.02
+    ),
+    humanSrc
+  );
 
-  expect(order.fightPlay.rate).toBeCloseTo(.75,2);
-  expect(order.fightPlay.volume).toBeCloseTo(.92,2);
-  expect(order.fightPlay.loop).toBe(false);
-  expect(order.crowdPlay.rate).toBeCloseTo(.50,2);
-  expect(order.crowdPlay.at).toBeGreaterThanOrEqual(order.fightEnd.at);
+  const rates=passenger.map(item=>Number(item.rate.toFixed(2))).sort((a,b)=>a-b);
+  expect(rates).toEqual([.74,.82,.96,1.10]);
+  expect(passenger.every(item=>item.loop===true)).toBe(true);
+  expect(Math.min(...passenger.map(item=>item.at))).toBeGreaterThanOrEqual(fightTiming.end.at);
 
-  await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length)).toBe(2);
+  await expect.poll(async()=>page.evaluate(()=>window.__speakupStoryUtterances.length),{timeout:6000}).toBe(2);
+
   const second=await page.evaluate(()=>({
     text:window.__speakupStoryUtterances[1].text,
-    startedAt:window.__speakupStoryUtterances[1].__startedAt,
-    crowdEnd:window.__speakupAudioEnds.find(item=>item.src.includes('data:audio'))?.at||0,
-    ends:window.__speakupAudioEnds
+    startedAt:window.__speakupStoryUtterances[1].__startedAt
   }));
 
   expect(second.text.toLocaleLowerCase()).toMatch(/^enquanto os passageiros gritavam/);
-  const crowdEnd=order.crowdEnd?.at||0;
-  expect(second.startedAt).toBeGreaterThanOrEqual(crowdEnd);
+  expect(second.startedAt).toBeGreaterThan(Math.max(...passenger.map(item=>item.at)));
 });
