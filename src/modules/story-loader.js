@@ -12,6 +12,7 @@ import { installScene213ClawImpact } from '../audio/story-scene-213-claw-impact.
 import { installScene217220TreeRattle } from '../audio/story-scene-217-220-tree-rattle.js?v=320';
 import { installScene221223Hammer } from '../audio/story-scene-221-223-hammer.js?v=322';
 import { installScene225228Monster } from '../audio/story-scene-225-228-monster.js?v=323';
+import { installScene225228Lightning } from '../audio/story-scene-225-228-lightning.js?v=324';
 
 export function renderStory(root,store){
   installScene7376(root,store);
@@ -27,5 +28,6 @@ export function renderStory(root,store){
   installScene217220TreeRattle(root,store);
   installScene221223Hammer(root,store);
   installScene225228Monster(root,store);
+  installScene225228Lightning(root,store);
   return renderBaseStory(root,store);
 }
