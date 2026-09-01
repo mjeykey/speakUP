@@ -1,36 +1,53 @@
-const SPLASH_URL=new URL('../../assets/audio/jumped-aboard-233-236.mp3?v=328',import.meta.url).href;
+const SPLASH_URL=new URL('../../assets/audio/jumped-aboard-233-236.mp3?v=329',import.meta.url).href;
 
-let audio=null;
+let players=[];
 let installed=false;
 let observer=null;
 let timer=null;
 let currentPage=null;
+let hitTimers=[];
 
-function getAudio(){
-  if(audio)return audio;
-  audio=new Audio(SPLASH_URL);
-  audio.setAttribute('playsinline','');
-  audio.preload='auto';
-  audio.loop=false;
-  audio.muted=false;
-  audio.volume=1;
-  return audio;
+function getPlayers(){
+  if(players.length)return players;
+  players=[0,1,2].map(()=>{
+    const audio=new Audio(SPLASH_URL);
+    audio.setAttribute('playsinline','');
+    audio.preload='auto';
+    audio.loop=false;
+    audio.muted=false;
+    audio.volume=1;
+    return audio;
+  });
+  return players;
 }
 
-function reset(){
-  if(!audio)return;
-  try{audio.pause();audio.currentTime=0;}catch(_){}
+function resetPlayer(player){
+  try{player.pause();player.currentTime=0;}catch(_){}
 }
 
-function playSplash(){
-  const player=getAudio();
-  reset();
+function stopAll(){
+  hitTimers.forEach(id=>window.clearTimeout(id));
+  hitTimers=[];
+  getPlayers().forEach(resetPlayer);
+}
+
+function playHit(index){
+  const player=getPlayers()[index];
+  resetPlayer(player);
   player.muted=false;
   player.loop=false;
   player.volume=1;
   player.playbackRate=1;
   try{player.currentTime=0;}catch(_){}
   void Promise.resolve(player.play()).catch(error=>console.warn('Aboard splash playback failed.',error));
+}
+
+function playSplashSequence(){
+  hitTimers.forEach(id=>window.clearTimeout(id));
+  hitTimers=[];
+  playHit(0);
+  hitTimers.push(window.setTimeout(()=>playHit(1),520));
+  hitTimers.push(window.setTimeout(()=>playHit(2),1040));
 }
 
 function pageNumber(root){
@@ -40,19 +57,20 @@ function pageNumber(root){
 }
 
 function prime(){
-  const player=getAudio();
-  const oldVolume=player.volume;
-  player.volume=0;
-  reset();
-  void Promise.resolve(player.play()).then(()=>{
-    window.setTimeout(()=>{reset();player.volume=oldVolume;},80);
-  }).catch(()=>{player.volume=oldVolume;});
+  getPlayers().forEach(player=>{
+    const oldVolume=player.volume;
+    player.volume=0;
+    resetPlayer(player);
+    void Promise.resolve(player.play()).then(()=>{
+      window.setTimeout(()=>{resetPlayer(player);player.volume=oldVolume;},80);
+    }).catch(()=>{player.volume=oldVolume;});
+  });
 }
 
 export function installScene233236AboardSplash(root,store){
   if(installed)return;
   installed=true;
-  getAudio();
+  getPlayers();
   document.addEventListener('pointerdown',prime,{capture:true});
 
   const target=root||document.body;
@@ -62,18 +80,18 @@ export function installScene233236AboardSplash(root,store){
     if(!inRange){
       currentPage=null;
       if(timer){window.clearTimeout(timer);timer=null;}
-      reset();
+      stopAll();
       return;
     }
     if(page===currentPage)return;
     currentPage=page;
     if(timer)window.clearTimeout(timer);
-    // "jumped aboard" comes late in the paragraph after the engine restart.
+    // Three splashes as passengers jump aboard one after another.
     timer=window.setTimeout(()=>{
       timer=null;
       if(pageNumber(target)!==page)return;
       if(store?.getState&&store.getState().audioOn===false)return;
-      playSplash();
+      playSplashSequence();
     },4300);
   };
 
