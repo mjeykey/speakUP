@@ -1,4 +1,4 @@
-const SPLASH_URL=new URL('../../assets/audio/jumped-aboard-233-236.mp3?v=330',import.meta.url).href;
+const SPLASH_URL=new URL('../../assets/audio/jumped-aboard-233-236.mp3?v=331',import.meta.url).href;
 
 let players=[];
 let installed=false;
@@ -47,11 +47,11 @@ function playSplashSequence(){
   hitTimers=[];
   const hits=[
     {delay:0,volume:1,rate:1},
-    {delay:360,volume:.92,rate:1.03},
-    {delay:730,volume:.96,rate:.98},
-    {delay:1110,volume:.9,rate:1.05},
-    {delay:1490,volume:.94,rate:1.01},
-    {delay:1880,volume:.88,rate:.97}
+    {delay:560,volume:.92,rate:1.03},
+    {delay:1130,volume:.96,rate:.98},
+    {delay:1710,volume:.9,rate:1.05},
+    {delay:2300,volume:.94,rate:1.01},
+    {delay:2900,volume:.88,rate:.97}
   ];
   hits.forEach((hit,index)=>{
     if(index===0)playHit(index,hit.volume,hit.rate);
@@ -95,13 +95,13 @@ export function installScene233236AboardSplash(root,store){
     if(page===currentPage)return;
     currentPage=page;
     if(timer)window.clearTimeout(timer);
-    // Several passengers jump aboard one after another, so use a fuller splash sequence.
+    // Start later on "jumped aboard" and leave a little more space between passengers.
     timer=window.setTimeout(()=>{
       timer=null;
       if(pageNumber(target)!==page)return;
       if(store?.getState&&store.getState().audioOn===false)return;
       playSplashSequence();
-    },4300);
+    },5000);
   };
 
   observer=new MutationObserver(scan);
