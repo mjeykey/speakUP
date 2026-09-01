@@ -1,4 +1,4 @@
-const LIGHTNING_URL=new URL('../../assets/audio/lightning-strike-225-228.mp3?v=326',import.meta.url).href;
+const LIGHTNING_URL=new URL('../../assets/audio/gregorquendel-lightning-strike-fx-i-175724.mp3?v=327',import.meta.url).href;
 
 let audio=null;
 let installed=false;
@@ -61,7 +61,7 @@ export function installScene225228Lightning(root,store){
     if(!inRange){
       currentPage=null;
       if(timer){window.clearTimeout(timer);timer=null;}
-      reset();
+      // Do not stop the lightning here: let the complete strike and thunder tail finish naturally.
       return;
     }
     if(page===currentPage)return;
