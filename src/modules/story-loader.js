@@ -10,7 +10,7 @@ import { installScene173176 } from '../audio/story-scene-173-176.js?v=285';
 import { installScene189192FightGrunts } from '../audio/story-scene-189-192-fight-grunts.js?v=298';
 import { installScene213ClawImpact } from '../audio/story-scene-213-claw-impact.js?v=300';
 import { installScene217220TreeRattle } from '../audio/story-scene-217-220-tree-rattle.js?v=320';
-import { installScene221223Hammer } from '../audio/story-scene-221-223-hammer.js?v=321';
+import { installScene221223Hammer } from '../audio/story-scene-221-223-hammer.js?v=322';
 
 export function renderStory(root,store){
   installScene7376(root,store);
