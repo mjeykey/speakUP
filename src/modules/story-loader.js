@@ -13,7 +13,7 @@ import { installScene217220TreeRattle } from '../audio/story-scene-217-220-tree-
 import { installScene221223Hammer } from '../audio/story-scene-221-223-hammer.js?v=322';
 import { installScene225228Monster } from '../audio/story-scene-225-228-monster.js?v=323';
 import { installScene225228Lightning } from '../audio/story-scene-225-228-lightning.js?v=327';
-import { installScene233236AboardSplash } from '../audio/story-scene-233-236-aboard-splash.js?v=329';
+import { installScene233236AboardSplash } from '../audio/story-scene-233-236-aboard-splash.js?v=330';
 
 export function renderStory(root,store){
   installScene7376(root,store);
