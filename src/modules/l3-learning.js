@@ -1,6 +1,7 @@
 import { getL3Cards, getL3Topic } from '../data/l3/index.js?v=1';
 import { getSpeechLanguage } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { getExerciseUiCopy, getTopicTitle } from '../app/ui-language.js?v=2';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -13,6 +14,7 @@ function escapeHtml(value) {
 
 export function renderL3Learning(root, store) {
   const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
   const topicId = state.selectedL3Topic || 'biology';
   const topic = getL3Topic(topicId);
   const cards = getL3Cards(topicId, state.learningLanguage, state.nativeLanguage);
@@ -24,23 +26,23 @@ export function renderL3Learning(root, store) {
   let moving = false;
 
   root.innerHTML = `<section class="screen knowledge-screen l3-screen">
-    <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
+    <button class="speakup-home-button" data-menu aria-label="${ui.backToSpeakUP}">SpeakUP</button>
     <div class="center knowledge-view">
-      <div class="knowledge-topic">${topic.emoji} ${escapeHtml(topic.title)}</div>
+      <div class="knowledge-topic">${topic.emoji} ${escapeHtml(getTopicTitle(topic, state.nativeLanguage))}</div>
       <div class="knowledge-card">
-        <p class="knowledge-level">L3 · Learn the world while learning the language</p>
+        <p class="knowledge-level">${ui.l3Level}</p>
         <h1 class="knowledge-term">${escapeHtml(card.term)}</h1>
         <p class="knowledge-translation">${escapeHtml(card.termTranslation)}</p>
         <div class="knowledge-divider"></div>
         <p class="knowledge-fact">${escapeHtml(card.fact)}</p>
         <p class="knowledge-fact-translation">${escapeHtml(card.factTranslation)}</p>
         <div class="knowledge-explanation-block">
-          <p class="knowledge-explanation-label">What exactly does that mean?</p>
+          <p class="knowledge-explanation-label">${ui.whatExactly}</p>
           <p class="knowledge-explanation">${escapeHtml(card.explanation)}</p>
           <p class="knowledge-explanation-translation">${escapeHtml(card.explanationTranslation)}</p>
         </div>
       </div>
-      <button class="primary-button knowledge-next" data-next>Next</button>
+      <button class="primary-button knowledge-next" data-next>${ui.next}</button>
     </div>
   </section>`;
 

@@ -105,3 +105,75 @@ export function getStoryCopy(story,nativeLanguage){
 }
 export function getTopicTitle(topic,nativeLanguage){ return TOPICS[getUiFamily(nativeLanguage)]?.[topic.id] || topic.title; }
 export function getSentenceLevelCopy(code){ return SENTENCE_LEVEL[getUiFamily(code)] || SENTENCE_LEVEL.en; }
+
+
+const EXERCISE_UI = {
+  en:{
+    menu:'Menu',next:'Next',listen:'Listen',memory:'Memory',notThisPair:'Not this pair.',words:'Words',repeat:'Repeat',tapRepeat:'tap and repeat',
+    miniExercise:'Mini exercise',emotions:'Emotions',correct:'Correct',tryAgain:'Try again.',
+    anxietyTitle:'Language for the moment',anxietySubtitle:'Listen, repeat, then complete.',gapSentence:'Gap sentence',
+    restart:'Start again',nextSentence:'Next sentence',speaking:'Speaking',communication:'Communication',
+    sayItBetter:'Say it better.',sayInstead:'Say instead:',again:'Again',backToSpeakUP:'Back to SpeakUP',
+    l2Level:'L2 · Learn through what you love',l3Level:'L3 · Learn the world while learning the language',
+    whatExactly:'What exactly does that mean?',completed:'Done.',effects:'Effects',chooseEffects:'Choose how each mode dissolves',
+    effectsHelp:'Every learning mode can have its own letter effect.',preview:'Preview',
+    later:'Later',back:'Back'
+  },
+  de:{
+    menu:'Menü',next:'Weiter',listen:'Anhören',memory:'Memory',notThisPair:'Nicht dieses Paar.',words:'Wörter',repeat:'Nachsprechen',tapRepeat:'antippen und nachsprechen',
+    miniExercise:'Mini-Übung',emotions:'Emotionen',correct:'Richtig',tryAgain:'Noch einmal versuchen.',
+    anxietyTitle:'Sprache für den Moment',anxietySubtitle:'Hören, nachsprechen, dann ergänzen.',gapSentence:'Lückensatz',
+    restart:'Neu starten',nextSentence:'Nächster Satz',speaking:'Sprechen',communication:'Kommunikation',
+    sayItBetter:'Sag es klarer.',sayInstead:'Sag stattdessen:',again:'Noch einmal',backToSpeakUP:'Zurück zu SpeakUP',
+    l2Level:'L2 · Lerne über das, was du liebst',l3Level:'L3 · Lerne die Welt und gleichzeitig die Sprache',
+    whatExactly:'Was bedeutet das genau?',completed:'Geschafft.',effects:'Effekte',chooseEffects:'Wähle, wie jeder Modus ausgeblendet wird',
+    effectsHelp:'Jeder Lernmodus kann seinen eigenen Buchstabeneffekt haben.',preview:'Vorschau',
+    later:'Später',back:'Zurück'
+  },
+  pt:{
+    menu:'Menu',next:'Seguinte',listen:'Ouvir',memory:'Memória',notThisPair:'Não é este par.',words:'Palavras',repeat:'Repetir',tapRepeat:'toca e repete',
+    miniExercise:'Mini-exercício',emotions:'Emoções',correct:'Certo',tryAgain:'Tenta novamente.',
+    anxietyTitle:'Linguagem para o momento',anxietySubtitle:'Ouve, repete e depois completa.',gapSentence:'Frase com espaço',
+    restart:'Recomeçar',nextSentence:'Próxima frase',speaking:'Falar',communication:'Comunicação',
+    sayItBetter:'Diz de forma mais clara.',sayInstead:'Diz antes:',again:'Outra vez',backToSpeakUP:'Voltar ao SpeakUP',
+    l2Level:'L2 · Aprende através do que gostas',l3Level:'L3 · Aprende sobre o mundo enquanto aprendes a língua',
+    whatExactly:'O que significa exatamente?',completed:'Concluído.',effects:'Efeitos',chooseEffects:'Escolhe como cada modo desaparece',
+    effectsHelp:'Cada modo de aprendizagem pode ter o seu próprio efeito de letras.',preview:'Pré-visualizar',
+    later:'Mais tarde',back:'Voltar'
+  },
+  es:{
+    menu:'Menú',next:'Siguiente',listen:'Escuchar',memory:'Memoria',notThisPair:'No es esta pareja.',words:'Palabras',repeat:'Repetir',tapRepeat:'toca y repite',
+    miniExercise:'Mini ejercicio',emotions:'Emociones',correct:'Correcto',tryAgain:'Inténtalo de nuevo.',
+    anxietyTitle:'Lenguaje para el momento',anxietySubtitle:'Escucha, repite y después completa.',gapSentence:'Frase con hueco',
+    restart:'Empezar de nuevo',nextSentence:'Siguiente frase',speaking:'Hablar',communication:'Comunicación',
+    sayItBetter:'Dilo de forma más clara.',sayInstead:'Di en su lugar:',again:'Otra vez',backToSpeakUP:'Volver a SpeakUP',
+    l2Level:'L2 · Aprende con lo que te gusta',l3Level:'L3 · Aprende sobre el mundo mientras aprendes el idioma',
+    whatExactly:'¿Qué significa exactamente?',completed:'Completado.',effects:'Efectos',chooseEffects:'Elige cómo desaparece cada modo',
+    effectsHelp:'Cada modo de aprendizaje puede tener su propio efecto de letras.',preview:'Vista previa',
+    later:'Más adelante',back:'Volver'
+  },
+  hr:{
+    menu:'Izbornik',next:'Dalje',listen:'Poslušaj',memory:'Memorija',notThisPair:'Ovo nije par.',words:'Riječi',repeat:'Ponovi',tapRepeat:'dodirni i ponovi',
+    miniExercise:'Mini vježba',emotions:'Emocije',correct:'Točno',tryAgain:'Pokušaj ponovno.',
+    anxietyTitle:'Jezik za ovaj trenutak',anxietySubtitle:'Poslušaj, ponovi pa dopuni.',gapSentence:'Rečenica s prazninom',
+    restart:'Počni ponovno',nextSentence:'Sljedeća rečenica',speaking:'Govor',communication:'Komunikacija',
+    sayItBetter:'Reci jasnije.',sayInstead:'Umjesto toga reci:',again:'Ponovno',backToSpeakUP:'Natrag na SpeakUP',
+    l2Level:'L2 · Uči kroz ono što voliš',l3Level:'L3 · Uči o svijetu dok učiš jezik',
+    whatExactly:'Što to točno znači?',completed:'Gotovo.',effects:'Efekti',chooseEffects:'Odaberi kako svaki način nestaje',
+    effectsHelp:'Svaki način učenja može imati vlastiti efekt slova.',preview:'Pregled',
+    later:'Kasnije',back:'Natrag'
+  },
+  fr:{
+    menu:'Menu',next:'Suivant',listen:'Écouter',memory:'Mémoire',notThisPair:'Ce n’est pas cette paire.',words:'Mots',repeat:'Répéter',tapRepeat:'touche et répète',
+    miniExercise:'Mini-exercice',emotions:'Émotions',correct:'Correct',tryAgain:'Réessaie.',
+    anxietyTitle:'Le langage du moment',anxietySubtitle:'Écoute, répète, puis complète.',gapSentence:'Phrase à compléter',
+    restart:'Recommencer',nextSentence:'Phrase suivante',speaking:'Parler',communication:'Communication',
+    sayItBetter:'Dis-le plus clairement.',sayInstead:'Dis plutôt :',again:'Encore',backToSpeakUP:'Retour à SpeakUP',
+    l2Level:'L2 · Apprends grâce à ce que tu aimes',l3Level:'L3 · Découvre le monde en apprenant la langue',
+    whatExactly:'Qu’est-ce que cela signifie exactement ?',completed:'Terminé.',effects:'Effets',chooseEffects:'Choisis comment chaque mode disparaît',
+    effectsHelp:'Chaque mode d’apprentissage peut avoir son propre effet de lettres.',preview:'Aperçu',
+    later:'Plus tard',back:'Retour'
+  }
+};
+
+export function getExerciseUiCopy(code){ return EXERCISE_UI[getUiFamily(code)] || EXERCISE_UI.en; }

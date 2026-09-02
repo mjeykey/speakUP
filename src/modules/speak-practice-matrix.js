@@ -1,5 +1,6 @@
 import { getSentenceLevels, getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
 
 function fillAnswers(sentence, answers) {
   let index = 0;
@@ -8,6 +9,7 @@ function fillAnswers(sentence, answers) {
 
 export function renderSpeakPractice(root, store) {
   const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
   const levels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
   const items = levels.flatMap(level => level.items.map(item => ({
     sentence: fillAnswers(item.sentence, item.answers),
@@ -29,14 +31,14 @@ export function renderSpeakPractice(root, store) {
   function draw() {
     const item = items[index];
     root.innerHTML = `<section class="screen speak-practice-screen">
-      <button class="menu-button" data-menu>Menu</button>
+      <button class="menu-button" data-menu>${ui.menu}</button>
       <div class="center speak-practice-view">
-        <p class="kicker">Sprechen · ${languageName(state.learningLanguage)} · ${index + 1}/${items.length}</p>
+        <p class="kicker">${ui.speaking} · ${languageName(state.learningLanguage)} · ${index + 1}/${items.length}</p>
         <p class="sentence">${item.sentence}</p>
         <p class="translation">${item.translation}</p>
         <div class="communication-actions">
-          <button class="secondary-button" data-listen>🔊 Anhören</button>
-          <button class="primary-button" data-next>Weiter</button>
+          <button class="secondary-button" data-listen>🔊 ${ui.listen}</button>
+          <button class="primary-button" data-next>${ui.next}</button>
         </div>
       </div>
     </section>`;

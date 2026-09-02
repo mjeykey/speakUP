@@ -1,5 +1,6 @@
 import { getSentenceLevels, getSpeechLanguage } from '../data/language-content-matrix.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
 
 function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
@@ -17,6 +18,7 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
 
 export function renderFillGap(root, store) {
   const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
   const levels = getSentenceLevels(state.learningLanguage, state.nativeLanguage);
   const level = levels.find(item => item.id === state.sentenceLevel) || levels[0];
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
@@ -60,7 +62,7 @@ export function renderFillGap(root, store) {
       button.onclick = async () => {
         if (locked) return;
         if (option !== expected) {
-          root.querySelector('[data-feedback]').textContent = 'Noch einmal.';
+          root.querySelector('[data-feedback]').textContent = ui.tryAgain;
           return;
         }
         locked = true;
@@ -70,7 +72,7 @@ export function renderFillGap(root, store) {
         if (solvedCount < item.answers.length) { draw(); return; }
         const full = fillAnswers(item.sentence,item.answers);
         root.querySelector('[data-sentence]').textContent = full;
-        root.querySelector('[data-feedback]').textContent = 'Richtig.';
+        root.querySelector('[data-feedback]').textContent = ui.correct + '.';
         await speak(full, speechLanguage, { enabled:state.audioOn, rate:.65 }).catch(() => {});
         window.setTimeout(() => {
           solvedCount = 0;

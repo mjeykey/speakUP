@@ -51,6 +51,8 @@ test('words advances and returns to menu', async ({ page }) => {
   await page.locator('[data-mode="words"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.words-screen')).toBeVisible();
+  await expect(page.locator('.words-screen')).toContainText('Palavras');
+  await expect(page.locator('[data-next]')).toHaveText('Seguinte');
   const first = await page.locator('.single-word').textContent();
   await page.locator('[data-next]').click();
   await expect(page.locator('.single-word')).not.toHaveText(first || '');
@@ -81,6 +83,10 @@ test('anxiety exercise advances and returns to menu', async ({ page }) => {
   await page.locator('[data-mode="anxiety"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.anxiety-world-screen')).toBeVisible();
+  await expect(page.locator('.anxiety-world-screen')).toContainText('Linguagem para o momento');
+  await expect(page.locator('.anxiety-world-screen')).toContainText('Ouve, repete e depois completa.');
+  await expect(page.locator('[data-listen]')).toContainText('Ouvir');
+  await expect(page.locator('[data-next]')).toContainText('Próxima frase');
   const first = await page.locator('.story-copy').first().textContent();
   await page.locator('[data-next]').click();
   await expect(page.locator('.story-copy').first()).not.toHaveText(first || '');
@@ -106,6 +112,10 @@ test('emotions opens an exercise', async ({ page }) => {
   await expect(page.locator('.emotions-screen')).toBeVisible();
   await page.locator('[data-i]').first().click();
   await expect(page.locator('[data-answer]').first()).toBeVisible();
+  await expect(page.locator('.emotion-journey')).toContainText('Palavras');
+  await expect(page.locator('.emotion-journey')).toContainText('Repetir');
+  await expect(page.locator('.emotion-journey')).toContainText('Mini-exercício');
+  await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
 });
 
 test('L2 opens a selected topic and advances', async ({ page }) => {
@@ -114,6 +124,8 @@ test('L2 opens a selected topic and advances', async ({ page }) => {
   await page.locator('[data-l2-topic]').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.l2-screen')).toBeVisible();
+  await expect(page.locator('.knowledge-level')).toContainText('Aprende através do que gostas');
+  await expect(page.locator('[data-next]')).toHaveText('Seguinte');
   const first = await page.locator('.knowledge-term').textContent();
   await page.locator('[data-next]').click();
   await expect(page.locator('.knowledge-term')).not.toHaveText(first || '');
@@ -125,6 +137,9 @@ test('L3 opens a selected topic and advances', async ({ page }) => {
   await page.locator('[data-l3-topic]').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.l3-screen')).toBeVisible();
+  await expect(page.locator('.knowledge-level')).toContainText('Aprende sobre o mundo');
+  await expect(page.locator('.knowledge-explanation-label')).toContainText('O que significa exatamente?');
+  await expect(page.locator('[data-next]')).toHaveText('Seguinte');
   const first = await page.locator('.knowledge-term').textContent();
   await page.locator('[data-next]').click();
   await expect(page.locator('.knowledge-term')).not.toHaveText(first || '');

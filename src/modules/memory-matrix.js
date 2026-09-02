@@ -1,5 +1,6 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
 
 const CONCEPTS = [
   {'en-GB':'self-love','de-DE':'Selbstliebe','pt-PT':'amor-próprio','es-ES':'amor propio','fr-FR':'amour de soi','hr-HR':'ljubav prema sebi','it-IT':'amor proprio'},
@@ -22,6 +23,7 @@ function shuffle(items){ return [...items].sort(() => Math.random() - 0.5); }
 
 export function renderMemory(root, store) {
   const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
   const learning = state.learningLanguage;
   const support = state.nativeLanguage;
   const selected = shuffle(CONCEPTS).slice(0,4);
@@ -33,10 +35,10 @@ export function renderMemory(root, store) {
   const matched = new Set();
 
   function draw(message='') {
-    root.innerHTML = `<section class="screen memory-screen"><button class="menu-button" data-menu>Menu</button><div class="center"><p class="kicker">Memory · ${languageName(learning)} ↔ ${languageName(support)}</p><div class="memory-grid">${cards.map(card => {
+    root.innerHTML = `<section class="screen memory-screen"><button class="menu-button" data-menu>${ui.menu}</button><div class="center"><p class="kicker">${ui.memory} · ${languageName(learning)} ↔ ${languageName(support)}</p><div class="memory-grid">${cards.map(card => {
       const visible = matched.has(card.pair) || open.includes(card.id);
       return `<button class="memory-card ${matched.has(card.pair)?'matched':''}" data-id="${card.id}" ${matched.has(card.pair)?'disabled':''}>${visible ? `<span>${card.label}</span>` : '<span>?</span>'}</button>`;
-    }).join('')}</div><p class="feedback" data-feedback>${matched.size===4?'Geschafft.':message}</p></div></section>`;
+    }).join('')}</div><p class="feedback" data-feedback>${matched.size===4?ui.completed:message}</p></div></section>`;
     root.querySelector('[data-menu]').onclick = () => { stopSpeech(); store.setState({screen:'menu'}); };
     root.querySelectorAll('[data-id]').forEach(button => button.onclick = async () => {
       if (open.includes(button.dataset.id) || open.length >= 2) return;
@@ -52,7 +54,7 @@ export function renderMemory(root, store) {
         open = [];
         window.setTimeout(() => draw(), 250);
       } else {
-        window.setTimeout(() => { open=[]; draw('Nicht dieses Paar.'); }, 700);
+        window.setTimeout(() => { open=[]; draw(ui.notThisPair); }, 700);
       }
     });
   }

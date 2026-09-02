@@ -1,5 +1,6 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=61';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=3';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
 
 const EXERCISES = {
   'en-GB': [
@@ -59,6 +60,7 @@ function esc(v){ return String(v??'').replaceAll('&','&amp;').replaceAll('<','&l
 
 export function renderAnxiety(root,store){
   const state=store.getState();
+  const ui=getExerciseUiCopy(state.nativeLanguage);
   const code=canonical(state.learningLanguage);
   const items=EXERCISES[code]||EXERCISES['en-GB'];
   const voice=getSpeechLanguage(state.learningLanguage);
@@ -67,10 +69,10 @@ export function renderAnxiety(root,store){
 
   function draw(){
     const [sentence,gap,options,answer]=items[index];
-    root.innerHTML=`<section class="screen anxiety-world-screen"><button class="menu-button" data-menu>Menu</button><div class="center emotion-journey"><p class="kicker">Anxiety · ${esc(languageName(state.learningLanguage))}</p><h1>Sprache für den Moment</h1><p class="muted">Hören, nachsprechen, dann ergänzen.</p><div class="emotion-panel"><p class="story-copy">${esc(sentence)}</p><button class="secondary-button" data-listen>🔊 Anhören</button></div><div class="emotion-panel"><p class="kicker">Lückensatz</p><p class="story-copy">${esc(gap)}</p><div class="emotion-answer-grid">${shuffle(options).map(x=>`<button class="emotion-answer" data-answer="${esc(x)}">${esc(x)}</button>`).join('')}</div><p class="feedback">${esc(feedback)}</p></div><div class="memory-actions"><button class="secondary-button" data-prev ${index===0?'disabled':''}>←</button><button class="primary-button" data-next>${index===items.length-1?'Neu starten':'Nächster Satz'}</button></div></div></section>`;
+    root.innerHTML=`<section class="screen anxiety-world-screen"><button class="menu-button" data-menu>${ui.menu}</button><div class="center emotion-journey"><p class="kicker">Anxiety · ${esc(languageName(state.learningLanguage))}</p><h1>${ui.anxietyTitle}</h1><p class="muted">${ui.anxietySubtitle}</p><div class="emotion-panel"><p class="story-copy">${esc(sentence)}</p><button class="secondary-button" data-listen>🔊 ${ui.listen}</button></div><div class="emotion-panel"><p class="kicker">${ui.gapSentence}</p><p class="story-copy">${esc(gap)}</p><div class="emotion-answer-grid">${shuffle(options).map(x=>`<button class="emotion-answer" data-answer="${esc(x)}">${esc(x)}</button>`).join('')}</div><p class="feedback">${esc(feedback)}</p></div><div class="memory-actions"><button class="secondary-button" data-prev ${index===0?'disabled':''}>←</button><button class="primary-button" data-next>${index===items.length-1?ui.restart:ui.nextSentence}</button></div></div></section>`;
     root.querySelector('[data-menu]').onclick=()=>{stopSpeech();store.setState({screen:'menu'});};
     root.querySelector('[data-listen]').onclick=()=>speak(sentence,voice,{enabled:state.audioOn,rate:.7}).catch(()=>{});
-    root.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{feedback=b.dataset.answer===answer?'✓ Richtig':'Noch einmal versuchen.';draw();});
+    root.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{feedback=b.dataset.answer===answer?`✓ ${ui.correct}`:ui.tryAgain;draw();});
     root.querySelector('[data-prev]').onclick=()=>{index=Math.max(0,index-1);feedback='';draw();};
     root.querySelector('[data-next]').onclick=()=>{index=index===items.length-1?0:index+1;feedback='';draw();};
   }

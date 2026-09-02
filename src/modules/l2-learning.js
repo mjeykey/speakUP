@@ -1,6 +1,7 @@
 import { getL2Cards, getL2Topic } from '../data/l2/index.js?v=1';
 import { getSpeechLanguage } from '../data/language-content-extended.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
+import { getExerciseUiCopy, getTopicTitle } from '../app/ui-language.js?v=2';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -13,6 +14,7 @@ function escapeHtml(value) {
 
 export function renderL2Learning(root, store) {
   const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
   const topicId = state.selectedL2Topic || 'cooking';
   const topic = getL2Topic(topicId);
   const cards = getL2Cards(topicId, state.learningLanguage, state.nativeLanguage);
@@ -24,18 +26,18 @@ export function renderL2Learning(root, store) {
   let moving = false;
 
   root.innerHTML = `<section class="screen knowledge-screen l2-screen">
-    <button class="speakup-home-button" data-menu aria-label="Back to SpeakUP">SpeakUP</button>
+    <button class="speakup-home-button" data-menu aria-label="${ui.backToSpeakUP}">SpeakUP</button>
     <div class="center knowledge-view">
-      <div class="knowledge-topic">${topic.emoji} ${escapeHtml(topic.title)}</div>
+      <div class="knowledge-topic">${topic.emoji} ${escapeHtml(getTopicTitle(topic, state.nativeLanguage))}</div>
       <div class="knowledge-card">
-        <p class="knowledge-level">L2 · Learn through what you love</p>
+        <p class="knowledge-level">${ui.l2Level}</p>
         <h1 class="knowledge-term">${escapeHtml(card.target)}</h1>
         <p class="knowledge-translation">${escapeHtml(card.translation)}</p>
         <div class="knowledge-divider"></div>
         <p class="knowledge-info">${escapeHtml(card.info)}</p>
         <p class="knowledge-info-translation">${escapeHtml(card.infoTranslation)}</p>
       </div>
-      <button class="primary-button knowledge-next" data-next>Next</button>
+      <button class="primary-button knowledge-next" data-next>${ui.next}</button>
     </div>
   </section>`;
 
