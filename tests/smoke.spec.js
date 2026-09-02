@@ -25,6 +25,27 @@ test('menu exposes supported languages only', async ({ page }) => {
   await expect(page.locator('[data-learning] option[value="it-IT"]')).toHaveCount(0);
 });
 
+test('menu and language selectors follow the selected native language', async ({ page }) => {
+  await openMenu(page);
+  const panel = page.locator('.menu-panel');
+
+  await expect(panel).toContainText('Exercício');
+  await expect(page.locator('[data-learning] option[value="en-GB"]')).toContainText('Inglês');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
+
+  await page.locator('[data-native]').selectOption('de-DE');
+  await expect(panel).toContainText('Übung');
+  await expect(panel).toContainText('Einstellungen');
+  await expect(page.locator('[data-learning] option[value="en-GB"]')).toContainText('Englisch');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de-DE');
+
+  await page.locator('[data-native]').selectOption('fr-FR');
+  await expect(panel).toContainText('Exercice');
+  await expect(panel).toContainText('Paramètres');
+  await expect(page.locator('[data-learning] option[value="de-DE"]')).toContainText('Allemand');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr-FR');
+});
+
 test('words advances and returns to menu', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="words"]').click();
@@ -37,10 +58,11 @@ test('words advances and returns to menu', async ({ page }) => {
   await expect(page.locator('.menu-screen')).toBeVisible();
 });
 
-test('sentences opens level selection and exercise', async ({ page }) => {
+test('sentences opens localized level selection and exercise', async ({ page }) => {
   await openMenu(page);
-  await page.getByRole('button', { name:/^Sätze/i }).click();
+  await page.locator('[data-mode="fill-gap"]').click();
   await expect(page.locator('.sentence-level-view')).toBeVisible();
+  await expect(page.locator('.sentence-level-view')).toContainText('Escolhe o teu nível');
   await page.locator('[data-level="beginner"]').click();
   await expect(page.locator('.sentence-mode-view')).toBeVisible();
   await expect(page.locator('.choice').first()).toBeVisible();

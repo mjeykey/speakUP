@@ -1,27 +1,33 @@
-const LEVELS = [
-  { id: 'beginner', emoji: '🌱', title: 'Beginner', description: 'One gap with full support.' },
-  { id: 'survivor', emoji: '🔥', title: 'Survivor', description: 'Two gaps with full support.' },
-  { id: 'explorer', emoji: '🧭', title: 'Explorer', description: 'Three gaps with softer support.' }
+import { getSentenceLevelCopy } from '../app/ui-language.js?v=1';
+
+const LEVEL_IDS = [
+  { id: 'beginner', emoji: '🌱' },
+  { id: 'survivor', emoji: '🔥' },
+  { id: 'explorer', emoji: '🧭' }
 ];
 
 export function renderSentenceLevelSelect(root, store) {
   const current = store.getState();
-  const selected = LEVELS.some(level => level.id === current.sentenceLevel)
+  const copy = getSentenceLevelCopy(current.nativeLanguage);
+  const selected = LEVEL_IDS.some(level => level.id === current.sentenceLevel)
     ? current.sentenceLevel
     : 'beginner';
 
   root.innerHTML = `<section class="screen sentence-mode-screen">
-    <button class="speakup-home-button" data-menu aria-label="Back to menu">SpeakUP</button>
+    <button class="speakup-home-button" data-menu aria-label="${copy.back}">SpeakUP</button>
     <div class="center sentence-level-view">
-      <p class="kicker">Sentences</p>
-      <h1>Choose your level</h1>
-      <p class="muted">Select one category to begin.</p>
+      <p class="kicker">${copy.kicker}</p>
+      <h1>${copy.title}</h1>
+      <p class="muted">${copy.subtitle}</p>
       <div class="sentence-level-grid" data-level-grid>
-        ${LEVELS.map(level => `<button type="button" class="sentence-level-card ${selected === level.id ? 'selected' : ''}" data-level="${level.id}" aria-pressed="${selected === level.id}">
+        ${LEVEL_IDS.map(level => {
+          const [title, description] = copy.levels[level.id];
+          return `<button type="button" class="sentence-level-card ${selected === level.id ? 'selected' : ''}" data-level="${level.id}" aria-pressed="${selected === level.id}">
           <span class="sentence-level-emoji">${level.emoji}</span>
-          <span class="sentence-level-title">${level.title}</span>
-          <small>${level.description}</small>
-        </button>`).join('')}
+          <span class="sentence-level-title">${title}</span>
+          <small>${description}</small>
+        </button>`;
+        }).join('')}
       </div>
     </div>
   </section>`;

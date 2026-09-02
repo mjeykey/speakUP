@@ -2,71 +2,60 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
+import { getLanguageOptionLabel, getMenuCopy, getStoryCopy, getTopicTitle } from '../app/ui-language.js?v=1';
 
-const MODES = [
-  ['emotions', 'Emotionen', 'Wörter, Sätze und spielerische Ausdrücke für Gefühle.'],
-  ['anxiety', 'Anxiety', 'Lerne Sprache in kleinen Geschichten über ängstliche Gedanken, Perspektive und Humor.'],
-  ['fill-gap', 'Sätze', 'Wähle dein Level und ergänze den Satz.'],
-  ['memory', 'Memory', 'Finde Wörter, Bedeutungen und passende Verbindungen.'],
-  ['words', 'Wörter', 'Ein Wort nach dem anderen.'],
-  ['speak-practice', 'Sprechen', 'Sprich echte, nützliche Sätze laut aus.'],
-  ['communication-strength', 'Kommunikation', 'Lerne einen Satz und eine klarere Formulierung.'],
-  ['story', 'Geschichten', 'Lerne Sprache in kleinen Geschichten.']
-];
+const MODE_IDS = ['emotions', 'anxiety', 'fill-gap', 'memory', 'words', 'speak-practice', 'communication-strength', 'story'];
+const LEVEL_IDS = ['l1', 'l2', 'l3'];
+const L1_MODE_IDS = new Set(MODE_IDS);
 
-const LEVELS = [
-  ['l1', 'L1 · Sprache', 'Wörter, Sätze, Sprechen und Geschichten.'],
-  ['l2', 'L2 · Interessen & Beruf', 'Lerne Sprache über Themen, die dich interessieren.'],
-  ['l3', 'L3 · Wissen', 'Lerne Fakten und praktisches Wissen in der neuen Sprache.']
-];
-
-const L1_MODE_IDS = new Set(MODES.map(([id]) => id));
-
-function topicButton(topic, selected, attribute) {
-  return `<button type="button" class="menu-card knowledge-topic-card ${selected ? 'selected' : ''}" ${attribute}="${topic.id}"><span>${topic.emoji} ${topic.title}</span><small>${topic.subtitle}</small></button>`;
+function topicButton(topic, selected, attribute, nativeLanguage) {
+  const title = getTopicTitle(topic, nativeLanguage);
+  return `<button type="button" class="menu-card knowledge-topic-card ${selected ? 'selected' : ''}" ${attribute}="${topic.id}"><span>${topic.emoji} ${title}</span><small>${topic.subtitle}</small></button>`;
 }
 
 export function renderMenu(root, store) {
   const state = store.getState();
+  const copy = getMenuCopy(state.nativeLanguage);
   const learningLevel = ['l1','l2','l3'].includes(state.learningLevel) ? state.learningLevel : 'l1';
-  const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
-  const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${language.label}</option>`).join('');
+  const languageOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.learningLanguage === language.code ? 'selected' : ''}>${getLanguageOptionLabel(language, state.nativeLanguage)}</option>`).join('');
+  const nativeOptions = LANGUAGE_OPTIONS.map(language => `<option value="${language.code}" ${state.nativeLanguage === language.code ? 'selected' : ''}>${getLanguageOptionLabel(language, state.nativeLanguage)}</option>`).join('');
 
   const waitingForStory = learningLevel === 'l1' && state.mode === 'story' && !state.selectedStory;
   const waitingForL2 = learningLevel === 'l2' && !state.selectedL2Topic;
   const waitingForL3 = learningLevel === 'l3' && !state.selectedL3Topic;
   const waiting = waitingForStory || waitingForL2 || waitingForL3;
 
-  let startLabel = 'Start';
-  if (waitingForStory) startLabel = 'Geschichte wählen';
-  else if (learningLevel === 'l1' && state.mode === 'story') startLabel = '▶ Geschichte starten';
-  else if (waitingForL2 || waitingForL3) startLabel = 'Thema wählen';
-  else if (learningLevel === 'l2') startLabel = 'L2 starten';
-  else if (learningLevel === 'l3') startLabel = 'L3 starten';
+  let startLabel = copy.start;
+  if (waitingForStory) startLabel = copy.chooseStory;
+  else if (learningLevel === 'l1' && state.mode === 'story') startLabel = copy.startStory;
+  else if (waitingForL2 || waitingForL3) startLabel = copy.chooseTopic;
+  else if (learningLevel === 'l2') startLabel = copy.startL2;
+  else if (learningLevel === 'l3') startLabel = copy.startL3;
 
   const l2Topics = learningLevel === 'l2'
-    ? `<h2>Thema wählen</h2><div class="card-grid knowledge-topic-grid" data-l2-topics>${L2_TOPICS.map(topic => topicButton(topic, state.selectedL2Topic === topic.id, 'data-l2-topic')).join('')}</div>`
+    ? `<h2>${copy.topicHeading}</h2><div class="card-grid knowledge-topic-grid" data-l2-topics>${L2_TOPICS.map(topic => topicButton(topic, state.selectedL2Topic === topic.id, 'data-l2-topic', state.nativeLanguage)).join('')}</div>`
     : '';
 
   const l3Topics = learningLevel === 'l3'
-    ? L3_TOPIC_GROUPS.map(group => `<div class="knowledge-topic-group"><h2>${group.title}</h2><div class="card-grid knowledge-topic-grid">${group.topics.map(topic => topicButton(topic, state.selectedL3Topic === topic.id, 'data-l3-topic')).join('')}</div></div>`).join('')
+    ? L3_TOPIC_GROUPS.map(group => `<div class="knowledge-topic-group"><h2>${copy.l3Groups[group.id] || group.title}</h2><div class="card-grid knowledge-topic-grid">${group.topics.map(topic => topicButton(topic, state.selectedL3Topic === topic.id, 'data-l3-topic', state.nativeLanguage)).join('')}</div></div>`).join('')
     : '';
 
   root.innerHTML = `<section class="screen menu-screen"><div class="menu-panel">
     <h1>SpeakUP</h1>
-    <h2>Level</h2><div class="card-grid learning-level-grid" data-learning-levels></div>
-    ${learningLevel === 'l1' ? '<h2>Übung</h2><div class="card-grid" data-modes></div>' : ''}
-    ${learningLevel === 'l1' && state.mode === 'story' ? '<h2>Geschichte wählen</h2><div class="story-grid" data-stories></div>' : ''}
+    <h2>${copy.levelHeading}</h2><div class="card-grid learning-level-grid" data-learning-levels></div>
+    ${learningLevel === 'l1' ? `<h2>${copy.exerciseHeading}</h2><div class="card-grid" data-modes></div>` : ''}
+    ${learningLevel === 'l1' && state.mode === 'story' ? `<h2>${copy.storyHeading}</h2><div class="story-grid" data-stories></div>` : ''}
     ${l2Topics}${l3Topics}
-    <h2>Einstellungen</h2>
-    <button class="menu-card effects-menu-card" data-effects><span>Effekte</span><small>Effekt für die Übungen auswählen.</small></button>
-    <button class="menu-card future-menu-card" data-future><span>Später</span><small>Geplante Funktionen ansehen.</small></button>
-    <div class="settings-row"><label>Lernsprache<select data-learning>${languageOptions}</select></label><label>Übersetzung<select data-native>${nativeOptions}</select></label></div>
+    <h2>${copy.settingsHeading}</h2>
+    <button class="menu-card effects-menu-card" data-effects><span>${copy.effectsTitle}</span><small>${copy.effectsDescription}</small></button>
+    <button class="menu-card future-menu-card" data-future><span>${copy.futureTitle}</span><small>${copy.futureDescription}</small></button>
+    <div class="settings-row"><label>${copy.learningLanguage}<select data-learning>${languageOptions}</select></label><label>${copy.nativeLanguage}<select data-native>${nativeOptions}</select></label></div>
     <div class="menu-action"><button class="primary-button menu-start-button" data-start ${waiting ? 'disabled' : ''}>${startLabel}</button></div>
   </div></section>`;
 
   const levelRoot = root.querySelector('[data-learning-levels]');
-  LEVELS.forEach(([id,title,description]) => {
+  LEVEL_IDS.forEach(id => {
+    const [title, description] = copy.levels[id];
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.level = id;
@@ -86,7 +75,8 @@ export function renderMenu(root, store) {
   });
 
   const modes = root.querySelector('[data-modes]');
-  if (modes) MODES.forEach(([id,title,description]) => {
+  if (modes) MODE_IDS.forEach(id => {
+    const [title, description] = copy.modes[id];
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.mode = id;
@@ -122,10 +112,11 @@ export function renderMenu(root, store) {
 
   const stories = root.querySelector('[data-stories]');
   if (stories) STORIES.forEach(story => {
+    const localized = getStoryCopy(story, state.nativeLanguage);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `menu-card ${state.selectedStory === story.id ? 'selected' : ''}`;
-    button.innerHTML = `<span>${story.emoji} ${story.title}</span><small>${story.subtitle}</small>`;
+    button.innerHTML = `<span>${story.emoji} ${localized.title}</span><small>${localized.subtitle}</small>`;
     button.onclick = () => store.setState({ selectedStory:story.id });
     stories.appendChild(button);
   });
