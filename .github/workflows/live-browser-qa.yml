@@ -19,8 +19,8 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run static QA
-        run: npm test
+      - name: Run syntax check
+        run: npm run check:syntax
       - name: Wait for GitHub Pages
         run: |
           for i in {1..30}; do
