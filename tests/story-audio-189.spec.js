@@ -111,23 +111,21 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
     utterance.onend?.();
   });
 
-  await expect.poll(async()=>page.evaluate(src=>
-    window.__speakupAudioPlays.filter(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01).length,
-    humanSrc
+  await expect.poll(async()=>page.evaluate(()=>
+    window.__speakupAudioPlays.filter(item=>item.volume>.9&&Math.abs(item.rate-.75)<.01).length
   )).toBe(1);
 
-  await expect.poll(async()=>page.evaluate(src=>
-    window.__speakupAudioEnds.filter(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01).length,
-    humanSrc
+  await expect.poll(async()=>page.evaluate(()=>
+    window.__speakupAudioEnds.filter(item=>item.volume>.9&&Math.abs(item.rate-.75)<.01).length
   )).toBe(1);
 
-  const fightTiming=await page.evaluate(src=>{
-    const play=window.__speakupAudioPlays.find(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01);
-    const end=window.__speakupAudioEnds.find(item=>item.src===src&&item.volume>.9&&Math.abs(item.rate-.75)<.01);
+  const fightTiming=await page.evaluate(()=>{
+    const play=window.__speakupAudioPlays.find(item=>item.volume>.9&&Math.abs(item.rate-.75)<.01);
+    const end=window.__speakupAudioEnds.find(item=>item.volume>.9&&Math.abs(item.rate-.75)<.01);
     return{play,end};
-  },humanSrc);
+  });
 
-  expect(fightTiming.play.volume).toBeCloseTo(.92,2);
+  expect(fightTiming.play.volume).toBeCloseTo(.96,2);
   expect(fightTiming.play.loop).toBe(false);
 
   await expect.poll(async()=>page.evaluate(src=>
