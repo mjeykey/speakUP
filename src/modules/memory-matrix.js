@@ -1,5 +1,5 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
-import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
+import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=2';
 import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
 
 const CONCEPTS = [
@@ -12,7 +12,7 @@ const CONCEPTS = [
   {'en-GB':'boundary','de-DE':'Grenze','pt-PT':'limite','es-ES':'límite','fr-FR':'limite','hr-HR':'granica','it-IT':'limite'},
   {'en-GB':'respect','de-DE':'Respekt','pt-PT':'respeito','es-ES':'respeto','fr-FR':'respect','hr-HR':'poštovanje','it-IT':'rispetto'},
   {'en-GB':'mistake','de-DE':'Fehler','pt-PT':'erro','es-ES':'error','fr-FR':'erreur','hr-HR':'pogreška','it-IT':'errore'},
-  {'en-GB':'learning','de-DE':'lernen','pt-PT':'aprendizagem','es-ES':'aprendizaje','fr-FR':'apprentissage','hr-HR':'učenje','it-IT':'apprendimento'},
+  {'en-GB':'learning','de-DE':'Lernen','pt-PT':'aprendizagem','es-ES':'aprendizaje','fr-FR':'apprentissage','hr-HR':'učenje','it-IT':'apprendimento'},
   {'en-GB':'fear','de-DE':'Angst','pt-PT':'medo','es-ES':'miedo','fr-FR':'peur','hr-HR':'strah','it-IT':'paura'},
   {'en-GB':'courage','de-DE':'Mut','pt-PT':'coragem','es-ES':'valor','fr-FR':'courage','hr-HR':'hrabrost','it-IT':'coraggio'}
 ];

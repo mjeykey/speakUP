@@ -1,7 +1,7 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=59';
 import { speakMemorySentence } from '../audio/memory-speech.js?v=1';
-import { languageName } from '../data/language-content-extended.js?v=2';
-import { getMemoryMessages, memoryText, memorySentence, memorySpeechLanguage } from '../data/memory/multilingual-memory.js?v=1';
+import { languageName } from '../data/language-content-extended.js?v=3';
+import { getMemoryMessages, memoryText, memorySentence, memorySpeechLanguage } from '../data/memory/multilingual-memory.js?v=2';
 
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 const shuffle = items => [...items].sort(() => Math.random() - 0.5);

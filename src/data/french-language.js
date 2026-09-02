@@ -1,10 +1,10 @@
 export const FRENCH_OPTION = { code:'fr-FR', label:'🇫🇷 Français (France) — courant', short:'Français' };
 
 export const FRENCH_WORDS = [
-'maison','rue','amie','ami','café','eau','matin','soir','travail','école',
+'maison','rue','amie','ami','café','eau','matin','nuit','travail','école',
 'livre','table','chaise','porte','fenêtre','pain','pomme','légumes','train','bus',
 'portable','amour','espoir','calme','courage','apprendre','parler','aller','venir','voir',
-'entendre','manger','boire','dormir','travailler','heureux','fatigué','sympa','vite','doucement'
+'écouter','manger','boire','dormir','travailler','heureux','fatigué','sympa','vite','doucement'
 ];
 
 export const FRENCH_COMPLETE = [

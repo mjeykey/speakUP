@@ -4,8 +4,8 @@ import {
   getSpeechLanguage as baseGetSpeechLanguage,
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
-} from './language-content-extended.js?v=2';
-import { ITALIAN_WORDS } from './italian/words.js?v=1';
+} from './language-content-extended.js?v=3';
+import { ITALIAN_WORDS } from './italian/words.js?v=2';
 import { ITALIAN_COMPLETE, ITALIAN_EXERCISES } from './italian/sentences.js?v=1';
 
 // Italian content is intentionally parked for a future complete rollout.

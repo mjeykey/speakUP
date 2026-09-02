@@ -4,13 +4,13 @@ import {
   getSpeechLanguage as baseSpeechLanguage,
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
-} from './language-content.js?v=4';
+} from './language-content.js?v=5';
 import {
   FRENCH_OPTION,
   FRENCH_WORDS,
   FRENCH_COMPLETE,
   FRENCH_EXERCISES
-} from './french-language.js?v=1';
+} from './french-language.js?v=2';
 
 export const LANGUAGE_OPTIONS = [...BASE_OPTIONS, FRENCH_OPTION];
 

@@ -1,4 +1,4 @@
-import { getWords, getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
+import { getWords, getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=2';
 import { speakPair, stopSpeech } from '../audio/speech.js?v=61';
 import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
 

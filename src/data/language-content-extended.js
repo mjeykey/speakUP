@@ -4,7 +4,7 @@ import {
   getSpeechLanguage as baseGetSpeechLanguage,
   getWords as baseGetWords,
   getSentenceLevels as baseGetSentenceLevels
-} from './language-registry.js?v=2';
+} from './language-registry.js?v=3';
 import { getEveryday50Level } from './sentence-pack-everyday-50.js?v=1';
 import { fixDalmatianSentence } from './dalmatian-sentence-fix.js?v=2';
 
@@ -16,8 +16,8 @@ export const LANGUAGE_OPTIONS = [
 const ANDALUSIAN_WORDS = [
   'casa','calle','amiga','amigo','café','agua','mañana','noche','curro','cole',
   'libro','mesa','silla','puerta','ventana','pan','manzana','verduras','tren','bus',
-  'móvil','cariño','esperanza','calma','valor','aprender','hablar','ir','venir','ver',
-  'escuchar','comer','beber','dormir','currar','contento','cansado','apañado','rápido','despacito'
+  'móvil','amor','esperanza','calma','valor','aprender','hablar','ir','venir','ver',
+  'escuchar','comer','beber','dormir','currar','contento','cansado','majo','rápido','despacito'
 ];
 
 const ANDALUSIAN_COMPLETE = [
