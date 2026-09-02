@@ -56,6 +56,7 @@ function getStoryRainAudio(){
   const audio=new Audio(RAIN_URL);
   audio.setAttribute('playsinline','');
   audio.preload='auto';
+  audio.load();
   audio.loop=true;
   audio.muted=false;
   audio.volume=RAIN_VOLUME;
@@ -306,7 +307,7 @@ export function renderStory(root,store){
 
   const page=()=>story.pages[pageIndex];
   const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
-  const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&OUTDOOR_RAIN_PAGES.has(sourcePage);
+  const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&(OUTDOOR_RAIN_PAGES.has(sourcePage)||story.pages[sourcePage]?.sound==='rain'||sourcePage<=2);
   const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
   const locationAmbience=(sourcePage=pageIndex)=>LOCATION_AMBIENCE_RANGES.find(range=>sourcePage>=range.from&&sourcePage<=range.to)||null;
   const syncLocationAmbience=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>{

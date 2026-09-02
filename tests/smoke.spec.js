@@ -180,3 +180,14 @@ test('story audio assets are local and diagnostic UI is absent', async ({ page }
   expect(audioPaths[4]).toContain('/assets/audio/freesound_community-electric-motor-engine-start-stop-98304.mp3');
   await expect(page.locator('#speakup-door-diagnostic')).toHaveCount(0);
 });
+
+
+test('rain-marked fantasy scenes are enabled for rain', async ({ page }) => {
+  await openMenu(page);
+  const source = await page.evaluate(async () => {
+    const response = await fetch(new URL('src/modules/story-live.js?v=299', window.location.href));
+    return response.text();
+  });
+  expect(source).toContain("story.pages[sourcePage]?.sound==='rain'");
+  expect(source).toContain("sourcePage<=2");
+});
