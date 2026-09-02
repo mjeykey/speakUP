@@ -20,6 +20,31 @@ import { installMuffledTalkingScene } from '../audio/story-scene-165-168.js?v=28
 
 const root = document.getElementById('app');
 const store = createStore({ screen: 'welcome' });
+
+// Direct story links, e.g. ?story=fantasy-1&page=256
+try {
+  const params=new URLSearchParams(window.location.search);
+  const storyId=params.get('story');
+  const displayPage=Number(params.get('page'));
+  if(storyId==='fantasy-1'&&Number.isInteger(displayPage)&&displayPage>=1){
+    const snapshot=store.getState();
+    const pageIndex=Math.floor((displayPage-1)/4);
+    const phaseIndex=(displayPage-1)%4;
+    const progressKey=[storyId,snapshot.learningLanguage,snapshot.nativeLanguage].join('|');
+    store.saveProgress('story',progressKey,{
+      storyId,
+      learningLanguage:snapshot.learningLanguage,
+      nativeLanguage:snapshot.nativeLanguage,
+      pageIndex,
+      phaseIndex,
+      solved:0
+    });
+    store.setState({screen:'story',selectedStory:storyId});
+  }
+}catch(error){
+  console.warn('Direct story link could not be applied.',error);
+}
+
 installMuffledTalkingScene(store);
 let previousScreen=null;
 
