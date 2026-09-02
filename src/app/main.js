@@ -8,7 +8,7 @@ import { renderFillGap } from '../modules/fill-gap-matrix.js?v=2';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=2';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=2';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=2';
-import { renderStory } from '../modules/story-loader.js?v=335';
+import { renderStory } from '../modules/story-loader.js?v=336';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=63';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=2';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=2';
@@ -31,7 +31,7 @@ try {
     const snapshot=store.getState();
     const pageIndex=Math.floor((displayPage-1)/4);
     const phaseIndex=(displayPage-1)%4;
-    const progressKey=[storyId,snapshot.learningLanguage,snapshot.nativeLanguage].join('|');
+    const progressKey=['v2',storyId,snapshot.learningLanguage,snapshot.nativeLanguage].join('|');
     store.saveProgress('story',progressKey,{
       storyId,
       learningLanguage:snapshot.learningLanguage,

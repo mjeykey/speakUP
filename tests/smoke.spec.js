@@ -94,15 +94,28 @@ test('anxiety exercise advances and returns to menu', async ({ page }) => {
   await expect(page.locator('.menu-screen')).toBeVisible();
 });
 
-test('story starts and moves to second phase', async ({ page }) => {
+test('story starts at beginning, resumes, and offers a Beginning button', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="story"]').click();
   await page.locator('[data-stories] button').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
+  await expect(page.locator('.story-progress')).toContainText('Seite 1');
   await expect(page.locator('[data-prev]')).toBeDisabled();
+  await expect(page.locator('[data-beginning]')).toContainText('Beginning');
+
   await page.locator('[data-next]').click();
   await expect(page.locator('.story-progress')).toContainText('Seite 2');
+  await page.locator('[data-menu]').click();
+  await expect(page.locator('.menu-screen')).toBeVisible();
+
+  await page.locator('[data-start]').click();
+  await expect(page.locator('.story-screen')).toBeVisible();
+  await expect(page.locator('.story-progress')).toContainText('Seite 2');
+
+  await page.locator('[data-beginning]').click();
+  await expect(page.locator('.story-progress')).toContainText('Seite 1');
+  await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
 test('emotions opens an exercise', async ({ page }) => {

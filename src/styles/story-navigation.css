@@ -62,3 +62,24 @@
     font-size:31px;
   }
 }
+
+
+.story-nav-button-beginning{
+  width:auto;
+  min-width:126px;
+  padding:0 18px;
+  font-size:15px;
+  font-family:Georgia,'Times New Roman',serif;
+  font-style:italic;
+  letter-spacing:.01em;
+  white-space:nowrap;
+}
+
+@media(max-width:760px){
+  .story-nav-button-beginning{
+    width:auto;
+    min-width:118px;
+    padding:0 14px;
+    font-size:14px;
+  }
+}

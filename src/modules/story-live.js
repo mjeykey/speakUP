@@ -7,6 +7,7 @@ import { getSpeechLanguage, languageName } from '../data/language-content-matrix
 import { FIGHT_GRUNTS_189 } from '../audio/story-fight-grunts-189-data.js?v=295';
 
 const PHASES=['native','learning','gap','review'];
+const STORY_PROGRESS_VERSION='v2';
 const CHURCH_BELL_PAGES=new Set([1]);
 const DOOR_CREAK_PAGES=new Set([2]);
 // Zero-based source pages where the characters are actually outside and exposed to the storm.
@@ -288,7 +289,7 @@ function gapHtml(page,solved){
 export function renderStory(root,store){
   const state=store.getState();
   const storyId=state.selectedStory||'everyday';
-  const progressKey=[storyId,state.learningLanguage,state.nativeLanguage].join('|');
+  const progressKey=[STORY_PROGRESS_VERSION,storyId,state.learningLanguage,state.nativeLanguage].join('|');
   const story=getStory(storyId,state.learningLanguage,state.nativeLanguage);
   const learningVoice=getSpeechLanguage(state.learningLanguage);
   const nativeVoice=getSpeechLanguage(state.nativeLanguage);
@@ -333,11 +334,27 @@ export function renderStory(root,store){
     store.setState({screen:'menu'});
   };
 
+  const restartFromBeginning=()=>{
+    renderToken+=1;
+    stopStoryRain();
+    stopStoryWoodCreak();
+    stopStoryFightCrowd();
+    stopStoryNarration();
+    stopStoryEffects();
+    pageIndex=0;
+    phaseIndex=0;
+    solved=0;
+    locked=false;
+    persistProgress();
+    void renderPhase();
+  };
+
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="Beginning">↺ Beginning</button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
+    root.querySelector('[data-beginning]').onclick=restartFromBeginning;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
     root.querySelector('[data-next]').onclick=()=>navigate(1);
   }
