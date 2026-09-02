@@ -11,7 +11,7 @@ async function seed(page) {
 }
 
 async function openMenu(page) {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('.welcome-screen')).toBeVisible();
   await page.locator('[data-start]').click();
   await expect(page.locator('.menu-screen')).toBeVisible();
@@ -142,7 +142,7 @@ test('effects settings changes a mode effect', async ({ page }) => {
 test('story audio assets are local and diagnostic UI is absent', async ({ page }) => {
   await openMenu(page);
   const audioPaths = await page.evaluate(async () => {
-    const module = await import('/src/audio/story-sfx.js');
+    const module = await import(new URL('src/audio/story-sfx.js', window.location.href).href);
     return ['rain', 'bell', 'door-creak', 'glass-break', 'engine-start'].map(name => module.getStorySfxSrc(name));
   });
   expect(audioPaths[0]).toContain('/assets/audio/rain-natural-mobile.mp3');
