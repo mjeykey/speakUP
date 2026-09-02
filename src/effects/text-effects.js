@@ -17,6 +17,7 @@ export const TEXT_EFFECTS = [
 export const EFFECT_MODES = [
   { id: 'words', label: 'Words', preview: 'palavra' },
   { id: 'sentences', label: 'Sentences', preview: 'Eu consigo aprender.' },
+  { id: 'emotions', label: 'Emotions', preview: 'I feel calm.' },
   { id: 'story', label: 'Story', preview: 'A história continua.' },
   { id: 'memory', label: 'Memory', preview: 'esperança' },
   { id: 'speak-practice', label: 'Speak & Grow', preview: 'Confio em mim.' }

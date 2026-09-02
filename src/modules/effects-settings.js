@@ -4,8 +4,8 @@ import {
   explodeText,
   getModeTextEffect,
   setModeTextEffect
-} from '../effects/distinct-text-effects.js?v=5';
-import { getEffectUiCopy, getExerciseUiCopy } from '../app/ui-language.js?v=3';
+} from '../effects/distinct-text-effects.js?v=6';
+import { getEffectUiCopy, getExerciseUiCopy } from '../app/ui-language.js?v=4';
 
 export function renderEffectsSettings(root, store) {
   const state = store.getState();

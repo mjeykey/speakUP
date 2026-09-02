@@ -9,8 +9,8 @@ import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=3';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=3';
 import { renderStory } from '../modules/story-loader.js?v=338';
-import { renderEffectsSettings } from '../modules/effects-settings.js?v=64';
-import { renderEmotions } from '../modules/emotions-expanded.js?v=4';
+import { renderEffectsSettings } from '../modules/effects-settings.js?v=65';
+import { renderEmotions } from '../modules/emotions-expanded.js?v=5';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=3';
 import { renderFuture } from '../modules/future.js?v=2';
 import { renderL2Learning } from '../modules/l2-learning.js?v=3';

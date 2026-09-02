@@ -127,8 +127,9 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
   await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
-test('emotions gives visible Portuguese support throughout the exercise', async ({ page }) => {
+test('emotions fills the correct word, glows, then dissolves with the selected effect', async ({ page }) => {
   await openMenu(page);
+  await page.evaluate(() => localStorage.setItem('speakup-text-effect:emotions', 'glow'));
   await page.locator('[data-mode="emotions"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.emotions-screen')).toBeVisible();
@@ -142,7 +143,12 @@ test('emotions gives visible Portuguese support throughout the exercise', async 
   await expect(page.locator('.emotion-word-support').first()).toContainText('zangado');
   await expect(page.locator('.emotion-gap-support')).not.toBeEmpty();
   await expect(page.locator('[data-answer="am"]')).toContainText('sou / estou');
-  await page.locator('[data-next]').click();
+  await page.locator('[data-answer="am"]').click();
+  await expect(page.locator('[data-filled-answer]')).toHaveText('am');
+  await expect(page.locator('[data-filled-answer]')).toHaveClass(/emotion-filled-answer-glow/);
+  await expect(page.locator('[data-emotion-gap-sentence]')).toHaveAttribute('data-effect','glow');
+  await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I am angry right now.');
+  await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ a minute before I answer.', { timeout: 10000 });
   await expect(page.locator('.emotion-gap-support')).toContainText('Preciso de um minuto antes de responder.');
   await expect(page.locator('[data-answer="need"]')).toContainText('preciso');
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
@@ -181,6 +187,7 @@ test('effects settings changes a mode effect', async ({ page }) => {
   await expect(page.locator('.effects-settings-screen')).toBeVisible();
   await expect(page.locator('.effects-settings-screen')).toContainText('Efeitos');
   await expect(page.locator('.effects-settings-screen')).toContainText('Pré-visualizar');
+  await expect(page.locator('[data-mode-card="emotions"]')).toContainText('Emoções');
   const choice = page.locator('[data-effect]').nth(1);
   await choice.click();
   await expect(choice).toHaveClass(/selected/);

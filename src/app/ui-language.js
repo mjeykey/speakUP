@@ -189,12 +189,12 @@ const EXERCISE_UI = {
 export function getExerciseUiCopy(code){ return EXERCISE_UI[getUiFamily(code)] || EXERCISE_UI.en; }
 
 const EFFECT_UI = {
-  en:{modes:{words:'Words',sentences:'Sentences',story:'Story',memory:'Memory','speak-practice':'Speaking'},effects:{scatter:'Scatter',burst:'Burst',float:'Float',glow:'Glow',collapse:'Push & Collapse',particel:'Particle',cascade:'Cascade',crack:'Crack & Break'}},
-  de:{modes:{words:'Wörter',sentences:'Sätze',story:'Geschichte',memory:'Memory','speak-practice':'Sprechen'},effects:{scatter:'Verstreuen',burst:'Explosion',float:'Schweben',glow:'Leuchten',collapse:'Schieben & Kollabieren',particel:'Partikel',cascade:'Kaskade',crack:'Brechen & Zerfallen'}},
-  pt:{modes:{words:'Palavras',sentences:'Frases',story:'História',memory:'Memória','speak-practice':'Falar'},effects:{scatter:'Dispersar',burst:'Explodir',float:'Flutuar',glow:'Brilhar',collapse:'Empurrar e colapsar',particel:'Partículas',cascade:'Cascata',crack:'Rachar e partir'}},
-  es:{modes:{words:'Palabras',sentences:'Frases',story:'Historia',memory:'Memoria','speak-practice':'Hablar'},effects:{scatter:'Dispersar',burst:'Explosión',float:'Flotar',glow:'Brillo',collapse:'Empujar y colapsar',particel:'Partículas',cascade:'Cascada',crack:'Agrietar y romper'}},
-  hr:{modes:{words:'Riječi',sentences:'Rečenice',story:'Priča',memory:'Pamćenje','speak-practice':'Govor'},effects:{scatter:'Rasprši',burst:'Eksplozija',float:'Lebdenje',glow:'Sjaj',collapse:'Gurni i sažmi',particel:'Čestice',cascade:'Kaskada',crack:'Napukni i razbij'}},
-  fr:{modes:{words:'Mots',sentences:'Phrases',story:'Histoire',memory:'Mémoire','speak-practice':'Parler'},effects:{scatter:'Disperser',burst:'Explosion',float:'Flotter',glow:'Lueur',collapse:'Pousser et réduire',particel:'Particules',cascade:'Cascade',crack:'Fissurer et briser'}}
+  en:{modes:{words:'Words',sentences:'Sentences',emotions:'Emotions',story:'Story',memory:'Memory','speak-practice':'Speaking'},effects:{scatter:'Scatter',burst:'Burst',float:'Float',glow:'Glow',collapse:'Push & Collapse',particel:'Particle',cascade:'Cascade',crack:'Crack & Break'}},
+  de:{modes:{words:'Wörter',sentences:'Sätze',emotions:'Emotionen',story:'Geschichte',memory:'Memory','speak-practice':'Sprechen'},effects:{scatter:'Verstreuen',burst:'Explosion',float:'Schweben',glow:'Leuchten',collapse:'Schieben & Kollabieren',particel:'Partikel',cascade:'Kaskade',crack:'Brechen & Zerfallen'}},
+  pt:{modes:{words:'Palavras',sentences:'Frases',emotions:'Emoções',story:'História',memory:'Memória','speak-practice':'Falar'},effects:{scatter:'Dispersar',burst:'Explodir',float:'Flutuar',glow:'Brilhar',collapse:'Empurrar e colapsar',particel:'Partículas',cascade:'Cascata',crack:'Rachar e partir'}},
+  es:{modes:{words:'Palabras',sentences:'Frases',emotions:'Emociones',story:'Historia',memory:'Memoria','speak-practice':'Hablar'},effects:{scatter:'Dispersar',burst:'Explosión',float:'Flotar',glow:'Brillo',collapse:'Empujar y colapsar',particel:'Partículas',cascade:'Cascada',crack:'Agrietar y romper'}},
+  hr:{modes:{words:'Riječi',sentences:'Rečenice',emotions:'Emocije',story:'Priča',memory:'Pamćenje','speak-practice':'Govor'},effects:{scatter:'Rasprši',burst:'Eksplozija',float:'Lebdenje',glow:'Sjaj',collapse:'Gurni i sažmi',particel:'Čestice',cascade:'Kaskada',crack:'Napukni i razbij'}},
+  fr:{modes:{words:'Mots',sentences:'Phrases',emotions:'Émotions',story:'Histoire',memory:'Mémoire','speak-practice':'Parler'},effects:{scatter:'Disperser',burst:'Explosion',float:'Flotter',glow:'Lueur',collapse:'Pousser et réduire',particel:'Particules',cascade:'Cascade',crack:'Fissurer et briser'}}
 };
 
 export function getEffectUiCopy(code){ return EFFECT_UI[getUiFamily(code)] || EFFECT_UI.en; }
