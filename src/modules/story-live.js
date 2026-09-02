@@ -1,10 +1,12 @@
 import { getMultilingualStory } from '../data/stories/multilingual-stories.js?v=1';
 import { fantasyStory } from '../data/stories/fantasy.js?v=3';
-import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=1';
+import { getFantasyTranslation } from '../data/stories/fantasy-translations.js?v=338';
 import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=290';
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { FIGHT_GRUNTS_189 } from '../audio/story-fight-grunts-189-data.js?v=295';
+import { getStoryUiCopy } from '../app/ui-language.js?v=3';
+import { getLocalizedStoryCopy } from '../app/navigation-language.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
 const STORY_PROGRESS_VERSION='v2';
@@ -292,6 +294,8 @@ export function renderStory(root,store){
   const storyId=state.selectedStory||'everyday';
   const progressKey=[STORY_PROGRESS_VERSION,storyId,state.learningLanguage,state.nativeLanguage].join('|');
   const story=getStory(storyId,state.learningLanguage,state.nativeLanguage);
+  const storyUi=getStoryUiCopy(state.nativeLanguage);
+  const localizedStory=getLocalizedStoryCopy(story,state.nativeLanguage);
   const learningVoice=getSpeechLanguage(state.learningLanguage);
   const nativeVoice=getSpeechLanguage(state.nativeLanguage);
   const saved=state.progress?.story?.[progressKey];
@@ -353,7 +357,7 @@ export function renderStory(root,store){
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>Menu</button><div class="center story-view"><p class="kicker">Story Mode · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(story.title)}</h1><p class="story-subtitle">${escapeHtml(story.subtitle)}</p><p class="story-progress">Seite ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="Story navigation"><button class="story-nav-button" data-prev aria-label="Previous" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="Beginning">↺ Beginning</button><button class="story-nav-button story-nav-button-next" data-next aria-label="Next" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>${storyUi.menu}</button><div class="center story-view"><p class="kicker">${storyUi.story} · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(localizedStory.title)}</h1><p class="story-subtitle">${escapeHtml(localizedStory.subtitle)}</p><p class="story-progress">${storyUi.page} ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="${storyUi.story}"><button class="story-nav-button" data-prev aria-label="${storyUi.previous}" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="${storyUi.beginning}">↺ ${storyUi.beginning}</button><button class="story-nav-button story-nav-button-next" data-next aria-label="${storyUi.next}" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-beginning]').onclick=restartFromBeginning;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
@@ -447,7 +451,7 @@ export function renderStory(root,store){
       solved=Math.min(solved,current.items.length);
       const item=current.items[solved];
       const options=shuffle(current.items.map(entry=>entry.answer));
-      shell(`<p class="story-phase-label">Complete the story</p><p class="story-copy story-gap-copy">${gapHtml(current,solved)}</p>${item?`<div class="story-word-options">${options.map(option=>`<button class="story-word-option" data-option="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}</div>`:'<p class="feedback">All learning words found.</p>'}`);
+      shell(`<p class="story-phase-label">${storyUi.complete}</p><p class="story-copy story-gap-copy">${gapHtml(current,solved)}</p>${item?`<div class="story-word-options">${options.map(option=>`<button class="story-word-option" data-option="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}</div>`:`<p class="feedback">${storyUi.found}</p>`}`);
       root.querySelectorAll('[data-option]').forEach(button=>button.onclick=()=>{
         if(locked||!item)return;
         if(button.dataset.option.toLocaleLowerCase()===item.answer.toLocaleLowerCase()){
@@ -461,7 +465,7 @@ export function renderStory(root,store){
         }
       });
     }else{
-      shell(`<p class="story-phase-label">Review</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
+      shell(`<p class="story-phase-label">${storyUi.review}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }
   }

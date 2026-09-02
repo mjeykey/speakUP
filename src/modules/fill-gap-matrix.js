@@ -1,6 +1,6 @@
 import { getSentenceLevels, getSpeechLanguage } from '../data/language-content-matrix.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
-import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
 
 function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');

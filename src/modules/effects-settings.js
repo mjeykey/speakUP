@@ -5,16 +5,20 @@ import {
   getModeTextEffect,
   setModeTextEffect
 } from '../effects/distinct-text-effects.js?v=5';
+import { getEffectUiCopy, getExerciseUiCopy } from '../app/ui-language.js?v=3';
 
 export function renderEffectsSettings(root, store) {
+  const state = store.getState();
+  const ui = getExerciseUiCopy(state.nativeLanguage);
+  const effectUi = getEffectUiCopy(state.nativeLanguage);
   root.innerHTML = `<section class="screen effects-settings-screen">
-    <button class="menu-button" data-menu>Menu</button>
+    <button class="menu-button" data-menu>${ui.menu}</button>
     <div class="center effects-settings-view">
-      <p class="kicker">Effects</p><h1>Choose how each mode dissolves</h1>
-      <p class="muted">Every learning mode can have its own letter effect.</p>
+      <p class="kicker">${ui.effects}</p><h1>${ui.chooseEffects}</h1>
+      <p class="muted">${ui.effectsHelp}</p>
       <div class="effects-mode-list">${EFFECT_MODES.map(mode => {
         const selected = getModeTextEffect(mode.id);
-        return `<article class="effects-mode-card" data-mode-card="${mode.id}"><div class="effects-mode-heading"><div><h2>${mode.label}</h2><p>${mode.preview}</p></div><button class="secondary-button effects-preview-button" data-preview="${mode.id}">Preview</button></div><div class="effects-preview-text" data-preview-text="${mode.id}">${mode.preview}</div><div class="effects-choice-grid">${TEXT_EFFECTS.map(effect => `<button class="effects-choice ${selected === effect.id ? 'selected' : ''}" data-mode="${mode.id}" data-effect="${effect.id}">${effect.label}</button>`).join('')}</div></article>`;
+        return `<article class="effects-mode-card" data-mode-card="${mode.id}"><div class="effects-mode-heading"><div><h2>${effectUi.modes[mode.id]}</h2><p>${mode.preview}</p></div><button class="secondary-button effects-preview-button" data-preview="${mode.id}">${ui.preview}</button></div><div class="effects-preview-text" data-preview-text="${mode.id}">${mode.preview}</div><div class="effects-choice-grid">${TEXT_EFFECTS.map(effect => `<button class="effects-choice ${selected === effect.id ? 'selected' : ''}" data-mode="${mode.id}" data-effect="${effect.id}">${effectUi.effects[effect.id]}</button>`).join('')}</div></article>`;
       }).join('')}</div>
     </div>
   </section>`;

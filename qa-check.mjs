@@ -3,6 +3,14 @@ import { readFileSync, statSync } from 'node:fs';
 import { LANGUAGE_OPTIONS, getWords, getSentenceLevels, getSpeechLanguage } from './src/data/language-content-matrix.js';
 import { ANXIETY_WORLD_PAGES, ANXIETY_WORLD_PAGE_COUNT } from './src/data/anxiety-world.js';
 import { getCommunicationStrengthMatrix } from './src/data/communication-strength/matrix.js';
+import { UI_COPY, getLanguageOptionLabel, getMenuCopy, getStoryUiCopy, getWelcomeCopy } from './src/app/ui-language.js';
+import { NAVIGATION_COPY } from './src/app/navigation-language.js';
+import { normalizeLanguagePair } from './src/app/state.js';
+import { STORIES } from './src/data/content.js';
+import { L2_TOPICS } from './src/data/l2/index.js';
+import { L3_TOPIC_GROUPS } from './src/data/l3/index.js';
+import { fantasyStory } from './src/data/stories/fantasy.js';
+import { FANTASY_TRANSLATIONS, getFantasyTranslation } from './src/data/stories/fantasy-translations.js';
 
 const codes = LANGUAGE_OPTIONS.map(language => language.code);
 const failures = [];
@@ -17,6 +25,60 @@ function check(name, fn) {
 const nonEmptyText = value => typeof value === 'string' && value.trim().length > 0;
 
 check('language codes are unique', () => assert.equal(new Set(codes).size, codes.length));
+check('all selectable languages have localized option labels', () => {
+  for (const nativeLanguage of codes) {
+    for (const language of LANGUAGE_OPTIONS) {
+      assert.ok(nonEmptyText(getLanguageOptionLabel(language,nativeLanguage)), `${nativeLanguage}: ${language.code}`);
+    }
+  }
+});
+check('every UI dictionary has matching locale and key coverage', () => {
+  const families = ['en','de','pt','es','hr','fr'];
+  for (const dictionary of Object.values(UI_COPY)) {
+    assert.deepEqual(Object.keys(dictionary).sort(), families.slice().sort());
+    const expected = Object.keys(dictionary.en).sort();
+    for (const family of families) assert.deepEqual(Object.keys(dictionary[family]).sort(), expected, family);
+  }
+});
+check('menu, welcome and story UI follow the native language', () => {
+  assert.equal(getMenuCopy('de-DE').nativeLanguage, 'Muttersprache / Übersetzung');
+  assert.equal(getMenuCopy('fr-FR').settingsHeading, 'Paramètres');
+  assert.equal(getWelcomeCopy('pt-PT').tagline, 'Aprende com calma. Fala com coragem.');
+  assert.equal(getStoryUiCopy('hr-DAL').beginning, 'Početak');
+});
+check('every selectable topic and story has complete navigation copy', () => {
+  const topicIds = [...L2_TOPICS,...L3_TOPIC_GROUPS.flatMap(group=>group.topics)].map(topic=>topic.id).sort();
+  assert.deepEqual(Object.keys(NAVIGATION_COPY.TOPICS).sort(), topicIds);
+  assert.deepEqual(Object.keys(NAVIGATION_COPY.STORIES).sort(), STORIES.map(story=>story.id).sort());
+  for (const collection of Object.values(NAVIGATION_COPY)) {
+    for (const entry of Object.values(collection)) {
+      for (const family of ['en','de','pt','es','hr','fr']) {
+        assert.ok(Array.isArray(entry[family]) && entry[family].every(nonEmptyText), `${family} navigation copy`);
+      }
+    }
+  }
+});
+check('invalid or identical stored language pairs are repaired', () => {
+  assert.deepEqual(normalizeLanguagePair({learningLanguage:'it-IT',nativeLanguage:'it-IT'}), {learningLanguage:'pt-PT',nativeLanguage:'en-GB'});
+  assert.deepEqual(normalizeLanguagePair({learningLanguage:'fr-FR',nativeLanguage:'fr-FR'}), {learningLanguage:'fr-FR',nativeLanguage:'en-GB'});
+});
+check('fantasy has a real translation for all 72 source pages', () => {
+  assert.equal(fantasyStory.pages.length,72);
+  for (const [code,translations] of Object.entries(FANTASY_TRANSLATIONS)) {
+    assert.equal(translations.length,72,code);
+    translations.forEach((translation,index)=>{
+      assert.ok(nonEmptyText(translation), `${code} page ${index+1}`);
+      assert.notEqual(translation,fantasyStory.pages[index].english, `${code} page ${index+1}`);
+      assert.equal(getFantasyTranslation(fantasyStory.pages[index],index,code),translation);
+    });
+  }
+});
+check('fantasy dialect aliases use their complete base translations', () => {
+  fantasyStory.pages.forEach((page,index)=>{
+    assert.equal(getFantasyTranslation(page,index,'es-AN'),FANTASY_TRANSLATIONS['es-ES'][index]);
+    assert.equal(getFantasyTranslation(page,index,'hr-DAL'),FANTASY_TRANSLATIONS['hr-HR'][index]);
+  });
+});
 for (const code of codes) check(`speech language ${code}`, () => assert.ok(nonEmptyText(getSpeechLanguage(code))));
 for (const learningLanguage of codes) {
   for (const nativeLanguage of codes) {
@@ -44,11 +106,14 @@ check('Anxiety ids and text', () => ANXIETY_WORLD_PAGES.forEach((page, index) =>
 check('Andalusian communication alias', () => assert.deepEqual(getCommunicationStrengthMatrix('es-AN','de-DE'), getCommunicationStrengthMatrix('es-ES','de-DE')));
 check('Dalmatian communication alias', () => assert.deepEqual(getCommunicationStrengthMatrix('hr-DAL','de-DE'), getCommunicationStrengthMatrix('hr-HR','de-DE')));
 check('Story audio uses one local engine', () => {
-  const menu = readFileSync('./src/modules/menu.js', 'utf8');
   const effects = readFileSync('./src/audio/story-effects.js', 'utf8');
-  assert.match(menu, /audio\/story-sfx\.js/);
+  const sfx = readFileSync('./src/audio/story-sfx.js', 'utf8');
   assert.match(effects, /\.\/story-sfx\.js/);
-  assert.doesNotMatch(`${menu}\n${effects}`, /story-sfx-(?:simple|clean|smooth|web)/);
+  assert.doesNotMatch(`${effects}\n${sfx}`, /story-sfx-(?:simple|clean|smooth|web)/);
+});
+check('every live screen uses the shared UI language layer', () => {
+  const modules = ['welcome','menu','words-matrix','memory-matrix','fill-gap-matrix','speak-practice-matrix','communication-strength-matrix','emotions-expanded','anxiety-language','sentence-level-select','effects-settings','future','l2-learning','l3-learning','story-live'];
+  modules.forEach(name=>assert.match(readFileSync(`./src/modules/${name}.js`,'utf8'), /ui-language\.js\?v=\d+/, name));
 });
 check('Story rain is a natural local MP3', () => {
   const audio = readFileSync('./src/audio/story-sfx.js', 'utf8');

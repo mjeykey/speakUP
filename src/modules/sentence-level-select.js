@@ -1,4 +1,4 @@
-import { getSentenceLevelCopy } from '../app/ui-language.js?v=1';
+import { getSentenceLevelCopy } from '../app/ui-language.js?v=3';
 
 const LEVEL_IDS = [
   { id: 'beginner', emoji: '🌱' },

@@ -1,7 +1,7 @@
 import { getCommunicationStrengthMatrix } from '../data/communication-strength/matrix.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getSpeechLanguage } from '../data/language-content-matrix.js?v=1';
-import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
 
 function esc(v) {
   return String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');

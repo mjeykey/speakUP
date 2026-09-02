@@ -1,11 +1,16 @@
+import { getMenuCopy, getWelcomeCopy } from '../app/ui-language.js?v=3';
+
 export function renderWelcome(root, store) {
+  const state = store.getState();
+  const welcome = getWelcomeCopy(state.nativeLanguage);
+  const menu = getMenuCopy(state.nativeLanguage);
   root.innerHTML = `<section class="screen welcome-screen">
     <div class="welcome-glow welcome-glow-cyan"></div>
     <div class="welcome-glow welcome-glow-pink"></div>
     <div class="welcome-content">
       <h1 class="welcome-title">SpeakUP</h1>
-      <p class="welcome-tagline">Learn gently. Speak bravely.</p>
-      <button class="welcome-start" data-start>Start</button>
+      <p class="welcome-tagline">${welcome.tagline}</p>
+      <button class="welcome-start" data-start>${menu.start}</button>
     </div>
   </section>`;
 

@@ -25,6 +25,7 @@ export const initialState = Object.freeze({
 });
 
 const STORAGE_KEY = 'speakup-progress-v1';
+const SUPPORTED_LANGUAGES = new Set(['pt-PT','de-DE','en-GB','es-ES','hr-HR','hr-DAL','fr-FR','es-AN']);
 
 const persistedKeys = new Set([
   'mode',
@@ -101,6 +102,21 @@ function saveState(state) {
   }
 }
 
+export function normalizeLanguagePair(value = {}) {
+  let learningLanguage = SUPPORTED_LANGUAGES.has(value.learningLanguage)
+    ? value.learningLanguage
+    : initialState.learningLanguage;
+  let nativeLanguage = SUPPORTED_LANGUAGES.has(value.nativeLanguage)
+    ? value.nativeLanguage
+    : initialState.nativeLanguage;
+  if (learningLanguage === nativeLanguage) {
+    nativeLanguage = learningLanguage === initialState.nativeLanguage
+      ? initialState.learningLanguage
+      : initialState.nativeLanguage;
+  }
+  return { learningLanguage, nativeLanguage };
+}
+
 export function clearSavedProgress() {
   try {
     localStorage.removeItem(STORAGE_KEY);
@@ -117,6 +133,7 @@ export function createStore(seed = {}) {
     ...seed,
     progress: { ...emptyProgress(), ...(saved.progress || {}), ...(seed.progress || {}) }
   };
+  state = { ...state, ...normalizeLanguagePair(state) };
   const listeners = new Set();
 
   const writeProgress = (section, key, value, notify) => {
@@ -134,7 +151,11 @@ export function createStore(seed = {}) {
   return {
     getState: () => state,
     setState(patch) {
-      state = { ...state, ...(typeof patch === 'function' ? patch(state) : patch) };
+      const resolvedPatch = typeof patch === 'function' ? patch(state) : patch;
+      state = { ...state, ...resolvedPatch };
+      if ('learningLanguage' in resolvedPatch || 'nativeLanguage' in resolvedPatch) {
+        state = { ...state, ...normalizeLanguagePair(state) };
+      }
       saveState(state);
       listeners.forEach(listener => listener(state));
     },

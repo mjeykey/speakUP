@@ -9,7 +9,7 @@ const MENU = {
   en:{
     levelHeading:'Level',exerciseHeading:'Exercise',storyHeading:'Choose a story',topicHeading:'Choose a topic',settingsHeading:'Settings',
     effectsTitle:'Effects',effectsDescription:'Choose the visual effect for the exercises.',futureTitle:'Later',futureDescription:'See planned features.',
-    learningLanguage:'Learning language',nativeLanguage:'Translation',start:'Start',chooseStory:'Choose a story',startStory:'▶ Start story',chooseTopic:'Choose a topic',startL2:'Start L2',startL3:'Start L3',
+    learningLanguage:'Learning language',nativeLanguage:'Native language / translation',start:'Start',chooseStory:'Choose a story',startStory:'▶ Start story',chooseTopic:'Choose a topic',startL2:'Start L2',startL3:'Start L3',
     modes:{emotions:['Emotions','Words, sentences and playful expressions for feelings.'],anxiety:['Anxiety','Learn with short stories about anxious thoughts, perspective and humour.'],'fill-gap':['Sentences','Choose your level and complete the sentence.'],memory:['Memory','Match words and meanings.'],words:['Words','One word at a time.'],'speak-practice':['Speaking','Say useful sentences out loud.'],'communication-strength':['Communication','Learn clearer ways to say things.'],story:['Stories','Learn language through short stories.']},
     levels:{l1:['L1 · Language','Words, sentences, speaking and stories.'],l2:['L2 · Interests & Work','Learn through topics that interest you.'],l3:['L3 · Knowledge','Learn facts and practical knowledge.']},
     l3Groups:{world:'World Knowledge',practical:'Practical Knowledge'}
@@ -17,7 +17,7 @@ const MENU = {
   de:{
     levelHeading:'Level',exerciseHeading:'Übung',storyHeading:'Geschichte wählen',topicHeading:'Thema wählen',settingsHeading:'Einstellungen',
     effectsTitle:'Effekte',effectsDescription:'Effekt für die Übungen auswählen.',futureTitle:'Später',futureDescription:'Geplante Funktionen ansehen.',
-    learningLanguage:'Lernsprache',nativeLanguage:'Übersetzung',start:'Start',chooseStory:'Geschichte wählen',startStory:'▶ Geschichte starten',chooseTopic:'Thema wählen',startL2:'L2 starten',startL3:'L3 starten',
+    learningLanguage:'Lernsprache',nativeLanguage:'Muttersprache / Übersetzung',start:'Start',chooseStory:'Geschichte wählen',startStory:'▶ Geschichte starten',chooseTopic:'Thema wählen',startL2:'L2 starten',startL3:'L3 starten',
     modes:{emotions:['Emotionen','Wörter, Sätze und Ausdrücke für Gefühle.'],anxiety:['Anxiety','Lerne mit kurzen Geschichten über ängstliche Gedanken, Perspektive und Humor.'],'fill-gap':['Sätze','Wähle dein Level und ergänze den Satz.'],memory:['Memory','Finde passende Wörter und Bedeutungen.'],words:['Wörter','Ein Wort nach dem anderen.'],'speak-practice':['Sprechen','Sprich nützliche Sätze laut aus.'],'communication-strength':['Kommunikation','Lerne klarere Formulierungen.'],story:['Geschichten','Lerne Sprache in kurzen Geschichten.']},
     levels:{l1:['L1 · Sprache','Wörter, Sätze, Sprechen und Geschichten.'],l2:['L2 · Interessen & Beruf','Lerne über Themen, die dich interessieren.'],l3:['L3 · Wissen','Lerne Fakten und praktisches Wissen.']},
     l3Groups:{world:'Weltwissen',practical:'Praktisches Wissen'}
@@ -25,7 +25,7 @@ const MENU = {
   pt:{
     levelHeading:'Nível',exerciseHeading:'Exercício',storyHeading:'Escolher história',topicHeading:'Escolher tema',settingsHeading:'Definições',
     effectsTitle:'Efeitos',effectsDescription:'Escolhe o efeito visual para os exercícios.',futureTitle:'Mais tarde',futureDescription:'Ver funcionalidades planeadas.',
-    learningLanguage:'Língua de aprendizagem',nativeLanguage:'Tradução',start:'Começar',chooseStory:'Escolher história',startStory:'▶ Começar história',chooseTopic:'Escolher tema',startL2:'Começar L2',startL3:'Começar L3',
+    learningLanguage:'Língua a aprender',nativeLanguage:'Língua materna / tradução',start:'Começar',chooseStory:'Escolher história',startStory:'▶ Começar história',chooseTopic:'Escolher tema',startL2:'Começar L2',startL3:'Começar L3',
     modes:{emotions:['Emoções','Palavras, frases e expressões para sentimentos.'],anxiety:['Ansiedade','Aprende com pequenas histórias sobre pensamentos ansiosos, perspetiva e humor.'],'fill-gap':['Frases','Escolhe o teu nível e completa a frase.'],memory:['Memória','Relaciona palavras e significados.'],words:['Palavras','Uma palavra de cada vez.'],'speak-practice':['Falar','Diz frases úteis em voz alta.'],'communication-strength':['Comunicação','Aprende formas mais claras de dizer as coisas.'],story:['Histórias','Aprende a língua em pequenas histórias.']},
     levels:{l1:['L1 · Língua','Palavras, frases, fala e histórias.'],l2:['L2 · Interesses e trabalho','Aprende através de temas que te interessam.'],l3:['L3 · Conhecimento','Aprende factos e conhecimentos práticos.']},
     l3Groups:{world:'Conhecimento do mundo',practical:'Conhecimento prático'}
@@ -33,7 +33,7 @@ const MENU = {
   es:{
     levelHeading:'Nivel',exerciseHeading:'Ejercicio',storyHeading:'Elegir historia',topicHeading:'Elegir tema',settingsHeading:'Ajustes',
     effectsTitle:'Efectos',effectsDescription:'Elige el efecto visual para los ejercicios.',futureTitle:'Más adelante',futureDescription:'Ver funciones previstas.',
-    learningLanguage:'Idioma de aprendizaje',nativeLanguage:'Traducción',start:'Empezar',chooseStory:'Elegir historia',startStory:'▶ Empezar historia',chooseTopic:'Elegir tema',startL2:'Empezar L2',startL3:'Empezar L3',
+    learningLanguage:'Idioma que aprendes',nativeLanguage:'Lengua materna / traducción',start:'Empezar',chooseStory:'Elegir historia',startStory:'▶ Empezar historia',chooseTopic:'Elegir tema',startL2:'Empezar L2',startL3:'Empezar L3',
     modes:{emotions:['Emociones','Palabras, frases y expresiones para los sentimientos.'],anxiety:['Ansiedad','Aprende con pequeñas historias sobre pensamientos ansiosos, perspectiva y humor.'],'fill-gap':['Frases','Elige tu nivel y completa la frase.'],memory:['Memoria','Relaciona palabras y significados.'],words:['Palabras','Una palabra cada vez.'],'speak-practice':['Hablar','Di frases útiles en voz alta.'],'communication-strength':['Comunicación','Aprende formas más claras de decir las cosas.'],story:['Historias','Aprende el idioma con pequeñas historias.']},
     levels:{l1:['L1 · Idioma','Palabras, frases, conversación e historias.'],l2:['L2 · Intereses y trabajo','Aprende con temas que te interesan.'],l3:['L3 · Conocimiento','Aprende datos y conocimientos prácticos.']},
     l3Groups:{world:'Conocimiento del mundo',practical:'Conocimiento práctico'}
@@ -41,7 +41,7 @@ const MENU = {
   hr:{
     levelHeading:'Razina',exerciseHeading:'Vježba',storyHeading:'Odaberi priču',topicHeading:'Odaberi temu',settingsHeading:'Postavke',
     effectsTitle:'Efekti',effectsDescription:'Odaberi vizualni efekt za vježbe.',futureTitle:'Kasnije',futureDescription:'Pogledaj planirane funkcije.',
-    learningLanguage:'Jezik učenja',nativeLanguage:'Prijevod',start:'Počni',chooseStory:'Odaberi priču',startStory:'▶ Pokreni priču',chooseTopic:'Odaberi temu',startL2:'Pokreni L2',startL3:'Pokreni L3',
+    learningLanguage:'Jezik koji učiš',nativeLanguage:'Materinski jezik / prijevod',start:'Počni',chooseStory:'Odaberi priču',startStory:'▶ Pokreni priču',chooseTopic:'Odaberi temu',startL2:'Pokreni L2',startL3:'Pokreni L3',
     modes:{emotions:['Emocije','Riječi, rečenice i izrazi za osjećaje.'],anxiety:['Anksioznost','Uči kroz kratke priče o tjeskobnim mislima, perspektivi i humoru.'],'fill-gap':['Rečenice','Odaberi razinu i dopuni rečenicu.'],memory:['Memorija','Poveži riječi i značenja.'],words:['Riječi','Jedna riječ po jedna.'],'speak-practice':['Govor','Izgovori korisne rečenice naglas.'],'communication-strength':['Komunikacija','Nauči jasnije načine izražavanja.'],story:['Priče','Uči jezik kroz kratke priče.']},
     levels:{l1:['L1 · Jezik','Riječi, rečenice, govor i priče.'],l2:['L2 · Interesi i posao','Uči kroz teme koje te zanimaju.'],l3:['L3 · Znanje','Uči činjenice i praktično znanje.']},
     l3Groups:{world:'Znanje o svijetu',practical:'Praktično znanje'}
@@ -49,7 +49,7 @@ const MENU = {
   fr:{
     levelHeading:'Niveau',exerciseHeading:'Exercice',storyHeading:'Choisir une histoire',topicHeading:'Choisir un thème',settingsHeading:'Paramètres',
     effectsTitle:'Effets',effectsDescription:'Choisis l’effet visuel pour les exercices.',futureTitle:'Plus tard',futureDescription:'Voir les fonctionnalités prévues.',
-    learningLanguage:'Langue d’apprentissage',nativeLanguage:'Traduction',start:'Commencer',chooseStory:'Choisir une histoire',startStory:'▶ Commencer l’histoire',chooseTopic:'Choisir un thème',startL2:'Commencer L2',startL3:'Commencer L3',
+    learningLanguage:'Langue à apprendre',nativeLanguage:'Langue maternelle / traduction',start:'Commencer',chooseStory:'Choisir une histoire',startStory:'▶ Commencer l’histoire',chooseTopic:'Choisir un thème',startL2:'Commencer L2',startL3:'Commencer L3',
     modes:{emotions:['Émotions','Mots, phrases et expressions pour les émotions.'],anxiety:['Anxiété','Apprends avec de petites histoires sur les pensées anxieuses, le recul et l’humour.'],'fill-gap':['Phrases','Choisis ton niveau et complète la phrase.'],memory:['Mémoire','Associe les mots et les significations.'],words:['Mots','Un mot à la fois.'],'speak-practice':['Parler','Prononce des phrases utiles à voix haute.'],'communication-strength':['Communication','Apprends des formulations plus claires.'],story:['Histoires','Apprends la langue avec de petites histoires.']},
     levels:{l1:['L1 · Langue','Mots, phrases, expression orale et histoires.'],l2:['L2 · Intérêts et travail','Apprends avec des sujets qui t’intéressent.'],l3:['L3 · Connaissances','Apprends des faits et des connaissances pratiques.']},
     l3Groups:{world:'Connaissances du monde',practical:'Connaissances pratiques'}
@@ -91,6 +91,15 @@ const SENTENCE_LEVEL = {
   fr:{back:'Retour au menu',kicker:'Phrases',title:'Choisis ton niveau',subtitle:'Sélectionne une catégorie pour commencer.',levels:{beginner:['Débutant','Un blanc avec un accompagnement complet.'],survivor:['Survivant','Deux blancs avec un accompagnement complet.'],explorer:['Explorateur','Trois blancs avec moins d’aide.']}}
 };
 
+const WELCOME = {
+  en:{tagline:'Learn gently. Speak bravely.'},
+  de:{tagline:'Sanft lernen. Mutig sprechen.'},
+  pt:{tagline:'Aprende com calma. Fala com coragem.'},
+  es:{tagline:'Aprende con calma. Habla con valentía.'},
+  hr:{tagline:'Uči nježno. Govori hrabro.'},
+  fr:{tagline:'Apprends en douceur. Parle avec courage.'}
+};
+
 export function getUiFamily(code){ return FAMILY[code] || 'en'; }
 export function getHtmlLanguage(code){ return HTML_LANG[getUiFamily(code)] || 'en-GB'; }
 export function getMenuCopy(code){ return MENU[getUiFamily(code)] || MENU.en; }
@@ -105,6 +114,7 @@ export function getStoryCopy(story,nativeLanguage){
 }
 export function getTopicTitle(topic,nativeLanguage){ return TOPICS[getUiFamily(nativeLanguage)]?.[topic.id] || topic.title; }
 export function getSentenceLevelCopy(code){ return SENTENCE_LEVEL[getUiFamily(code)] || SENTENCE_LEVEL.en; }
+export function getWelcomeCopy(code){ return WELCOME[getUiFamily(code)] || WELCOME.en; }
 
 
 const EXERCISE_UI = {
@@ -177,3 +187,28 @@ const EXERCISE_UI = {
 };
 
 export function getExerciseUiCopy(code){ return EXERCISE_UI[getUiFamily(code)] || EXERCISE_UI.en; }
+
+const EFFECT_UI = {
+  en:{modes:{words:'Words',sentences:'Sentences',story:'Story',memory:'Memory','speak-practice':'Speaking'},effects:{scatter:'Scatter',burst:'Burst',float:'Float',glow:'Glow',collapse:'Push & Collapse',particel:'Particle',cascade:'Cascade',crack:'Crack & Break'}},
+  de:{modes:{words:'Wörter',sentences:'Sätze',story:'Geschichte',memory:'Memory','speak-practice':'Sprechen'},effects:{scatter:'Verstreuen',burst:'Explosion',float:'Schweben',glow:'Leuchten',collapse:'Schieben & Kollabieren',particel:'Partikel',cascade:'Kaskade',crack:'Brechen & Zerfallen'}},
+  pt:{modes:{words:'Palavras',sentences:'Frases',story:'História',memory:'Memória','speak-practice':'Falar'},effects:{scatter:'Dispersar',burst:'Explodir',float:'Flutuar',glow:'Brilhar',collapse:'Empurrar e colapsar',particel:'Partículas',cascade:'Cascata',crack:'Rachar e partir'}},
+  es:{modes:{words:'Palabras',sentences:'Frases',story:'Historia',memory:'Memoria','speak-practice':'Hablar'},effects:{scatter:'Dispersar',burst:'Explosión',float:'Flotar',glow:'Brillo',collapse:'Empujar y colapsar',particel:'Partículas',cascade:'Cascada',crack:'Agrietar y romper'}},
+  hr:{modes:{words:'Riječi',sentences:'Rečenice',story:'Priča',memory:'Pamćenje','speak-practice':'Govor'},effects:{scatter:'Rasprši',burst:'Eksplozija',float:'Lebdenje',glow:'Sjaj',collapse:'Gurni i sažmi',particel:'Čestice',cascade:'Kaskada',crack:'Napukni i razbij'}},
+  fr:{modes:{words:'Mots',sentences:'Phrases',story:'Histoire',memory:'Mémoire','speak-practice':'Parler'},effects:{scatter:'Disperser',burst:'Explosion',float:'Flotter',glow:'Lueur',collapse:'Pousser et réduire',particel:'Particules',cascade:'Cascade',crack:'Fissurer et briser'}}
+};
+
+export function getEffectUiCopy(code){ return EFFECT_UI[getUiFamily(code)] || EFFECT_UI.en; }
+
+const STORY_UI = {
+  en:{menu:'Menu',story:'Story',page:'Page',previous:'Previous',beginning:'Beginning',next:'Next',complete:'Complete the story',found:'All learning words found.',review:'Review'},
+  de:{menu:'Menü',story:'Geschichte',page:'Seite',previous:'Zurück',beginning:'Anfang',next:'Weiter',complete:'Vervollständige die Geschichte',found:'Alle Lernwörter gefunden.',review:'Wiederholung'},
+  pt:{menu:'Menu',story:'História',page:'Página',previous:'Anterior',beginning:'Início',next:'Seguinte',complete:'Completa a história',found:'Encontraste todas as palavras.',review:'Revisão'},
+  es:{menu:'Menú',story:'Historia',page:'Página',previous:'Anterior',beginning:'Inicio',next:'Siguiente',complete:'Completa la historia',found:'Has encontrado todas las palabras.',review:'Repaso'},
+  hr:{menu:'Izbornik',story:'Priča',page:'Stranica',previous:'Prethodno',beginning:'Početak',next:'Dalje',complete:'Dovrši priču',found:'Pronađene su sve riječi.',review:'Ponavljanje'},
+  fr:{menu:'Menu',story:'Histoire',page:'Page',previous:'Précédent',beginning:'Début',next:'Suivant',complete:'Complète l’histoire',found:'Tous les mots ont été trouvés.',review:'Révision'}
+};
+
+export function getStoryUiCopy(code){ return STORY_UI[getUiFamily(code)] || STORY_UI.en; }
+
+export const UI_LANGUAGE_CODES = Object.freeze(Object.keys(FAMILY));
+export const UI_COPY = Object.freeze({ MENU, LANGUAGE_NAMES, SENTENCE_LEVEL, WELCOME, EXERCISE_UI, EFFECT_UI, STORY_UI });

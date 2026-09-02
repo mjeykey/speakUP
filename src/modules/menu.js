@@ -2,15 +2,16 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { getLanguageOptionLabel, getMenuCopy, getStoryCopy, getTopicTitle } from '../app/ui-language.js?v=1';
+import { getLanguageOptionLabel, getMenuCopy } from '../app/ui-language.js?v=3';
+import { getLocalizedStoryCopy, getTopicCopy } from '../app/navigation-language.js?v=1';
 
 const MODE_IDS = ['emotions', 'anxiety', 'fill-gap', 'memory', 'words', 'speak-practice', 'communication-strength', 'story'];
 const LEVEL_IDS = ['l1', 'l2', 'l3'];
 const L1_MODE_IDS = new Set(MODE_IDS);
 
 function topicButton(topic, selected, attribute, nativeLanguage) {
-  const title = getTopicTitle(topic, nativeLanguage);
-  return `<button type="button" class="menu-card knowledge-topic-card ${selected ? 'selected' : ''}" ${attribute}="${topic.id}"><span>${topic.emoji} ${title}</span><small>${topic.subtitle}</small></button>`;
+  const localized = getTopicCopy(topic, nativeLanguage);
+  return `<button type="button" class="menu-card knowledge-topic-card ${selected ? 'selected' : ''}" ${attribute}="${topic.id}"><span>${topic.emoji} ${localized.title}</span><small>${localized.subtitle}</small></button>`;
 }
 
 export function renderMenu(root, store) {
@@ -112,7 +113,7 @@ export function renderMenu(root, store) {
 
   const stories = root.querySelector('[data-stories]');
   if (stories) STORIES.forEach(story => {
-    const localized = getStoryCopy(story, state.nativeLanguage);
+    const localized = getLocalizedStoryCopy(story, state.nativeLanguage);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `menu-card ${state.selectedStory === story.id ? 'selected' : ''}`;

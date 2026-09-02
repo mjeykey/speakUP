@@ -46,6 +46,14 @@ test('menu and language selectors follow the selected native language', async ({
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr-FR');
 });
 
+test('selecting the same language swaps the pair instead of creating an invalid pair', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-native]').selectOption('en-GB');
+  await page.locator('[data-learning]').selectOption('en-GB');
+  await expect(page.locator('[data-learning]')).toHaveValue('en-GB');
+  await expect(page.locator('[data-native]')).toHaveValue('pt-PT');
+});
+
 test('words advances and returns to menu', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="words"]').click();
@@ -85,6 +93,7 @@ test('anxiety exercise advances and returns to menu', async ({ page }) => {
   await expect(page.locator('.anxiety-world-screen')).toBeVisible();
   await expect(page.locator('.anxiety-world-screen')).toContainText('Linguagem para o momento');
   await expect(page.locator('.anxiety-world-screen')).toContainText('Ouve, repete e depois completa.');
+  await expect(page.locator('.anxiety-world-screen .translation')).not.toBeEmpty();
   await expect(page.locator('[data-listen]')).toContainText('Ouvir');
   await expect(page.locator('[data-next]')).toContainText('Próxima frase');
   const first = await page.locator('.story-copy').first().textContent();
@@ -100,21 +109,21 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
   await page.locator('[data-stories] button').first().click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
-  await expect(page.locator('.story-progress')).toContainText('Seite 1');
+  await expect(page.locator('.story-progress')).toContainText('Página 1');
   await expect(page.locator('[data-prev]')).toBeDisabled();
-  await expect(page.locator('[data-beginning]')).toContainText('Beginning');
+  await expect(page.locator('[data-beginning]')).toContainText('Início');
 
   await page.locator('[data-next]').click();
-  await expect(page.locator('.story-progress')).toContainText('Seite 2');
+  await expect(page.locator('.story-progress')).toContainText('Página 2');
   await page.locator('[data-menu]').click();
   await expect(page.locator('.menu-screen')).toBeVisible();
 
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
-  await expect(page.locator('.story-progress')).toContainText('Seite 2');
+  await expect(page.locator('.story-progress')).toContainText('Página 2');
 
   await page.locator('[data-beginning]').click();
-  await expect(page.locator('.story-progress')).toContainText('Seite 1');
+  await expect(page.locator('.story-progress')).toContainText('Página 1');
   await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
@@ -128,6 +137,7 @@ test('emotions opens an exercise', async ({ page }) => {
   await expect(page.locator('.emotion-journey')).toContainText('Palavras');
   await expect(page.locator('.emotion-journey')).toContainText('Repetir');
   await expect(page.locator('.emotion-journey')).toContainText('Mini-exercício');
+  await expect(page.locator('.emotion-journey .translation')).not.toBeEmpty();
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
 });
 
@@ -162,9 +172,19 @@ test('effects settings changes a mode effect', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-effects]').click();
   await expect(page.locator('.effects-settings-screen')).toBeVisible();
+  await expect(page.locator('.effects-settings-screen')).toContainText('Efeitos');
+  await expect(page.locator('.effects-settings-screen')).toContainText('Pré-visualizar');
   const choice = page.locator('[data-effect]').nth(1);
   await choice.click();
   await expect(choice).toHaveClass(/selected/);
+});
+
+test('future screen follows the native language', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-future]').click();
+  await expect(page.locator('.future-screen')).toBeVisible();
+  await expect(page.locator('.future-screen')).toContainText('Mais tarde');
+  await expect(page.locator('.future-screen')).toContainText('Simulação de conversa');
 });
 
 test('story audio assets are local and diagnostic UI is absent', async ({ page }) => {

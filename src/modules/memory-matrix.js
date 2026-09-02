@@ -1,6 +1,6 @@
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
-import { getExerciseUiCopy } from '../app/ui-language.js?v=2';
+import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
 
 const CONCEPTS = [
   {'en-GB':'self-love','de-DE':'Selbstliebe','pt-PT':'amor-próprio','es-ES':'amor propio','fr-FR':'amour de soi','hr-HR':'ljubav prema sebi','it-IT':'amor proprio'},
