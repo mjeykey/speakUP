@@ -127,17 +127,24 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
   await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
-test('emotions opens an exercise', async ({ page }) => {
+test('emotions gives visible Portuguese support throughout the exercise', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="emotions"]').click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.emotions-screen')).toBeVisible();
+  await expect(page.locator('[data-i]').first()).toContainText('zanga');
   await page.locator('[data-i]').first().click();
   await expect(page.locator('[data-answer]').first()).toBeVisible();
   await expect(page.locator('.emotion-journey')).toContainText('Palavras');
   await expect(page.locator('.emotion-journey')).toContainText('Repetir');
   await expect(page.locator('.emotion-journey')).toContainText('Mini-exercício');
-  await expect(page.locator('.emotion-journey .translation')).not.toBeEmpty();
+  await expect(page.locator('.emotion-current-translation')).toContainText('zanga');
+  await expect(page.locator('.emotion-word-support').first()).toContainText('zangado');
+  await expect(page.locator('.emotion-gap-support')).not.toBeEmpty();
+  await expect(page.locator('[data-answer="am"]')).toContainText('sou / estou');
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.emotion-gap-support')).toContainText('Preciso de um minuto antes de responder.');
+  await expect(page.locator('[data-answer="need"]')).toContainText('preciso');
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
 });
 
