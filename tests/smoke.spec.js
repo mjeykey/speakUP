@@ -142,7 +142,12 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('.emotion-current-translation')).toContainText('zanga');
   await expect(page.locator('.emotion-word-support').first()).toContainText('zangado');
   await expect(page.locator('.emotion-gap-support')).not.toBeEmpty();
+  await expect(page.locator('.emotion-repeat-card')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('.emotion-repeat-card .emotion-support-sentence')).toHaveAttribute('data-speech-language','pt-PT');
+  await expect(page.locator('.emotion-gap-support')).toHaveAttribute('data-speech-language','pt-PT');
   await expect(page.locator('[data-answer="am"]')).toContainText('sou / estou');
+  await page.locator('[data-answer="am"] .emotion-word-support').click();
+  await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ angry right now.');
   await page.locator('[data-answer="am"]').click();
   await expect(page.locator('[data-filled-answer]')).toHaveText('am');
   await expect(page.locator('[data-filled-answer]')).toHaveClass(/emotion-filled-answer-glow/);
