@@ -14,6 +14,7 @@ import { installScene221223Hammer } from '../audio/story-scene-221-223-hammer.js
 import { installScene225228Monster } from '../audio/story-scene-225-228-monster.js?v=323';
 import { installScene225228Lightning } from '../audio/story-scene-225-228-lightning.js?v=327';
 import { installScene233236AboardSplash } from '../audio/story-scene-233-236-aboard-splash.js?v=331';
+import { installScene237240DeepMonster } from '../audio/story-scene-237-240-deep-monster.js?v=332';
 
 export function renderStory(root,store){
   installScene7376(root,store);
@@ -31,5 +32,6 @@ export function renderStory(root,store){
   installScene225228Monster(root,store);
   installScene225228Lightning(root,store);
   installScene233236AboardSplash(root,store);
+  installScene237240DeepMonster(root,store);
   return renderBaseStory(root,store);
 }
