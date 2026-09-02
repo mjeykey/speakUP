@@ -37,6 +37,8 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
         this.onend=null;
         this.onerror=null;
       }
+      addEventListener(){}
+      removeEventListener(){}
     }
 
     const fakeVoice={lang:'pt-PT',name:'SpeakUP Test Voice'};
