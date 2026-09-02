@@ -71,7 +71,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
       selectedStory:'fantasy-1',
       progress:{
         story:{
-          'fantasy-1|en-GB|pt-PT':{
+          'v2|fantasy-1|en-GB|pt-PT':{
             storyId:'fantasy-1',
             learningLanguage:'en-GB',
             nativeLanguage:'pt-PT',
@@ -90,7 +90,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
   await page.locator('[data-start]').click();
 
   await expect(page.locator('.story-screen')).toBeVisible();
-  await expect(page.locator('.story-progress')).toContainText('Seite 189');
+  await expect(page.locator('.story-progress')).toContainText('Página 189');
 
   const humanSrc=await page.evaluate(async()=>{
     const fight=await import('/src/audio/story-fight-grunts-189-data.js?v=test-189-layered');
