@@ -24,7 +24,7 @@ jobs:
       - name: Wait for GitHub Pages
         run: |
           for i in {1..30}; do
-            if curl -fsSL https://mjeykey.github.io/speakUP/ | grep -q 'src/app/main.js?v=339'; then
+            if curl -fsSL https://mjeykey.github.io/speakUP/ | grep -q 'src/app/main.js?v=340'; then
               exit 0
             fi
             sleep 5

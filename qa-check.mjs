@@ -144,6 +144,13 @@ check('Story audio import chain is cache-versioned', () => {
   assert.match(readFileSync('./src/app/main.js', 'utf8'), /story-loader\.js\?v=\d+/);
   assert.match(readFileSync('./src/modules/story-loader.js', 'utf8'), /story-live(?:-crowdless)?\.js\?v=\d+/);
 });
+check('live browser workflow waits for the current app build', () => {
+  const index = readFileSync('./index.html', 'utf8');
+  const workflow = readFileSync('./.github/workflows/live-browser-qa.yml', 'utf8');
+  const appSource = index.match(/src\/app\/main\.js\?v=\d+/)?.[0];
+  assert.ok(appSource);
+  assert.ok(workflow.includes(appSource), appSource);
+});
 
 console.log(`\n${checks - failures.length}/${checks} QA checks passed.`);
 if (failures.length) process.exitCode = 1;
