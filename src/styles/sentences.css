@@ -1,1 +1,22 @@
 .sentence-mode-screen{align-items:flex-start;overflow:auto;padding-top:82px}.speakup-home-button{position:fixed;left:28px;top:22px;z-index:30;border:0;background:transparent;padding:0;color:transparent;font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,5vw,48px);font-style:italic;font-weight:400;letter-spacing:-.04em;cursor:pointer;background-image:linear-gradient(105deg,#65e8ff 4%,#ffffff 28%,#a875ff 58%,#ff5fd7 88%,#65e8ff 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;text-shadow:0 0 24px rgba(101,232,255,.14),0 0 36px rgba(255,95,215,.1);animation:welcomeLogoFlow 7s ease-in-out infinite}.speakup-home-button:hover,.speakup-home-button:active{filter:brightness(1.12);transform:scale(1.02)}.sentence-mode-view{width:min(880px,100%);padding-bottom:70px}.sentence-mode-stage{width:min(820px,100%);margin:24px auto 0;padding:30px 24px;border:1px solid rgba(255,255,255,.13);border-radius:28px;background:linear-gradient(145deg,rgba(101,232,255,.07),rgba(255,95,215,.055));box-shadow:0 22px 80px rgba(0,0,0,.28)}.sentence-mode-label{margin:0 0 10px;color:#9daac7;font:12px Arial,sans-serif;text-transform:uppercase;letter-spacing:.16em}.sentence-mode-portuguese{margin:0;font-size:clamp(34px,7vw,68px);line-height:1.28}.sentence-mode-english-label{margin-top:28px}.sentence-mode-english{margin:0;color:#dffbff;font:clamp(23px,4vw,38px)/1.35 Arial,sans-serif}.sentence-mode-english.is-soft{opacity:.56}.sentence-mode-feedback{min-height:28px;margin-top:18px}.sentence-mode-progress{color:#9daac7;font:14px Arial,sans-serif}.sentence-mode-screen .choices{margin-top:24px}.sentence-mode-screen .choice:disabled{opacity:.42;cursor:default}.sentence-level-view{width:min(920px,100%)}.sentence-level-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:30px}.sentence-level-card{min-height:210px;border:1px solid rgba(255,255,255,.14);border-radius:26px;background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.02));color:#fff;padding:26px 20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}.sentence-level-card:hover,.sentence-level-card:active{transform:translateY(-4px);border-color:rgba(101,232,255,.65);box-shadow:0 0 34px rgba(101,232,255,.14)}.sentence-level-emoji{font-size:42px}.sentence-level-title{font-size:30px;font-style:italic}.sentence-level-card small{font:14px/1.5 Arial,sans-serif;color:#9daac7}.sentence-level-back{position:fixed;right:18px;top:18px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(255,255,255,.045);color:#fff;padding:10px 15px;cursor:pointer}@media(max-width:760px){.sentence-mode-screen{padding-top:112px}.speakup-home-button{left:22px;top:20px;font-size:38px}.sentence-mode-stage{padding:24px 18px}.sentence-mode-portuguese{font-size:clamp(30px,9vw,48px)}.sentence-mode-english{font-size:clamp(20px,6vw,30px)}.sentence-level-grid{grid-template-columns:1fr}.sentence-level-card{min-height:150px}}
+
+.sentence-filled-answer-glow{
+  display:inline-block;
+  font-weight:700;
+  background:linear-gradient(90deg,#65e8ff 0%,#62a8ff 22%,#ff5fd7 48%,#ff91cf 70%,#7cf7f1 100%);
+  background-size:260% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  transform-origin:center;
+  animation:sentence-filled-answer-glow .9s ease-in-out both;
+  filter:drop-shadow(0 0 7px rgba(101,232,255,.82)) drop-shadow(0 0 13px rgba(255,95,215,.62));
+}
+.sentence-filled-answer{color:#dffbff}
+@keyframes sentence-filled-answer-glow{
+  0%{background-position:0% 50%;transform:scale(.78)}
+  38%{background-position:60% 50%;transform:scale(1.18);filter:drop-shadow(0 0 10px rgba(101,232,255,.98)) drop-shadow(0 0 21px rgba(255,95,215,.8))}
+  72%{background-position:100% 50%;transform:scale(1.08);filter:drop-shadow(0 0 13px rgba(98,168,255,.94)) drop-shadow(0 0 25px rgba(255,145,207,.76))}
+  100%{background-position:140% 50%;transform:scale(1)}
+}
+[data-sentence][data-effect]{position:relative;will-change:transform,opacity,filter}

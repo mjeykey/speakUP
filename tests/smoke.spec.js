@@ -68,14 +68,22 @@ test('words advances and returns to menu', async ({ page }) => {
   await expect(page.locator('.menu-screen')).toBeVisible();
 });
 
-test('sentences opens localized level selection and exercise', async ({ page }) => {
+test('sentences fills the word, glows, and dissolves with the selected sentence effect', async ({ page }) => {
   await openMenu(page);
+  await page.evaluate(() => localStorage.setItem('speakup-text-effect:sentences', 'glow'));
   await page.locator('[data-mode="fill-gap"]').click();
   await expect(page.locator('.sentence-level-view')).toBeVisible();
   await expect(page.locator('.sentence-level-view')).toContainText('Escolhe o teu nível');
   await page.locator('[data-level="beginner"]').click();
   await expect(page.locator('.sentence-mode-view')).toBeVisible();
-  await expect(page.locator('.choice').first()).toBeVisible();
+  const correct = page.locator('.choice').filter({ hasText: 'drink' });
+  await expect(correct).toBeVisible();
+  await correct.click();
+  await expect(page.locator('[data-filled-answer]')).toHaveText('drink');
+  await expect(page.locator('[data-filled-answer]')).toHaveClass(/sentence-filled-answer-glow/);
+  await expect(page.locator('[data-sentence]')).toHaveAttribute('data-effect','glow');
+  await expect(page.locator('[data-sentence]')).toContainText('I drink coffee every morning.');
+  await expect(page.locator('[data-sentence]')).not.toContainText('I drink coffee every morning.', { timeout: 10000 });
 });
 
 test('memory renders complete board', async ({ page }) => {
@@ -163,6 +171,20 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('.emotion-gap-support')).toContainText('Preciso de um minuto antes de responder.');
   await expect(page.locator('[data-answer="need"]')).toContainText('preciso');
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
+});
+
+test('communication shows large original and alternative sentences with both audio languages', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-mode="communication-strength"]').click();
+  await page.locator('[data-start]').click();
+  await expect(page.locator('.communication-strength-screen')).toBeVisible();
+  await expect(page.locator('[data-say-original]')).toBeVisible();
+  await expect(page.locator('[data-say-original]')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('[data-say-original-native]')).toHaveAttribute('data-speech-language','pt-PT');
+  await page.locator('[data-reveal]').click();
+  await expect(page.locator('[data-say-strong]')).toBeVisible();
+  await expect(page.locator('[data-say-strong]')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('[data-say-strong-native]')).toHaveAttribute('data-speech-language','pt-PT');
 });
 
 test('L2 opens a selected topic and advances', async ({ page }) => {

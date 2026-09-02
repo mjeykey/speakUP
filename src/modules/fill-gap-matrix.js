@@ -1,6 +1,7 @@
 import { getSentenceLevels, getSpeechLanguage } from '../data/language-content-matrix.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getExerciseUiCopy } from '../app/ui-language.js?v=3';
+import { explodeText, getModeTextEffect } from '../effects/distinct-text-effects.js?v=6';
 
 function esc(value) {
   return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
@@ -14,6 +15,29 @@ function fillAnswers(sentence, answers, solvedCount = answers.length) {
     index += 1;
     return visible;
   });
+}
+
+function fillAnswersHtml(sentence, answers, solvedCount, glowingIndex = -1) {
+  let index = 0;
+  let cursor = 0;
+  const source = String(sentence);
+  const parts = [];
+  source.replace(/_____/g, (match, offset) => {
+    parts.push(esc(source.slice(cursor, offset)));
+    const answer = answers[index];
+    if (index < solvedCount) {
+      parts.push(index === glowingIndex
+        ? `<span class="sentence-filled-answer-glow" data-filled-answer>${esc(answer)}</span>`
+        : `<span class="sentence-filled-answer">${esc(answer)}</span>`);
+    } else {
+      parts.push('_____');
+    }
+    cursor = offset + match.length;
+    index += 1;
+    return match;
+  });
+  parts.push(esc(source.slice(cursor)));
+  return parts.join('');
 }
 
 export function renderFillGap(root, store) {
@@ -66,20 +90,32 @@ export function renderFillGap(root, store) {
           return;
         }
         locked = true;
+        const insertedIndex = solvedCount;
         solvedCount += 1;
         save();
+        const sentenceEl = root.querySelector('[data-sentence]');
+        const feedbackEl = root.querySelector('[data-feedback]');
+        if (sentenceEl) {
+          sentenceEl.innerHTML = fillAnswersHtml(item.sentence, item.answers, solvedCount, insertedIndex);
+          sentenceEl.dataset.effect = getModeTextEffect('sentences');
+        }
+        if (feedbackEl) feedbackEl.textContent = ui.correct + '.';
         await speak(option, speechLanguage, { enabled:state.audioOn, rate:.65 }).catch(() => {});
+        await new Promise(resolve => window.setTimeout(resolve, 900));
         if (solvedCount < item.answers.length) { draw(); return; }
         const full = fillAnswers(item.sentence,item.answers);
-        root.querySelector('[data-sentence]').textContent = full;
-        root.querySelector('[data-feedback]').textContent = ui.correct + '.';
         await speak(full, speechLanguage, { enabled:state.audioOn, rate:.65 }).catch(() => {});
-        window.setTimeout(() => {
-          solvedCount = 0;
-          sentenceIndex = (sentenceIndex + 1) % level.items.length;
-          save();
-          draw();
-        }, 650);
+        if (sentenceEl) {
+          try {
+            await explodeText(sentenceEl, getModeTextEffect('sentences'), { duration:1450, stagger:20 });
+          } catch (error) {
+            console.warn('Sentence effect failed.', error);
+          }
+        }
+        solvedCount = 0;
+        sentenceIndex = (sentenceIndex + 1) % level.items.length;
+        save();
+        draw();
       };
       choices.appendChild(button);
     });
