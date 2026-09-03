@@ -7,6 +7,7 @@ import { renderMemory } from '../modules/memory-matrix.js?v=5';
 import { renderFillGap } from '../modules/fill-gap-matrix.js?v=4';
 import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v=3';
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=3';
+import { renderRepeatPractice } from '../modules/repeat-practice.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=4';
 import { renderStory } from '../modules/story-loader.js?v=338';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=65';
@@ -59,6 +60,7 @@ const routes = {
   'sentence-level-select': renderSentenceLevelSelect,
   'fill-gap': renderFillGap,
   'speak-practice': renderSpeakPractice,
+  'repeat-practice': renderRepeatPractice,
   'communication-strength': renderCommunicationStrength,
   'effects-settings': renderEffectsSettings,
   'l2-learning': renderL2Learning,

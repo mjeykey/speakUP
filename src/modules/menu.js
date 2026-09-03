@@ -5,7 +5,7 @@ import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
 import { getLanguageOptionLabel, getMenuCopy } from '../app/ui-language.js?v=3';
 import { getLocalizedStoryCopy, getTopicCopy } from '../app/navigation-language.js?v=1';
 
-const MODE_IDS = ['emotions', 'anxiety', 'fill-gap', 'memory', 'words', 'speak-practice', 'communication-strength', 'story'];
+const MODE_IDS = ['emotions', 'anxiety', 'fill-gap', 'memory', 'words', 'speak-practice', 'repeat-practice', 'communication-strength', 'story'];
 const LEVEL_IDS = ['l1', 'l2', 'l3'];
 const L1_MODE_IDS = new Set(MODE_IDS);
 

@@ -173,6 +173,21 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
 });
 
+test('repeat practice is a separate Level 1 section with microphone practice', async ({ page }) => {
+  await openMenu(page);
+  await expect(page.locator('[data-mode="repeat-practice"]')).toContainText('Repetir');
+  await page.locator('[data-mode="repeat-practice"]').click();
+  await page.locator('[data-start]').click();
+  await expect(page.locator('.repeat-practice-screen')).toBeVisible();
+  await expect(page.locator('[data-repeat-category]')).toHaveCount(13);
+  await page.locator('[data-repeat-category]').first().click();
+  await expect(page.locator('[data-repeat-learning]')).toBeVisible();
+  await expect(page.locator('[data-repeat-learning]')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('[data-repeat-native]')).toHaveAttribute('data-speech-language','pt-PT');
+  await expect(page.locator('[data-listen]')).toContainText('Ouvir');
+  await expect(page.locator('[data-speak]')).toHaveCount(1);
+});
+
 test('communication shows large original and alternative sentences with both audio languages', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="communication-strength"]').click();
