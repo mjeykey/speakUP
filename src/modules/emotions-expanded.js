@@ -146,7 +146,7 @@ export function renderEmotions(root,store){
     if(sentenceEl){sentenceEl.innerHTML=completedSentenceHtml(sentence,answer);sentenceEl.dataset.effect=effect;}
     if(feedbackEl)feedbackEl.textContent=feedback;
     sayLearning(chosen);
-    await new Promise(resolve=>window.setTimeout(resolve,900));
+    await new Promise(resolve=>window.setTimeout(resolve,200));
     if(sentenceEl){try{await explodeText(sentenceEl,effect,{duration:1450,stagger:20});}catch(error){console.warn('Emotion sentence effect failed.',error);}}
     quizIndex=(quizIndex+1)%selected[3].length;
     feedback='';
