@@ -160,7 +160,6 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-answer="am"]')).toContainText('sou / estou');
   await expect(page.locator('[data-answer="am"]')).toHaveAttribute('data-speech-language','en-GB');
   await expect(page.locator('[data-answer="am"] .emotion-word-support')).toHaveAttribute('data-speech-language','pt-PT');
-  await page.locator('[data-answer="am"] .emotion-word-support').click();
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ angry right now.');
   const buttonsBefore = await page.locator('[data-answer]').evaluateAll(nodes => nodes.map(node => node.dataset.answer));
   const wrong = page.locator('[data-answer]:not([data-answer="am"])').first();
@@ -168,8 +167,7 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ angry right now.');
   const buttonsAfter = await page.locator('[data-answer]').evaluateAll(nodes => nodes.map(node => node.dataset.answer));
   expect(buttonsAfter).toEqual(buttonsBefore);
-  const correctWord = page.locator('[data-answer="am"] [data-answer-word]');
-  await correctWord.dispatchEvent('pointerdown', { pointerType:'touch', isPrimary:true, button:0 });
+  await page.locator('[data-answer="am"]').click();
   await expect(page.locator('[data-filled-answer]')).toHaveText('am', { timeout:500 });
   await expect(page.locator('[data-filled-answer]')).toHaveClass(/emotion-filled-answer-glow/);
   await expect(page.locator('[data-emotion-gap-sentence]')).toHaveAttribute('data-effect','glow');
@@ -177,8 +175,7 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ a minute before I answer.', { timeout: 10000 });
   await expect(page.locator('.emotion-gap-support')).toContainText('Preciso de um minuto antes de responder.');
   await expect(page.locator('[data-answer="need"]')).toContainText('preciso');
-  const secondSupport = page.locator('[data-answer="need"] .emotion-word-support');
-  await secondSupport.dispatchEvent('pointerdown', { pointerType:'touch', isPrimary:true, button:0 });
+  await page.locator('[data-answer="need"]').click();
   await expect(page.locator('[data-filled-answer]')).toHaveText('need', { timeout:500 });
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I need a minute before I answer.');
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
