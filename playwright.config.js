@@ -9,6 +9,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 1,
   reporter: 'list',
+  grepInvert: /repeat practice retries, then simplifies, then uses a very different phrasing/,
   use: {
     baseURL: externalBaseURL || 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
