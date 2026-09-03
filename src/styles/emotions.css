@@ -96,3 +96,22 @@
   position:relative;
   will-change:transform,opacity,filter;
 }
+
+.emotion-quiz-answer{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.emotion-answer-word{
+  width:100%;
+  min-height:24px;
+  display:grid!important;
+  place-items:center;
+  pointer-events:none;
+}
+.emotion-answer-wrong{animation:emotion-answer-wrong .24s ease;}
+@keyframes emotion-answer-wrong{
+  0%,100%{transform:translateX(0)}
+  30%{transform:translateX(-5px)}
+  70%{transform:translateX(5px)}
+}

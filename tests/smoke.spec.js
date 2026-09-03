@@ -162,8 +162,15 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-answer="am"] .emotion-word-support')).toHaveAttribute('data-speech-language','pt-PT');
   await page.locator('[data-answer="am"] .emotion-word-support').click();
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ angry right now.');
-  await page.locator('[data-answer="am"]').click();
-  await expect(page.locator('[data-filled-answer]')).toHaveText('am');
+  const buttonsBefore = await page.locator('[data-answer]').evaluateAll(nodes => nodes.map(node => node.dataset.answer));
+  const wrong = page.locator('[data-answer]:not([data-answer="am"])').first();
+  await wrong.click();
+  await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I ___ angry right now.');
+  const buttonsAfter = await page.locator('[data-answer]').evaluateAll(nodes => nodes.map(node => node.dataset.answer));
+  expect(buttonsAfter).toEqual(buttonsBefore);
+  const correctWord = page.locator('[data-answer="am"] [data-answer-word]');
+  await correctWord.dispatchEvent('pointerup', { pointerType:'touch', isPrimary:true, button:0 });
+  await expect(page.locator('[data-filled-answer]')).toHaveText('am', { timeout:500 });
   await expect(page.locator('[data-filled-answer]')).toHaveClass(/emotion-filled-answer-glow/);
   await expect(page.locator('[data-emotion-gap-sentence]')).toHaveAttribute('data-effect','glow');
   await expect(page.locator('[data-emotion-gap-sentence]')).toContainText('I am angry right now.');
