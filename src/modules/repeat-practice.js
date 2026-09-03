@@ -157,34 +157,32 @@ export function renderRepeatPractice(root, store) {
     await playSentence(false);
   }
 
-  async function softenAfterMiss(heard) {
-    attempts += 1;
+  async function showAlternativeAfterMiss(heard, message = copy.easy) {
     streak = 0;
 
-    if (!usingAlternative && attempts === 1) {
-      renderPractice(copy.slower, 'gentle');
-      const node = root.querySelector('[data-heard]');
-      if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
-      await sleep(450);
-      await playSentence(true);
-      return;
-    }
-
     if (!usingAlternative) {
-      rememberForLater(activeSentence(), category.id, learningLanguage);
+      rememberForLater(current().sentence, category.id, learningLanguage);
       usingAlternative = true;
       attempts = 0;
-      renderPractice(copy.easy, 'gentle');
-      await sleep(550);
+      renderPractice(message, 'gentle');
+      const node = root.querySelector('[data-heard]');
+      if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
+      await sleep(420);
       await playSentence(true);
       return;
     }
 
+    attempts += 1;
     renderPractice(copy.stay, 'gentle');
     const node = root.querySelector('[data-heard]');
     if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
-    await sleep(500);
+    await sleep(420);
     await playSentence(true);
+  }
+
+  async function softenAfterMiss(heard) {
+    attempts += 1;
+    await showAlternativeAfterMiss(heard);
   }
 
   function startListening() {
@@ -209,9 +207,13 @@ export function renderRepeatPractice(root, store) {
       else await softenAfterMiss(best.text);
     };
 
-    recognition.onerror = event => {
+    recognition.onerror = async event => {
       listening = false;
-      renderPractice(event.error === 'not-allowed' || event.error === 'service-not-allowed' ? copy.mic : copy.unclear, 'gentle');
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        renderPractice(copy.mic, 'gentle');
+        return;
+      }
+      await showAlternativeAfterMiss('', copy.easy);
     };
     recognition.onend = () => { listening = false; };
     try { recognition.start(); }

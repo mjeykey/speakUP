@@ -174,6 +174,12 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
 });
 
 test('repeat practice is a separate Level 1 section with microphone practice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.SpeechRecognition = class {
+      abort() {}
+      start() { window.setTimeout(() => this.onerror?.({ error:'no-speech' }), 10); }
+    };
+  });
   await openMenu(page);
   await expect(page.locator('[data-mode="repeat-practice"]')).toContainText('Repetir');
   await page.locator('[data-mode="repeat-practice"]').click();
@@ -185,7 +191,11 @@ test('repeat practice is a separate Level 1 section with microphone practice', a
   await expect(page.locator('[data-repeat-learning]')).toHaveAttribute('data-speech-language','en-GB');
   await expect(page.locator('[data-repeat-native]')).toHaveAttribute('data-speech-language','pt-PT');
   await expect(page.locator('[data-listen]')).toContainText('Ouvir');
-  await expect(page.locator('[data-speak]')).toHaveCount(1);
+  const original = await page.locator('[data-repeat-learning]').textContent();
+  await page.locator('[data-speak]').click();
+  await expect(page.locator('.speak-card')).toHaveClass(/is-alternative/);
+  await expect(page.locator('[data-repeat-learning]')).not.toHaveText(original || '');
+  await expect(page.locator('.speak-feedback')).toContainText('O mesmo significado');
 });
 
 test('communication shows large original and alternative sentences with both audio languages', async ({ page }) => {
