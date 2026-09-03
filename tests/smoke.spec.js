@@ -208,6 +208,12 @@ test('L3 opens a selected topic and advances', async ({ page }) => {
   await expect(page.locator('.l3-screen')).toBeVisible();
   await expect(page.locator('.knowledge-level')).toContainText('Aprende sobre o mundo');
   await expect(page.locator('.knowledge-explanation-label')).toContainText('O que significa exatamente?');
+  await expect(page.locator('.knowledge-term')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('.knowledge-translation')).toHaveAttribute('data-speech-language','pt-PT');
+  await expect(page.locator('.knowledge-fact')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('.knowledge-fact-translation')).toHaveAttribute('data-speech-language','pt-PT');
+  await expect(page.locator('.knowledge-explanation')).toHaveAttribute('data-speech-language','en-GB');
+  await expect(page.locator('.knowledge-explanation-translation')).toHaveAttribute('data-speech-language','pt-PT');
   await expect(page.locator('[data-next]')).toHaveText('Seguinte');
   const first = await page.locator('.knowledge-term').textContent();
   await page.locator('[data-next]').click();

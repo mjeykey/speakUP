@@ -25,6 +25,7 @@ export function renderL3Learning(root, store) {
   const index = Math.max(0, Number(saved.currentIndex) || 0) % cards.length;
   const card = cards[index];
   const speechLanguage = getSpeechLanguage(state.learningLanguage);
+  const nativeSpeechLanguage = getSpeechLanguage(state.nativeLanguage);
   let moving = false;
 
   root.innerHTML = `<section class="screen knowledge-screen l3-screen">
@@ -33,15 +34,15 @@ export function renderL3Learning(root, store) {
       <div class="knowledge-topic">${topic.emoji} ${escapeHtml(localizedTopic.title)}</div>
       <div class="knowledge-card">
         <p class="knowledge-level">${ui.l3Level}</p>
-        <h1 class="knowledge-term">${escapeHtml(card.term)}</h1>
-        <p class="knowledge-translation">${escapeHtml(card.termTranslation)}</p>
+        <h1 class="knowledge-term" data-learning-say="${escapeHtml(card.term)}" data-speech-language="${escapeHtml(speechLanguage)}">${escapeHtml(card.term)}</h1>
+        <p class="knowledge-translation" data-native-say="${escapeHtml(card.termTranslation)}" data-speech-language="${escapeHtml(nativeSpeechLanguage)}">${escapeHtml(card.termTranslation)}</p>
         <div class="knowledge-divider"></div>
-        <p class="knowledge-fact">${escapeHtml(card.fact)}</p>
-        <p class="knowledge-fact-translation">${escapeHtml(card.factTranslation)}</p>
+        <p class="knowledge-fact" data-learning-say="${escapeHtml(card.fact)}" data-speech-language="${escapeHtml(speechLanguage)}">${escapeHtml(card.fact)}</p>
+        <p class="knowledge-fact-translation" data-native-say="${escapeHtml(card.factTranslation)}" data-speech-language="${escapeHtml(nativeSpeechLanguage)}">${escapeHtml(card.factTranslation)}</p>
         <div class="knowledge-explanation-block">
           <p class="knowledge-explanation-label">${ui.whatExactly}</p>
-          <p class="knowledge-explanation">${escapeHtml(card.explanation)}</p>
-          <p class="knowledge-explanation-translation">${escapeHtml(card.explanationTranslation)}</p>
+          <p class="knowledge-explanation" data-learning-say="${escapeHtml(card.explanation)}" data-speech-language="${escapeHtml(speechLanguage)}">${escapeHtml(card.explanation)}</p>
+          <p class="knowledge-explanation-translation" data-native-say="${escapeHtml(card.explanationTranslation)}" data-speech-language="${escapeHtml(nativeSpeechLanguage)}">${escapeHtml(card.explanationTranslation)}</p>
         </div>
       </div>
       <button class="primary-button knowledge-next" data-next>${ui.next}</button>
@@ -52,6 +53,17 @@ export function renderL3Learning(root, store) {
     stopSpeech();
     store.setState({ screen: 'menu' });
   };
+
+  root.querySelectorAll('[data-learning-say]').forEach(element => {
+    element.addEventListener('click', () => {
+      speak(element.dataset.learningSay, speechLanguage, { enabled:store.getState().audioOn, rate:0.68 }).catch(() => {});
+    });
+  });
+  root.querySelectorAll('[data-native-say]').forEach(element => {
+    element.addEventListener('click', () => {
+      speak(element.dataset.nativeSay, nativeSpeechLanguage, { enabled:store.getState().audioOn, rate:0.62 }).catch(() => {});
+    });
+  });
 
   root.querySelector('[data-next]').onclick = () => {
     if (moving) return;
