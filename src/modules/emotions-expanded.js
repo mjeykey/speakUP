@@ -121,7 +121,6 @@ export function renderEmotions(root,store){
  function detail(){animating=false;const sentence=selected[3][quizIndex];const supportSentence=supportItems[selectedIndex]?.[3]?.[quizIndex]||'';const words=sentence.replace(/[.,!?]/g,'').split(/\s+/);const answer=words[Math.min(1,words.length-1)];const gap=sentence.replace(answer,'___');const distractors=selected[2].filter(x=>x.toLowerCase()!==answer.toLowerCase()).slice(0,2);const options=[answer,...distractors].sort(()=>Math.random()-.5);const optionSupport=x=>{const descriptorIndex=selected[2].findIndex(word=>word.toLowerCase()===String(x).toLowerCase());if(descriptorIndex>=0)return supportItems[selectedIndex]?.[2]?.[descriptorIndex]||'';if(code==='en-GB'&&supportCode==='pt-PT')return EN_PT_QUIZ_HINTS[String(x).toLowerCase()]||'';return'';};root.innerHTML=`<section class="screen emotions-screen"><button class="menu-button" data-menu>${ui.menu}</button><div class="emotions-shell emotion-journey"><div class="emotion-current-block"><p class="emotion-current" data-learning-say="${esc(selected[1])}" data-speech-language="${esc(voice)}">${selected[0]} ${esc(selected[1])}</p><p class="translation emotion-current-translation" data-support-say="${esc(supportItems[selectedIndex]?.[1]||'')}" data-speech-language="${esc(supportVoice)}"><span>${esc(supportLanguageLabel)}:</span> ${esc(supportItems[selectedIndex]?.[1]||'')}</p></div><div class="emotion-panel"><p class="kicker">${ui.words}</p><div class="emotion-answer-grid">${selected[2].map((x,i)=>`<button class="emotion-answer emotion-bilingual-word" data-learning-say="${esc(x)}" data-speech-language="${esc(voice)}"><span>${esc(x)}</span><small class="emotion-word-support" data-support-say="${esc(supportItems[selectedIndex]?.[2]?.[i]||'')}" data-speech-language="${esc(supportVoice)}">${esc(supportItems[selectedIndex]?.[2]?.[i]||'')}</small></button>`).join('')}</div></div><div class="emotion-panel"><p class="kicker">${ui.repeat}</p><button class="menu-card emotion-repeat-card" data-learning-say="${esc(sentence)}" data-speech-language="${esc(voice)}"><span>${esc(sentence)}</span><small class="emotion-support-sentence" data-support-say="${esc(supportSentence)}" data-speech-language="${esc(supportVoice)}"><span>${esc(supportLanguageLabel)}:</span> ${esc(supportSentence)}</small><small>🔊 ${ui.tapRepeat}</small></button></div><div class="emotion-panel"><p class="kicker">${ui.miniExercise}</p><p class="story-copy" data-emotion-gap-sentence>${esc(gap)}</p><p class="emotion-support-sentence emotion-gap-support" data-support-say="${esc(supportSentence)}" data-speech-language="${esc(supportVoice)}"><span>${esc(supportLanguageLabel)}:</span> ${esc(supportSentence)}</p><div class="emotion-answer-grid">${options.map(x=>`<button class="emotion-answer emotion-bilingual-word emotion-quiz-answer" data-answer="${esc(x)}" data-speech-language="${esc(voice)}"><span class="emotion-answer-word" data-answer-word>${esc(x)}</span>${optionSupport(x)?`<small class="emotion-word-support" data-support-say="${esc(optionSupport(x))}" data-speech-language="${esc(supportVoice)}">${esc(optionSupport(x))}</small>`:''}</button>`).join('')}</div><p class="feedback" data-emotion-feedback>${esc(feedback)}</p></div><div class="memory-actions"><button class="secondary-button" data-back>← ${ui.emotions}</button><button class="primary-button" data-next>${ui.nextSentence}</button></div></div></section>`;root.querySelector('[data-menu]').onclick=leave;root.querySelector('[data-back]').onclick=picker;wireSpeech();root.querySelectorAll('[data-answer]').forEach(b=>{
   let selecting=false;
   const choose=async event=>{
-    if(event?.target?.closest?.('[data-support-say]'))return;
     if(animating||selecting)return;
     selecting=true;
     const chosen=b.dataset.answer;
@@ -152,11 +151,14 @@ export function renderEmotions(root,store){
     feedback='';
     detail();
   };
-  b.addEventListener('pointerup',event=>{
-    if(event.pointerType==='touch'||event.pointerType==='pen'){event.preventDefault();choose(event);}
-  });
+  b.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='touch'||event.pointerType==='pen'){
+      event.preventDefault();
+      choose(event);
+    }
+  },true);
   b.addEventListener('click',event=>{
-    if(event.detail===0||!window.PointerEvent||event.pointerType!=='touch')choose(event);
+    if(event.detail===0||!window.PointerEvent)choose(event);
   });
 });root.querySelector('[data-next]').onclick=()=>{if(animating)return;quizIndex=(quizIndex+1)%selected[3].length;feedback='';detail();};}
  picker();
