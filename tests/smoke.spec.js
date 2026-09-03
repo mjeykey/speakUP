@@ -200,15 +200,15 @@ test('repeat practice retries, then simplifies, then uses a very different phras
   await expect(page.locator('.speak-feedback')).toContainText('exatamente a mesma frase');
 
   await page.locator('[data-speak]').click();
-  const simple = await page.locator('[data-repeat-learning]').textContent();
-  expect(simple).not.toBe(original);
   await expect(page.locator('.speak-feedback')).toContainText('um pouco diferente');
+  await expect(page.locator('[data-repeat-learning]')).not.toHaveText(original || '');
+  const simple = await page.locator('[data-repeat-learning]').textContent();
 
   await page.locator('[data-speak]').click();
+  await expect(page.locator('.speak-feedback')).toContainText('completamente diferente');
+  await expect(page.locator('[data-repeat-learning]')).toContainText('What I mean is:');
   const different = await page.locator('[data-repeat-learning]').textContent();
   expect(different).not.toBe(simple);
-  await expect(page.locator('[data-repeat-learning]')).toContainText('What I mean is:');
-  await expect(page.locator('.speak-feedback')).toContainText('completamente diferente');
 });
 
 test('communication shows large original and alternative sentences with both audio languages', async ({ page }) => {
