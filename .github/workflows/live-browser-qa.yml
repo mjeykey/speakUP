@@ -24,7 +24,7 @@ jobs:
       - name: Wait for GitHub Pages
         run: |
           for i in {1..30}; do
-            if curl -fsSL https://mjeykey.github.io/speakUP/ | grep -q 'src/app/main.js?v=355'; then
+            if curl -fsSL https://mjeykey.github.io/speakUP/ | grep -q 'src/app/main.js?v=356'; then
               exit 0
             fi
             sleep 5
@@ -34,4 +34,4 @@ jobs:
       - name: Run live browser smoke tests
         env:
           PLAYWRIGHT_BASE_URL: https://mjeykey.github.io/speakUP/
-        run: npx playwright test tests/smoke.spec.js
+        run: npx playwright test tests/smoke.spec.js tests/repeat-success-ladder.spec.js
