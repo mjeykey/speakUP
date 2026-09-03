@@ -135,16 +135,38 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
   await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
-test('fantasy first page shows both native and learning text', async ({ page }) => {
+test('fantasy uses Portuguese, mixed reading, gap, then the next text', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-mode="story"]').click();
   await page.locator('[data-stories] button').filter({ hasText: 'Fantasia' }).click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
-  await expect(page.locator('.story-progress')).toContainText('Página 1');
+
+  await expect(page.locator('.story-progress-ui')).toContainText('Página 1');
+  await expect(page.locator('.story-copy')).toHaveCount(1);
+  await expect(page.locator('.story-copy')).toContainText('Na noite em que o céu se abriu sobre Avarin');
+
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.story-progress-ui')).toContainText('Página 2');
   await expect(page.locator('.story-copy')).toHaveCount(2);
-  await expect(page.locator('.story-copy').first()).toContainText('Na noite em que o céu se abriu sobre Avarin');
-  await expect(page.locator('.story-copy').nth(1)).toContainText('On the night the sky broke above Avarin');
+  await expect(page.locator('.story-copy').first()).toContainText('On the night the sky broke above Avarin');
+  await expect(page.locator('.story-copy').nth(1)).toContainText('Na noite em que o céu se abriu sobre Avarin');
+
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.story-progress-ui')).toContainText('Página 3');
+  await expect(page.locator('.story-gap-copy')).toBeVisible();
+
+  await page.locator('[data-option="night"]').click();
+  await expect(page.locator('[data-option="broke"]')).toBeVisible();
+  await page.locator('[data-option="broke"]').click();
+  await expect(page.locator('[data-option="above"]')).toBeVisible();
+  await page.locator('[data-option="above"]').click();
+  await expect(page.locator('.feedback')).toBeVisible();
+
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.story-progress-ui')).toContainText('Página 4');
+  await expect(page.locator('.story-copy')).toHaveCount(1);
+  await expect(page.locator('.story-copy')).toContainText('Um sino de alarme ecoou por toda a cidade');
 });
 
 test('emotions fills the correct word, glows, then dissolves with the selected effect', async ({ page }) => {

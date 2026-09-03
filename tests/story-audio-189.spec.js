@@ -73,7 +73,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
       selectedStory:'fantasy-1',
       progress:{
         story:{
-          'v2|fantasy-1|en-GB|pt-PT':{
+          'v3|fantasy-1|en-GB|pt-PT':{
             storyId:'fantasy-1',
             learningLanguage:'en-GB',
             nativeLanguage:'pt-PT',
