@@ -135,6 +135,18 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
   await expect(page.locator('[data-prev]')).toBeDisabled();
 });
 
+test('fantasy first page shows both native and learning text', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-mode="story"]').click();
+  await page.locator('[data-stories] button').filter({ hasText: 'Fantasia' }).click();
+  await page.locator('[data-start]').click();
+  await expect(page.locator('.story-screen')).toBeVisible();
+  await expect(page.locator('.story-progress')).toContainText('Página 1');
+  await expect(page.locator('.story-copy')).toHaveCount(2);
+  await expect(page.locator('.story-copy').first()).toContainText('Na noite em que o céu se abriu sobre Avarin');
+  await expect(page.locator('.story-copy').nth(1)).toContainText('On the night the sky broke above Avarin');
+});
+
 test('emotions fills the correct word, glows, then dissolves with the selected effect', async ({ page }) => {
   await openMenu(page);
   await page.evaluate(() => localStorage.setItem('speakup-text-effect:emotions', 'glow'));

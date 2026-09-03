@@ -441,7 +441,10 @@ export function renderStory(root,store){
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
-      shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
+      const firstFantasyPage=storyId==='fantasy-1'&&pageIndex===0;
+      shell(firstFantasyPage
+        ? `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p><p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy translated">${escapeHtml(current.learning)}</p>`
+        : `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
       await narrate(current.native,nativeVoice,audioEnabled,.88,token,current);
     }else if(phaseIndex===1){
       shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
