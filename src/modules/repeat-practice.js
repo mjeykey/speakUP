@@ -7,12 +7,12 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
 
 const COPY = {
-  en:{menu:'Menu',kicker:'Repeat after me',choose:'What do you want to practise?',hint:'Choose a theme and repeat the sentences out loud.',sentences:'sentences',back:'← Themes',title:'Listen and repeat',sentence:'Sentence',streak:'Streak',easier:'easier version',initial:'Listen first. Then repeat when you are ready.',listen:'Listen',speak:'🎙 Repeat',listening:'Listening…',success:'That was good. You did it! ✨',strong:'Beautiful — your voice is getting stronger! ✨',altSuccess:'Yes — that worked. Same idea, clearer words. ✨',slower:'Let us hear the same sentence once more, a little slower.',easy:'Same meaning, easier sentence. We will try this one.',stay:'Stay with this easier sentence. Listen once more and take your time.',heard:'I heard',mic:'Microphone access is needed. Nothing was marked wrong.',unclear:'I could not hear that clearly. Try the same sentence again.',moment:'The microphone needs a short moment. Tap Repeat again.',next:'Ready for the next sentence.',unsupported:'Speech recognition is not available in this browser.'},
-  de:{menu:'Menü',kicker:'Nachsprechen',choose:'Was möchtest du üben?',hint:'Wähle ein Thema und sprich die Sätze laut nach.',sentences:'Sätze',back:'← Themen',title:'Anhören und nachsprechen',sentence:'Satz',streak:'Serie',easier:'leichtere Version',initial:'Hör zuerst zu. Sprich den Satz danach nach.',listen:'Anhören',speak:'🎙 Nachsprechen',listening:'Ich höre zu…',success:'Gut gemacht. ✨',strong:'Sehr schön — deine Stimme wird sicherer! ✨',altSuccess:'Ja — das hat funktioniert. Gleiche Aussage, leichter gesagt. ✨',slower:'Wir hören denselben Satz noch einmal etwas langsamer.',easy:'Gleiche Bedeutung, leichterer Satz. Wir versuchen diesen.',stay:'Bleib bei diesem leichteren Satz. Hör noch einmal zu und nimm dir Zeit.',heard:'Ich habe gehört',mic:'Für diese Übung wird Mikrofonzugriff benötigt. Nichts wurde als falsch gewertet.',unclear:'Ich konnte das nicht klar verstehen. Versuch denselben Satz noch einmal.',moment:'Das Mikrofon braucht einen kurzen Moment. Tippe noch einmal auf Nachsprechen.',next:'Bereit für den nächsten Satz.',unsupported:'Spracherkennung ist in diesem Browser nicht verfügbar.'},
-  pt:{menu:'Menu',kicker:'Repetir',choose:'O que queres praticar?',hint:'Escolhe um tema e repete as frases em voz alta.',sentences:'frases',back:'← Temas',title:'Ouve e repete',sentence:'Frase',streak:'Sequência',easier:'versão mais fácil',initial:'Ouve primeiro. Depois repete quando quiseres.',listen:'Ouvir',speak:'🎙 Repetir',listening:'A ouvir…',success:'Muito bem. Conseguiste! ✨',strong:'Muito bem — a tua voz está cada vez mais segura! ✨',altSuccess:'Sim — funcionou. A mesma ideia com palavras mais simples. ✨',slower:'Vamos ouvir a mesma frase outra vez, mais devagar.',easy:'O mesmo significado, numa frase mais fácil. Vamos tentar esta.',stay:'Fica com esta frase mais fácil. Ouve outra vez e sem pressa.',heard:'Ouvi',mic:'É necessário permitir o microfone. Nada foi marcado como errado.',unclear:'Não ouvi com clareza. Tenta novamente a mesma frase.',moment:'O microfone precisa de um momento. Toca novamente em Repetir.',next:'Pronta para a próxima frase.',unsupported:'O reconhecimento de voz não está disponível neste navegador.'},
-  es:{menu:'Menú',kicker:'Repetir',choose:'¿Qué quieres practicar?',hint:'Elige un tema y repite las frases en voz alta.',sentences:'frases',back:'← Temas',title:'Escucha y repite',sentence:'Frase',streak:'Racha',easier:'versión más fácil',initial:'Escucha primero. Después repite cuando quieras.',listen:'Escuchar',speak:'🎙 Repetir',listening:'Escuchando…',success:'Muy bien. ¡Lo hiciste! ✨',strong:'Muy bien — tu voz suena cada vez más segura. ✨',altSuccess:'Sí — funcionó. La misma idea con palabras más sencillas. ✨',slower:'Vamos a escuchar la misma frase otra vez, más despacio.',easy:'El mismo significado, con una frase más fácil. Probemos esta.',stay:'Quédate con esta frase más fácil. Escucha otra vez y tómate tu tiempo.',heard:'He oído',mic:'Se necesita acceso al micrófono. Nada se marcó como incorrecto.',unclear:'No pude oírlo con claridad. Prueba la misma frase otra vez.',moment:'El micrófono necesita un momento. Toca Repetir de nuevo.',next:'Lista para la siguiente frase.',unsupported:'El reconocimiento de voz no está disponible en este navegador.'},
-  hr:{menu:'Izbornik',kicker:'Ponovi',choose:'Što želiš vježbati?',hint:'Odaberi temu i glasno ponavljaj rečenice.',sentences:'rečenica',back:'← Teme',title:'Poslušaj i ponovi',sentence:'Rečenica',streak:'Niz',easier:'lakša verzija',initial:'Najprije poslušaj. Zatim ponovi kad želiš.',listen:'Poslušaj',speak:'🎙 Ponovi',listening:'Slušam…',success:'Odlično. Uspjelo je! ✨',strong:'Predivno — tvoj glas postaje sigurniji! ✨',altSuccess:'Da — uspjelo je. Ista ideja, jednostavnije riječi. ✨',slower:'Poslušajmo istu rečenicu još jednom, malo sporije.',easy:'Isto značenje, lakša rečenica. Pokušajmo ovu.',stay:'Ostani uz ovu lakšu rečenicu. Poslušaj još jednom i uzmi vremena.',heard:'Čula sam',mic:'Potreban je pristup mikrofonu. Ništa nije označeno kao pogrešno.',unclear:'Nisam jasno čula. Pokušaj ponovno istu rečenicu.',moment:'Mikrofon treba trenutak. Dodirni Ponovi ponovno.',next:'Spremna za sljedeću rečenicu.',unsupported:'Prepoznavanje govora nije dostupno u ovom pregledniku.'},
-  fr:{menu:'Menu',kicker:'Répéter',choose:'Que veux-tu pratiquer ?',hint:'Choisis un thème et répète les phrases à voix haute.',sentences:'phrases',back:'← Thèmes',title:'Écoute et répète',sentence:'Phrase',streak:'Série',easier:'version plus facile',initial:'Écoute d’abord. Puis répète quand tu veux.',listen:'Écouter',speak:'🎙 Répéter',listening:'J’écoute…',success:'Très bien. Tu l’as fait ! ✨',strong:'Très bien — ta voix devient plus assurée ! ✨',altSuccess:'Oui — ça a marché. La même idée avec des mots plus simples. ✨',slower:'Écoutons encore une fois la même phrase, plus lentement.',easy:'Le même sens, avec une phrase plus facile. Essayons celle-ci.',stay:'Reste avec cette phrase plus facile. Écoute encore une fois et prends ton temps.',heard:'J’ai entendu',mic:'L’accès au microphone est nécessaire. Rien n’a été marqué comme faux.',unclear:'Je n’ai pas entendu clairement. Essaie encore la même phrase.',moment:'Le microphone a besoin d’un instant. Appuie de nouveau sur Répéter.',next:'Prête pour la phrase suivante.',unsupported:'La reconnaissance vocale n’est pas disponible dans ce navigateur.'}
+  en:{menu:'Menu',kicker:'Repeat after me',choose:'What do you want to practise?',hint:'Choose a theme and repeat the sentences out loud.',sentences:'sentences',back:'← Themes',title:'Listen and repeat',sentence:'Sentence',streak:'Streak',easier:'easier version',initial:'Listen first. Then repeat when you are ready.',listen:'Listen',speak:'🎙 Repeat',listening:'Listening…',success:'That was good. You did it! ✨',strong:'Beautiful — your voice is getting stronger! ✨',altSuccess:'Yes — that worked. Same idea, clearer words. ✨',slower:'One more time — the same sentence, just like in a normal conversation.',easy:'Now I will say it a little differently and more simply.',different:'And now the same idea in a completely different way.',stay:'Stay with this version. Listen once more and take your time.',heard:'I heard',mic:'Microphone access is needed. Nothing was marked wrong.',unclear:'I could not hear that clearly. Try the same sentence again.',moment:'The microphone needs a short moment. Tap Repeat again.',next:'Ready for the next sentence.',unsupported:'Speech recognition is not available in this browser.'},
+  de:{menu:'Menü',kicker:'Nachsprechen',choose:'Was möchtest du üben?',hint:'Wähle ein Thema und sprich die Sätze laut nach.',sentences:'Sätze',back:'← Themen',title:'Anhören und nachsprechen',sentence:'Satz',streak:'Serie',easier:'leichtere Version',initial:'Hör zuerst zu. Sprich den Satz danach nach.',listen:'Anhören',speak:'🎙 Nachsprechen',listening:'Ich höre zu…',success:'Gut gemacht. ✨',strong:'Sehr schön — deine Stimme wird sicherer! ✨',altSuccess:'Ja — das hat funktioniert. Gleiche Aussage, leichter gesagt. ✨',slower:'Noch einmal — genau derselbe Satz, wie in einem normalen Gespräch.',easy:'Jetzt sage ich es etwas anders und einfacher.',different:'Und jetzt dieselbe Aussage ganz anders formuliert.',stay:'Bleib bei dieser Version. Hör noch einmal zu und nimm dir Zeit.',heard:'Ich habe gehört',mic:'Für diese Übung wird Mikrofonzugriff benötigt. Nichts wurde als falsch gewertet.',unclear:'Ich konnte das nicht klar verstehen. Versuch denselben Satz noch einmal.',moment:'Das Mikrofon braucht einen kurzen Moment. Tippe noch einmal auf Nachsprechen.',next:'Bereit für den nächsten Satz.',unsupported:'Spracherkennung ist in diesem Browser nicht verfügbar.'},
+  pt:{menu:'Menu',kicker:'Repetir',choose:'O que queres praticar?',hint:'Escolhe um tema e repete as frases em voz alta.',sentences:'frases',back:'← Temas',title:'Ouve e repete',sentence:'Frase',streak:'Sequência',easier:'versão mais fácil',initial:'Ouve primeiro. Depois repete quando quiseres.',listen:'Ouvir',speak:'🎙 Repetir',listening:'A ouvir…',success:'Muito bem. Conseguiste! ✨',strong:'Muito bem — a tua voz está cada vez mais segura! ✨',altSuccess:'Sim — funcionou. A mesma ideia com palavras mais simples. ✨',slower:'Mais uma vez — exatamente a mesma frase, como numa conversa normal.',easy:'Agora digo a mesma coisa de forma um pouco diferente e mais simples.',different:'E agora a mesma ideia de uma forma completamente diferente.',stay:'Fica com esta versão. Ouve outra vez e sem pressa.',heard:'Ouvi',mic:'É necessário permitir o microfone. Nada foi marcado como errado.',unclear:'Não ouvi com clareza. Tenta novamente a mesma frase.',moment:'O microfone precisa de um momento. Toca novamente em Repetir.',next:'Pronta para a próxima frase.',unsupported:'O reconhecimento de voz não está disponível neste navegador.'},
+  es:{menu:'Menú',kicker:'Repetir',choose:'¿Qué quieres practicar?',hint:'Elige un tema y repite las frases en voz alta.',sentences:'frases',back:'← Temas',title:'Escucha y repite',sentence:'Frase',streak:'Racha',easier:'versión más fácil',initial:'Escucha primero. Después repite cuando quieras.',listen:'Escuchar',speak:'🎙 Repetir',listening:'Escuchando…',success:'Muy bien. ¡Lo hiciste! ✨',strong:'Muy bien — tu voz suena cada vez más segura. ✨',altSuccess:'Sí — funcionó. La misma idea con palabras más sencillas. ✨',slower:'Una vez más — exactamente la misma frase, como en una conversación normal.',easy:'Ahora lo digo de una forma un poco diferente y más sencilla.',different:'Y ahora la misma idea de una forma completamente diferente.',stay:'Quédate con esta versión. Escucha otra vez y tómate tu tiempo.',heard:'He oído',mic:'Se necesita acceso al micrófono. Nada se marcó como incorrecto.',unclear:'No pude oírlo con claridad. Prueba la misma frase otra vez.',moment:'El micrófono necesita un momento. Toca Repetir de nuevo.',next:'Lista para la siguiente frase.',unsupported:'El reconocimiento de voz no está disponible en este navegador.'},
+  hr:{menu:'Izbornik',kicker:'Ponovi',choose:'Što želiš vježbati?',hint:'Odaberi temu i glasno ponavljaj rečenice.',sentences:'rečenica',back:'← Teme',title:'Poslušaj i ponovi',sentence:'Rečenica',streak:'Niz',easier:'lakša verzija',initial:'Najprije poslušaj. Zatim ponovi kad želiš.',listen:'Poslušaj',speak:'🎙 Ponovi',listening:'Slušam…',success:'Odlično. Uspjelo je! ✨',strong:'Predivno — tvoj glas postaje sigurniji! ✨',altSuccess:'Da — uspjelo je. Ista ideja, jednostavnije riječi. ✨',slower:'Još jednom — potpuno ista rečenica, kao u običnom razgovoru.',easy:'Sada ću to reći malo drukčije i jednostavnije.',different:'A sada ista poruka potpuno drukčije formulirana.',stay:'Ostani uz ovu verziju. Poslušaj još jednom i uzmi vremena.',heard:'Čula sam',mic:'Potreban je pristup mikrofonu. Ništa nije označeno kao pogrešno.',unclear:'Nisam jasno čula. Pokušaj ponovno istu rečenicu.',moment:'Mikrofon treba trenutak. Dodirni Ponovi ponovno.',next:'Spremna za sljedeću rečenicu.',unsupported:'Prepoznavanje govora nije dostupno u ovom pregledniku.'},
+  fr:{menu:'Menu',kicker:'Répéter',choose:'Que veux-tu pratiquer ?',hint:'Choisis un thème et répète les phrases à voix haute.',sentences:'phrases',back:'← Thèmes',title:'Écoute et répète',sentence:'Phrase',streak:'Série',easier:'version plus facile',initial:'Écoute d’abord. Puis répète quand tu veux.',listen:'Écouter',speak:'🎙 Répéter',listening:'J’écoute…',success:'Très bien. Tu l’as fait ! ✨',strong:'Très bien — ta voix devient plus assurée ! ✨',altSuccess:'Oui — ça a marché. La même idée avec des mots plus simples. ✨',slower:'Encore une fois — exactement la même phrase, comme dans une conversation normale.',easy:'Maintenant je le dis un peu autrement et plus simplement.',different:'Et maintenant la même idée formulée d’une manière complètement différente.',stay:'Reste avec cette version. Écoute encore une fois et prends ton temps.',heard:'J’ai entendu',mic:'L’accès au microphone est nécessaire. Rien n’a été marqué comme faux.',unclear:'Je n’ai pas entendu clairement. Essaie encore la même phrase.',moment:'Le microphone a besoin d’un instant. Appuie de nouveau sur Répéter.',next:'Prête pour la phrase suivante.',unsupported:'La reconnaissance vocale n’est pas disponible dans ce navigateur.'}
 };
 
 const CATEGORY_TITLES = {
@@ -68,16 +68,36 @@ export function renderRepeatPractice(root, store) {
   let category = null;
   let index = 0;
   let attempts = 0;
-  let usingAlternative = false;
+  let variantStage = 0;
   let recognition = null;
   let listening = false;
   let streak = 0;
 
   const exercises = () => category?.exercises || [];
   const current = () => exercises()[index % Math.max(1, exercises().length)];
-  const activeSentence = () => usingAlternative ? current().alternative : current().sentence;
-  const activeTranslation = () => usingAlternative ? current().alternativeEnglish : current().english;
-  const successThreshold = () => usingAlternative ? .52 : .64;
+  const discoursePrefix = () => ({
+    'pt-PT':'O que quero dizer é: ',
+    'de-DE':'Anders gesagt: ',
+    'en-GB':'What I mean is: ',
+    'es-ES':'Lo que quiero decir es: ',
+    'es-AN':'Lo que quiero decir es: ',
+    'hr-HR':'Drugim riječima: ',
+    'hr-DAL':'Drugim riječima: ',
+    'fr-FR':'Autrement dit : '
+  }[learningLanguage] || 'What I mean is: ');
+  const nativeDiscoursePrefix = () => ({
+    'pt-PT':'O que quero dizer é: ',
+    'de-DE':'Anders gesagt: ',
+    'en-GB':'What I mean is: ',
+    'es-ES':'Lo que quiero decir es: ',
+    'es-AN':'Lo que quiero decir es: ',
+    'hr-HR':'Drugim riječima: ',
+    'hr-DAL':'Drugim riječima: ',
+    'fr-FR':'Autrement dit : '
+  }[nativeLanguage] || 'What I mean is: ');
+  const activeSentence = () => variantStage === 0 ? current().sentence : variantStage === 1 ? current().alternative : discoursePrefix() + current().alternative;
+  const activeTranslation = () => variantStage === 0 ? current().english : variantStage === 1 ? current().alternativeEnglish : nativeDiscoursePrefix() + current().alternativeEnglish;
+  const successThreshold = () => variantStage === 0 ? .64 : .52;
 
   function leave() {
     recognition?.abort?.();
@@ -103,7 +123,7 @@ export function renderRepeatPractice(root, store) {
         index = 0;
         attempts = 0;
         streak = 0;
-        usingAlternative = false;
+        variantStage = 0;
         renderPractice();
         window.setTimeout(() => playSentence(false), 350);
       };
@@ -119,8 +139,8 @@ export function renderRepeatPractice(root, store) {
       <button class="secondary-button speak-back" data-back>${copy.back}</button>
       <div class="center speak-view"><p class="kicker">${category.emoji} ${categoryTitles[category.id] || category.title}</p><h1>${copy.title}</h1>
       <p class="speak-progress">${copy.sentence} ${index + 1} / ${exercises().length} · ${copy.streak} ${streak}</p>
-      <div class="speak-card ${usingAlternative ? 'is-alternative' : ''}">
-        <p class="speak-label">${languageName(learningLanguage)}${usingAlternative ? ' · ' + copy.easier : ''}</p>
+      <div class="speak-card ${variantStage > 0 ? 'is-alternative' : ''}">
+        <p class="speak-label">${languageName(learningLanguage)}${variantStage === 1 ? ' · ' + copy.easier : variantStage === 2 ? ' · ' + copy.different : ''}</p>
         <p class="speak-sentence" data-repeat-learning data-speech-language="${speechLanguage}">${sentence}</p>
         <p class="speak-label">${languageName(nativeLanguage)}</p>
         <p class="speak-translation" data-repeat-native data-speech-language="${nativeSpeechLanguage}">${translation}</p>
@@ -149,22 +169,32 @@ export function renderRepeatPractice(root, store) {
   async function celebrate() {
     streak += 1;
     attempts = 0;
-    renderPractice(usingAlternative ? copy.altSuccess : (streak >= 3 ? copy.strong : copy.success), 'success');
+    renderPractice(variantStage > 0 ? copy.altSuccess : (streak >= 3 ? copy.strong : copy.success), 'success');
     await sleep(1350);
     index = (index + 1) % exercises().length;
-    usingAlternative = false;
+    variantStage = 0;
     renderPractice(copy.next, 'calm');
     await playSentence(false);
   }
 
-  async function showAlternativeAfterMiss(heard, message = copy.easy) {
+  async function handleMiss(heard = '') {
+    attempts += 1;
     streak = 0;
 
-    if (!usingAlternative) {
+    if (variantStage === 0 && attempts === 1) {
+      renderPractice(copy.slower, 'gentle');
+      const node = root.querySelector('[data-heard]');
+      if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
+      await sleep(380);
+      await playSentence(false);
+      return;
+    }
+
+    if (variantStage === 0) {
       rememberForLater(current().sentence, category.id, learningLanguage);
-      usingAlternative = true;
+      variantStage = 1;
       attempts = 0;
-      renderPractice(message, 'gentle');
+      renderPractice(copy.easy, 'gentle');
       const node = root.querySelector('[data-heard]');
       if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
       await sleep(420);
@@ -172,17 +202,22 @@ export function renderRepeatPractice(root, store) {
       return;
     }
 
-    attempts += 1;
+    if (variantStage === 1) {
+      variantStage = 2;
+      attempts = 0;
+      renderPractice(copy.different, 'gentle');
+      const node = root.querySelector('[data-heard]');
+      if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
+      await sleep(420);
+      await playSentence(true);
+      return;
+    }
+
     renderPractice(copy.stay, 'gentle');
     const node = root.querySelector('[data-heard]');
     if (node && heard) node.textContent = `${copy.heard}: “${heard}”`;
     await sleep(420);
     await playSentence(true);
-  }
-
-  async function softenAfterMiss(heard) {
-    attempts += 1;
-    await showAlternativeAfterMiss(heard);
   }
 
   function startListening() {
@@ -204,7 +239,7 @@ export function renderRepeatPractice(root, store) {
       }, { text:'', score:0 });
       listening = false;
       if (best.score >= successThreshold()) await celebrate();
-      else await softenAfterMiss(best.text);
+      else await handleMiss(best.text);
     };
 
     recognition.onerror = async event => {
@@ -213,7 +248,7 @@ export function renderRepeatPractice(root, store) {
         renderPractice(copy.mic, 'gentle');
         return;
       }
-      await showAlternativeAfterMiss('', copy.easy);
+      await handleMiss('');
     };
     recognition.onend = () => { listening = false; };
     try { recognition.start(); }

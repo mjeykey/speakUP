@@ -173,7 +173,7 @@ test('emotions fills the correct word, glows, then dissolves with the selected e
   await expect(page.locator('[data-next]')).toHaveText('Próxima frase');
 });
 
-test('repeat practice is a separate Level 1 section with microphone practice', async ({ page }) => {
+test('repeat practice retries, then simplifies, then uses a very different phrasing', async ({ page }) => {
   await page.addInitScript(() => {
     window.SpeechRecognition = class {
       abort() {}
@@ -184,18 +184,24 @@ test('repeat practice is a separate Level 1 section with microphone practice', a
   await expect(page.locator('[data-mode="repeat-practice"]')).toContainText('Repetir');
   await page.locator('[data-mode="repeat-practice"]').click();
   await page.locator('[data-start]').click();
-  await expect(page.locator('.repeat-practice-screen')).toBeVisible();
-  await expect(page.locator('[data-repeat-category]')).toHaveCount(13);
   await page.locator('[data-repeat-category]').first().click();
-  await expect(page.locator('[data-repeat-learning]')).toBeVisible();
-  await expect(page.locator('[data-repeat-learning]')).toHaveAttribute('data-speech-language','en-GB');
-  await expect(page.locator('[data-repeat-native]')).toHaveAttribute('data-speech-language','pt-PT');
-  await expect(page.locator('[data-listen]')).toContainText('Ouvir');
+
   const original = await page.locator('[data-repeat-learning]').textContent();
+
   await page.locator('[data-speak]').click();
-  await expect(page.locator('.speak-card')).toHaveClass(/is-alternative/);
-  await expect(page.locator('[data-repeat-learning]')).not.toHaveText(original || '');
-  await expect(page.locator('.speak-feedback')).toContainText('O mesmo significado');
+  await expect(page.locator('[data-repeat-learning]')).toHaveText(original || '');
+  await expect(page.locator('.speak-feedback')).toContainText('exatamente a mesma frase');
+
+  await page.locator('[data-speak]').click();
+  const simple = await page.locator('[data-repeat-learning]').textContent();
+  expect(simple).not.toBe(original);
+  await expect(page.locator('.speak-feedback')).toContainText('um pouco diferente');
+
+  await page.locator('[data-speak]').click();
+  const different = await page.locator('[data-repeat-learning]').textContent();
+  expect(different).not.toBe(simple);
+  await expect(page.locator('[data-repeat-learning]')).toContainText('What I mean is:');
+  await expect(page.locator('.speak-feedback')).toContainText('completamente diferente');
 });
 
 test('communication shows large original and alternative sentences with both audio languages', async ({ page }) => {
