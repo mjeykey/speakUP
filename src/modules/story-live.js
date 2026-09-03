@@ -292,15 +292,17 @@ function gapHtml(page,solved){
 export function renderStory(root,store){
   const state=store.getState();
   const storyId=state.selectedStory||'everyday';
-  const progressKey=[STORY_PROGRESS_VERSION,storyId,state.learningLanguage,state.nativeLanguage].join('|');
   const story=getStory(storyId,state.learningLanguage,state.nativeLanguage);
   const storyUi=getStoryUiCopy(state.nativeLanguage);
   const localizedStory=getLocalizedStoryCopy(story,state.nativeLanguage);
   const learningVoice=getSpeechLanguage(state.learningLanguage);
   const nativeVoice=getSpeechLanguage(state.nativeLanguage);
+  const activePhaseCount=storyId==='fantasy-1'?3:PHASES.length;
+  const progressVersion=storyId==='fantasy-1'?'v3':STORY_PROGRESS_VERSION;
+  const progressKey=[progressVersion,storyId,state.learningLanguage,state.nativeLanguage].join('|');
   const saved=state.progress?.story?.[progressKey];
   let pageIndex=Math.min(Math.max(Number(saved?.pageIndex)||0,0),story.pages.length-1);
-  let phaseIndex=Math.min(Math.max(Number(saved?.phaseIndex)||0,0),PHASES.length-1);
+  let phaseIndex=Math.min(Math.max(Number(saved?.phaseIndex)||0,0),activePhaseCount-1);
   let solved=Math.max(Number(saved?.solved)||0,0);
   let locked=false;
   let renderToken=0;
@@ -310,7 +312,8 @@ export function renderStory(root,store){
   if(storyId==='fantasy-1'){getStoryRainAudio();getStoryWoodCreakAudio();}
 
   const page=()=>story.pages[pageIndex];
-  const displayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
+  const displayPage=()=>pageIndex*activePhaseCount+phaseIndex+1;
+  const audioDisplayPage=()=>pageIndex*PHASES.length+phaseIndex+1;
   const rainAllowed=(sourcePage=pageIndex)=>storyId==='fantasy-1'&&(OUTDOOR_RAIN_PAGES.has(sourcePage)||story.pages[sourcePage]?.sound==='rain'||sourcePage<=2);
   const syncRain=(sourcePage=pageIndex,audioEnabled=Boolean(store.getState().audioOn))=>ensureStoryRain(Boolean(audioEnabled&&rainAllowed(sourcePage)));
   const locationAmbience=(sourcePage=pageIndex)=>LOCATION_AMBIENCE_RANGES.find(range=>sourcePage>=range.from&&sourcePage<=range.to)||null;
@@ -356,8 +359,11 @@ export function renderStory(root,store){
 
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
-    const atEnd=pageIndex===story.pages.length-1&&phaseIndex===PHASES.length-1;
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>${storyUi.menu}</button><div class="center story-view"><p class="kicker">${storyUi.story} · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(localizedStory.title)}</h1><p class="story-subtitle">${escapeHtml(localizedStory.subtitle)}</p><p class="story-progress">${storyUi.page} ${displayPage()}</p>${content}<nav class="story-page-nav" aria-label="${storyUi.story}"><button class="story-nav-button" data-prev aria-label="${storyUi.previous}" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="${storyUi.beginning}">↺ ${storyUi.beginning}</button><button class="story-nav-button story-nav-button-next" data-next aria-label="${storyUi.next}" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    const atEnd=pageIndex===story.pages.length-1&&phaseIndex===activePhaseCount-1;
+    const progress=storyId==='fantasy-1'
+      ? `<p class="story-progress-ui">${storyUi.page} ${displayPage()}</p><span class="story-progress" hidden aria-hidden="true">${storyUi.page} ${audioDisplayPage()}</span>`
+      : `<p class="story-progress">${storyUi.page} ${displayPage()}</p>`;
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>${storyUi.menu}</button><div class="center story-view"><p class="kicker">${storyUi.story} · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(localizedStory.title)}</h1><p class="story-subtitle">${escapeHtml(localizedStory.subtitle)}</p>${progress}${content}<nav class="story-page-nav" aria-label="${storyUi.story}"><button class="story-nav-button" data-prev aria-label="${storyUi.previous}" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="${storyUi.beginning}">↺ ${storyUi.beginning}</button><button class="story-nav-button story-nav-button-next" data-next aria-label="${storyUi.next}" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-beginning]').onclick=restartFromBeginning;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
@@ -441,13 +447,12 @@ export function renderStory(root,store){
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
-      const firstFantasyPage=storyId==='fantasy-1'&&pageIndex===0;
-      shell(firstFantasyPage
-        ? `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p><p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy translated">${escapeHtml(current.learning)}</p>`
-        : `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
+      shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
       await narrate(current.native,nativeVoice,audioEnabled,.88,token,current);
     }else if(phaseIndex===1){
-      shell(`<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
+      shell(storyId==='fantasy-1'
+        ? `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`
+        : `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`);
       await narrate(current.learning,learningVoice,audioEnabled,.62,token,current);
     }else if(phaseIndex===2){
       stopStoryNarration();
@@ -476,12 +481,12 @@ export function renderStory(root,store){
   function targetPosition(direction){
     if(direction>0){
       if(phaseIndex===2&&solved<page().items.length)return null;
-      if(phaseIndex<PHASES.length-1)return{pageIndex,phaseIndex:phaseIndex+1};
+      if(phaseIndex<activePhaseCount-1)return{pageIndex,phaseIndex:phaseIndex+1};
       if(pageIndex<story.pages.length-1)return{pageIndex:pageIndex+1,phaseIndex:0};
       return null;
     }
     if(phaseIndex>0)return{pageIndex,phaseIndex:phaseIndex-1};
-    if(pageIndex>0)return{pageIndex:pageIndex-1,phaseIndex:PHASES.length-1};
+    if(pageIndex>0)return{pageIndex:pageIndex-1,phaseIndex:activePhaseCount-1};
     return null;
   }
 
