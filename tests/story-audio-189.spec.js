@@ -63,8 +63,8 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
     Object.defineProperty(window,'speechSynthesis',{configurable:true,value:fakeSynth});
 
     localStorage.setItem('speakup-progress-v1', JSON.stringify({
-      learningLanguage:'en-GB',
-      nativeLanguage:'pt-PT',
+      learningLanguage:'pt-PT',
+      nativeLanguage:'en-GB',
       audioOn:true,
       sentenceAudioOn:false,
       translationAudioOn:false,
@@ -73,10 +73,10 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
       selectedStory:'fantasy-1',
       progress:{
         story:{
-          'v3|fantasy-1|en-GB|pt-PT':{
+          'v3|fantasy-1|pt-PT|en-GB':{
             storyId:'fantasy-1',
-            learningLanguage:'en-GB',
-            nativeLanguage:'pt-PT',
+            learningLanguage:'pt-PT',
+            nativeLanguage:'en-GB',
             pageIndex:47,
             phaseIndex:0,
             solved:0
@@ -92,7 +92,7 @@ test('page 189 plays fight grunts then layered passenger shouts with no overlap'
   await page.locator('[data-start]').click();
 
   await expect(page.locator('.story-screen')).toBeVisible();
-  await expect(page.locator('.story-progress')).toContainText('Página 189');
+  await expect(page.locator('.story-progress')).toContainText('Page 189');
 
   const humanSrc=await page.evaluate(async()=>{
     const fight=await import('/src/audio/story-fight-grunts-189-data.js?v=test-189-layered');
