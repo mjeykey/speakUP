@@ -9,7 +9,7 @@ import { renderSentenceLevelSelect } from '../modules/sentence-level-select.js?v
 import { renderSpeakPractice } from '../modules/speak-practice-matrix.js?v=4';
 import { renderRepeatPractice } from '../modules/repeat-practice-success.js?v=1';
 import { renderCommunicationStrength } from '../modules/communication-strength-matrix.js?v=4';
-import { renderStory } from '../modules/story-loader.js?v=340';
+import { renderStory } from '../modules/story-loader.js?v=341';
 import { renderEffectsSettings } from '../modules/effects-settings.js?v=65';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=11';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=3';

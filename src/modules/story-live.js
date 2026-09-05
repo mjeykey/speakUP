@@ -453,11 +453,11 @@ export function renderStory(root,store){
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
-      const firstFantasyPage=storyId==='fantasy-1'&&pageIndex===0;
-      shell(firstFantasyPage
+      const fantasyLearningPage=storyId==='fantasy-1';
+      shell(fantasyLearningPage
         ? `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`
         : `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-      await narrate(firstFantasyPage?current.learning:current.native,firstFantasyPage?learningVoice:nativeVoice,audioEnabled,firstFantasyPage ? .62 : .88,token,current);
+      await narrate(fantasyLearningPage?current.learning:current.native,fantasyLearningPage?learningVoice:nativeVoice,audioEnabled,fantasyLearningPage ? .62 : .88,token,current);
     }else if(phaseIndex===1){
       shell(storyId==='fantasy-1'
         ? `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`
