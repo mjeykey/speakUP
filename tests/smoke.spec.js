@@ -139,22 +139,22 @@ test('fantasy uses Portuguese, mixed reading, gap, then the next text', async ({
   await openMenu(page);
   await page.locator('[data-learning]').selectOption('pt-PT');
   await page.locator('[data-mode="story"]').click();
-  await page.locator('[data-stories] button').filter({ hasText: 'Fantasia' }).click();
+  await page.locator('[data-stories] button').filter({ hasText: 'Fantasy' }).click();
   await page.locator('[data-start]').click();
   await expect(page.locator('.story-screen')).toBeVisible();
 
-  await expect(page.locator('.story-progress-ui')).toContainText('Página 1');
+  await expect(page.locator('.story-progress-ui')).toContainText('Page 1');
   await expect(page.locator('.story-copy')).toHaveCount(1);
   await expect(page.locator('.story-copy')).toContainText('Na noite em que o céu se abriu sobre Avarin');
 
   await page.locator('[data-next]').click();
-  await expect(page.locator('.story-progress-ui')).toContainText('Página 2');
+  await expect(page.locator('.story-progress-ui')).toContainText('Page 2');
   await expect(page.locator('.story-copy')).toHaveCount(2);
-  await expect(page.locator('.story-copy').first()).toContainText('On the night the sky broke above Avarin');
-  await expect(page.locator('.story-copy').nth(1)).toContainText('Na noite em que o céu se abriu sobre Avarin');
+  await expect(page.locator('.story-copy').first()).toContainText('Na noite em que o céu se abriu sobre Avarin');
+  await expect(page.locator('.story-copy').nth(1)).toContainText('On the night the sky broke above Avarin');
 
   await page.locator('[data-next]').click();
-  await expect(page.locator('.story-progress-ui')).toContainText('Página 3');
+  await expect(page.locator('.story-progress-ui')).toContainText('Page 3');
   await expect(page.locator('.story-gap-copy')).toBeVisible();
   await expect(page.locator('[data-next]')).toBeDisabled();
 
@@ -167,7 +167,7 @@ test('fantasy uses Portuguese, mixed reading, gap, then the next text', async ({
   await expect(page.locator('[data-next]')).toBeEnabled();
 
   await page.locator('[data-next]').click();
-  await expect(page.locator('.story-progress-ui')).toContainText('Página 4');
+  await expect(page.locator('.story-progress-ui')).toContainText('Page 4');
   await expect(page.locator('.story-copy')).toHaveCount(1);
   await expect(page.locator('.story-copy')).toContainText('Um sino de alarme ecoou por toda a cidade');
 });
