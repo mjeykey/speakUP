@@ -137,6 +137,7 @@ test('story starts at beginning, resumes, and offers a Beginning button', async 
 
 test('fantasy uses Portuguese, mixed reading, gap, then the next text', async ({ page }) => {
   await openMenu(page);
+  await page.locator('[data-learning]').selectOption('pt-PT');
   await page.locator('[data-mode="story"]').click();
   await page.locator('[data-stories] button').filter({ hasText: 'Fantasia' }).click();
   await page.locator('[data-start]').click();
@@ -155,18 +156,36 @@ test('fantasy uses Portuguese, mixed reading, gap, then the next text', async ({
   await page.locator('[data-next]').click();
   await expect(page.locator('.story-progress-ui')).toContainText('Página 3');
   await expect(page.locator('.story-gap-copy')).toBeVisible();
+  await expect(page.locator('[data-next]')).toBeDisabled();
 
-  await page.locator('[data-option="night"]').click();
-  await expect(page.locator('[data-option="broke"]')).toBeVisible();
-  await page.locator('[data-option="broke"]').click();
-  await expect(page.locator('[data-option="above"]')).toBeVisible();
-  await page.locator('[data-option="above"]').click();
+  await page.locator('[data-option="noite"]').click();
+  await expect(page.locator('[data-option="abriu"]')).toBeVisible();
+  await page.locator('[data-option="abriu"]').click();
+  await expect(page.locator('[data-option="sobre"]')).toBeVisible();
+  await page.locator('[data-option="sobre"]').click();
   await expect(page.locator('.feedback')).toBeVisible();
+  await expect(page.locator('[data-next]')).toBeEnabled();
 
   await page.locator('[data-next]').click();
   await expect(page.locator('.story-progress-ui')).toContainText('Página 4');
   await expect(page.locator('.story-copy')).toHaveCount(1);
   await expect(page.locator('.story-copy')).toContainText('Um sino de alarme ecoou por toda a cidade');
+});
+
+test('speaking practice offers distinct free conversation topics', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-learning]').selectOption('pt-PT');
+  await page.locator('[data-native]').selectOption('de-DE');
+  await page.locator('[data-mode="speak-practice"]').click();
+  await page.locator('[data-start]').click();
+
+  await expect(page.locator('.free-speak-topic')).toHaveCount(7);
+  await expect(page.locator('.free-speak-screen')).toContainText('Antworte frei');
+  await page.locator('.free-speak-topic').filter({ hasText: 'Alltag' }).click();
+  await expect(page.locator('.free-speak-question')).toContainText('O que costumas fazer de manhã?');
+  await expect(page.locator('.speak-translation')).toContainText('Was machst du normalerweise morgens?');
+  await expect(page.locator('[data-listen]')).toBeVisible();
+  await expect(page.locator('[data-answer]')).toBeVisible();
 });
 
 test('emotions fills the correct word, glows, then dissolves with the selected effect', async ({ page }) => {
