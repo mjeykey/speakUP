@@ -2,7 +2,7 @@ import { STORIES } from '../data/content.js?v=5';
 import { LANGUAGE_OPTIONS } from '../data/language-content-matrix.js?v=1';
 import { L2_TOPICS } from '../data/l2/index.js?v=1';
 import { L3_TOPIC_GROUPS } from '../data/l3/index.js?v=1';
-import { getLanguageOptionLabel, getMenuCopy } from '../app/ui-language.js?v=3';
+import { getLanguageOptionLabel, getMenuCopy } from '../app/ui-language.js?v=4';
 import { getLocalizedStoryCopy, getTopicCopy } from '../app/navigation-language.js?v=1';
 
 const MODE_IDS = ['emotions', 'anxiety', 'fill-gap', 'memory', 'words', 'speak-practice', 'repeat-practice', 'communication-strength', 'story'];

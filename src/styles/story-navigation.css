@@ -7,6 +7,14 @@
   padding:8px 0 2px;
 }
 
+.story-sound-button{
+  position:fixed;top:max(18px,env(safe-area-inset-top));right:18px;z-index:8;
+  width:50px;height:50px;border:1px solid rgba(255,255,255,.18);border-radius:50%;
+  background:rgba(7,10,18,.82);color:#fff;font-size:22px;cursor:pointer;
+  box-shadow:0 10px 28px rgba(0,0,0,.28);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
+}
+.story-sound-button:focus-visible{outline:2px solid #65e8ff;outline-offset:3px}
+
 .story-nav-button{
   width:64px;
   height:54px;

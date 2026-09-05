@@ -5,7 +5,7 @@ import { narrateStory, stopStoryNarration } from '../audio/story-narration.js?v=
 import { ensureStoryEffect, prepareStoryEffects, stopStoryEffects, syncStoryLocationAmbience, transitionStoryEffects } from '../audio/story-effects.js?v=270';
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { FIGHT_GRUNTS_189 } from '../audio/story-fight-grunts-189-data.js?v=295';
-import { getStoryUiCopy } from '../app/ui-language.js?v=3';
+import { getStoryUiCopy } from '../app/ui-language.js?v=4';
 import { getLocalizedStoryCopy } from '../app/navigation-language.js?v=1';
 
 const PHASES=['native','learning','gap','review'];
@@ -360,14 +360,20 @@ export function renderStory(root,store){
   function shell(content){
     const atStart=pageIndex===0&&phaseIndex===0;
     const atEnd=pageIndex===story.pages.length-1&&phaseIndex===activePhaseCount-1;
+    const gapBlocked=phaseIndex===2&&solved<page().items.length;
+    const audioEnabled=Boolean(store.getState().audioOn);
     const progress=storyId==='fantasy-1'
       ? `<p class="story-progress-ui">${storyUi.page} ${displayPage()}</p><span class="story-progress" hidden aria-hidden="true">${storyUi.page} ${audioDisplayPage()}</span>`
       : `<p class="story-progress">${storyUi.page} ${displayPage()}</p>`;
-    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>${storyUi.menu}</button><div class="center story-view"><p class="kicker">${storyUi.story} · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(localizedStory.title)}</h1><p class="story-subtitle">${escapeHtml(localizedStory.subtitle)}</p>${progress}${content}<nav class="story-page-nav" aria-label="${storyUi.story}"><button class="story-nav-button" data-prev aria-label="${storyUi.previous}" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="${storyUi.beginning}">↺ ${storyUi.beginning}</button><button class="story-nav-button story-nav-button-next" data-next aria-label="${storyUi.next}" ${atEnd?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
+    root.innerHTML=`<section class="screen story-screen"><button class="menu-button" data-menu>${storyUi.menu}</button><button class="story-sound-button" data-story-sound aria-label="${audioEnabled?storyUi.soundOn:storyUi.soundOff}" aria-pressed="${audioEnabled}">${audioEnabled?'🔊':'🔇'}</button><div class="center story-view"><p class="kicker">${storyUi.story} · ${escapeHtml(languageName(state.learningLanguage))}</p><h1>${story.emoji} ${escapeHtml(localizedStory.title)}</h1><p class="story-subtitle">${escapeHtml(localizedStory.subtitle)}</p>${progress}${content}<nav class="story-page-nav" aria-label="${storyUi.story}"><button class="story-nav-button" data-prev aria-label="${storyUi.previous}" ${atStart?'disabled':''}><span aria-hidden="true">◁</span></button><button class="story-nav-button story-nav-button-beginning" data-beginning aria-label="${storyUi.beginning}">↺ ${storyUi.beginning}</button><button class="story-nav-button story-nav-button-next" data-next aria-label="${storyUi.next}" ${(atEnd||gapBlocked)?'disabled':''}><span aria-hidden="true">▷</span></button></nav></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-beginning]').onclick=restartFromBeginning;
     root.querySelector('[data-prev]').onclick=()=>navigate(-1);
     root.querySelector('[data-next]').onclick=()=>navigate(1);
+    root.querySelector('[data-story-sound]').onclick=()=>{
+      persistProgress();
+      store.setState({audioOn:!store.getState().audioOn});
+    };
   }
 
   function syncEffect(current,audioEnabled,token){
@@ -447,8 +453,11 @@ export function renderStory(root,store){
     syncEffect(current,audioEnabled,token);
 
     if(phaseIndex===0){
-      shell(`<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
-      await narrate(current.native,nativeVoice,audioEnabled,.88,token,current);
+      const firstFantasyPage=storyId==='fantasy-1'&&pageIndex===0;
+      shell(firstFantasyPage
+        ? `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p>`
+        : `<p class="story-phase-label">${escapeHtml(languageName(state.nativeLanguage))}</p><p class="story-copy">${escapeHtml(current.native)}</p>`);
+      await narrate(firstFantasyPage?current.learning:current.native,firstFantasyPage?learningVoice:nativeVoice,audioEnabled,firstFantasyPage ? .62 : .88,token,current);
     }else if(phaseIndex===1){
       shell(storyId==='fantasy-1'
         ? `<p class="story-phase-label">${escapeHtml(languageName(state.learningLanguage))}</p><p class="story-copy story-portuguese-copy">${escapeHtml(current.learning)}</p><p class="story-copy translated">${escapeHtml(current.native)}</p>`

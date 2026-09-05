@@ -57,6 +57,18 @@
 .repeat-practice-screen .voice-category-card small{color:#9daac7;font:13px Arial,sans-serif}
 .repeat-practice-screen [data-repeat-learning],
 .repeat-practice-screen [data-repeat-native]{cursor:pointer}
+
+.free-speak-hint{max-width:620px;margin:0 auto 24px;font:16px/1.55 Arial,sans-serif;color:#aeb9d2}
+.free-speak-topic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}
+.free-speak-topic{min-height:128px;border:1px solid rgba(255,255,255,.14);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.02));color:#fff;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.free-speak-topic:hover,.free-speak-topic:focus-visible{border-color:#65e8ff;box-shadow:0 0 28px rgba(101,232,255,.13)}
+.free-speak-topic>span{font-size:34px}.free-speak-topic strong{font-size:21px;font-style:italic}.free-speak-topic small{color:#9daac7;font:13px Arial,sans-serif}
+.free-speak-card,.free-speak-result{width:min(720px,100%);margin:18px auto;padding:28px;border:1px solid rgba(255,255,255,.13);border-radius:26px;background:rgba(7,10,18,.72);box-shadow:0 22px 60px rgba(0,0,0,.22)}
+.free-speak-question{font-size:clamp(30px,6vw,52px);line-height:1.1;margin:8px 0 24px}
+.free-speak-transcript,.free-speak-example{font-size:clamp(24px,4vw,38px);line-height:1.25;margin:8px 0 16px}
+.free-speak-natural{margin:22px 0 6px;color:#aeb9d2;font:15px/1.5 Arial,sans-serif}
+.free-speak-result .secondary-button{margin-top:12px}
+@media(max-width:760px){.free-speak-topic-grid{grid-template-columns:1fr 1fr;gap:10px}.free-speak-topic{min-height:110px;padding:14px 9px}.free-speak-topic strong{font-size:17px}.free-speak-card,.free-speak-result{padding:22px 17px;border-radius:22px}.free-speak-question{font-size:clamp(29px,9vw,42px)}}
 @media(max-width:760px){
   .repeat-practice-screen .voice-category-grid{grid-template-columns:1fr 1fr;gap:10px}
   .repeat-practice-screen .voice-category-card{min-height:112px;padding:14px 10px}
