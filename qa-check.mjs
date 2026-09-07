@@ -94,6 +94,11 @@ check('free speaking keeps example answers visible', () => {
   assert.match(source,/free-speak-example-card/);
   assert.match(source,/item\.exampleTranslation/);
 });
+check('free speaking explains a missing topic word accurately', () => {
+  const source=readFileSync('./src/modules/speak-practice-matrix.js','utf8');
+  assert.match(source,/Please use at least one word from the question or topic/);
+  assert.doesNotMatch(source,/answering the question in a complete sentence/);
+});
 check('fantasy has a real translation for all 72 source pages', () => {
   assert.equal(fantasyStory.pages.length,72);
   for (const [code,translations] of Object.entries(FANTASY_TRANSLATIONS)) {
