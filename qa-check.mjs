@@ -70,6 +70,9 @@ check('free speaking checks meaning instead of accepting any word', () => {
   assert.equal(isRelevantSpeakingAnswer('I live in Porto','residence'),true);
   assert.equal(isRelevantSpeakingAnswer('Ich wohne in München','residence'),true);
   assert.equal(isRelevantSpeakingAnswer('Queria um chá, por favor','drink'),true);
+  const croatianBestFriend=getSpeakingTopics('hr-HR','en-GB')[0].turns[4];
+  assert.equal(isRelevantSpeakingAnswer('Moja najbolja prijateljica radi u frizerskom salonu',croatianBestFriend),true);
+  assert.equal(isRelevantSpeakingAnswer('Pišem domaću zadaću',croatianBestFriend),false);
 });
 check('free speaking contains exactly 205 localized question datasets', () => {
   assert.equal(EXTRA_SPEAKING_TURN_COUNT,184);

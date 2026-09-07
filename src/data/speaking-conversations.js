@@ -36,12 +36,24 @@ const INTENT_SIGNALS={
 };
 
 const normalize=value=>String(value||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
+const INFLECTION_STOP_WORDS=new Set(['about','your','tell','something','best','mein','meine','meinem','etwas','über','uber','dein','deine','tua','teu','sobre','algo','tu','reici','reci','nesto','nešto','svojim','parle','tes','ton','ta','quelque','chose']);
+const meaningfulWords=value=>normalize(value).split(/[\s-]+/).filter(word=>word.length>=6&&!INFLECTION_STOP_WORDS.has(word));
+const sameInflectedWord=(left,right)=>{
+  if(left===right)return true;
+  const sharedLength=Math.min(left.length,right.length);
+  return sharedLength>=7&&left.slice(0,Math.max(6,sharedLength-2))===right.slice(0,Math.max(6,sharedLength-2));
+};
 export function isRelevantSpeakingAnswer(transcript,intent){
   const turn=typeof intent==='object'?intent:{intent};
   const answer=` ${normalize(transcript)} `;
   if(answer.trim().length<2)return false;
   const signals=[...(INTENT_SIGNALS[turn.intent]||[]),...(turn.signals||[])];
-  return signals.some(signal=>answer.includes(normalize(signal)));
+  const answerWords=meaningfulWords(answer);
+  return signals.some(signal=>{
+    const normalizedSignal=normalize(signal);
+    if(answer.includes(normalizedSignal))return true;
+    return meaningfulWords(normalizedSignal).some(signalWord=>answerWords.some(answerWord=>sameInflectedWord(signalWord,answerWord)));
+  });
 }
 
 const TOPICS=[

@@ -1,5 +1,5 @@
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
-import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=4';
+import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=5';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
