@@ -50,6 +50,7 @@ export function renderMenu(root, store) {
     <h2>${copy.settingsHeading}</h2>
     <button class="menu-card effects-menu-card" data-effects><span>${copy.effectsTitle}</span><small>${copy.effectsDescription}</small></button>
     <button class="menu-card future-menu-card" data-future><span>${copy.futureTitle}</span><small>${copy.futureDescription}</small></button>
+    <button class="menu-card about-menu-card" data-about><span>${copy.aboutTitle}</span><small>${copy.aboutDescription}</small></button>
     <div class="settings-row"><label>${copy.learningLanguage}<select data-learning>${languageOptions}</select></label><label>${copy.nativeLanguage}<select data-native>${nativeOptions}</select></label></div>
     <div class="menu-action"><button class="primary-button menu-start-button" data-start ${waiting ? 'disabled' : ''}>${startLabel}</button></div>
   </div></section>`;
@@ -97,6 +98,7 @@ export function renderMenu(root, store) {
   root.querySelectorAll('[data-l3-topic]').forEach(button => button.onclick = () => store.setState({ learningLevel:'l3', mode:'l3-learning', selectedL3Topic:button.dataset.l3Topic, currentIndex:0 }));
   root.querySelector('[data-effects]').onclick = () => store.setState({ screen:'effects-settings' });
   root.querySelector('[data-future]').onclick = () => store.setState({ screen:'future' });
+  root.querySelector('[data-about]').onclick = () => store.setState({ screen:'about' });
 
   root.querySelector('[data-learning]').onchange = event => {
     const current = store.getState();

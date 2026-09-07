@@ -14,6 +14,7 @@ import { renderEffectsSettings } from '../modules/effects-settings.js?v=65';
 import { renderEmotions } from '../modules/emotions-expanded.js?v=11';
 import { renderAnxiety } from '../modules/anxiety-language.js?v=3';
 import { renderFuture } from '../modules/future.js?v=2';
+import { renderAbout } from '../modules/about.js?v=1';
 import { renderL2Learning } from '../modules/l2-learning.js?v=3';
 import { renderL3Learning } from '../modules/l3-learning.js?v=4';
 import { stopSpeech } from '../audio/speech.js?v=63';
@@ -32,7 +33,7 @@ try {
     const snapshot=store.getState();
     const pageIndex=Math.floor((displayPage-1)/4);
     const phaseIndex=(displayPage-1)%4;
-    const progressKey=['v2',storyId,snapshot.learningLanguage,snapshot.nativeLanguage].join('|');
+    const progressKey=['v3',storyId,snapshot.learningLanguage,snapshot.nativeLanguage].join('|');
     store.saveProgress('story',progressKey,{
       storyId,
       learningLanguage:snapshot.learningLanguage,
@@ -66,6 +67,7 @@ const routes = {
   'l2-learning': renderL2Learning,
   'l3-learning': renderL3Learning,
   future: renderFuture,
+  about: renderAbout,
   story: renderStory
 };
 

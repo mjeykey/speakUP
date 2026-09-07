@@ -46,6 +46,24 @@ test('menu and language selectors follow the selected native language', async ({
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr-FR');
 });
 
+test('about page explains privacy, microphone use and pilot status', async ({ page }) => {
+  await openMenu(page);
+  await page.locator('[data-about]').click();
+  await expect(page.locator('.about-screen')).toBeVisible();
+  await expect(page.locator('.about-screen')).toContainText('Os teus dados');
+  await expect(page.locator('.about-screen')).toContainText('Microfone');
+  await expect(page.locator('.about-screen')).toContainText('Não é terapia');
+  await expect(page.locator('.about-screen')).toContainText('Estado do piloto');
+  await page.locator('[data-back]').click();
+  await expect(page.locator('.menu-screen')).toBeVisible();
+});
+
+test('direct Fantasy page links use the current progress format', async ({ page }) => {
+  await page.goto('./?story=fantasy-1&page=189');
+  await expect(page.locator('.story-screen')).toBeVisible();
+  await expect(page.locator('.story-progress')).toContainText('Página 189');
+});
+
 test('selecting the same language swaps the pair instead of creating an invalid pair', async ({ page }) => {
   await openMenu(page);
   await page.locator('[data-native]').selectOption('en-GB');

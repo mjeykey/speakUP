@@ -8,7 +8,7 @@ const HTML_LANG = { pt:'pt-PT', de:'de-DE', en:'en-GB', es:'es-ES', hr:'hr-HR', 
 const MENU = {
   en:{
     levelHeading:'Level',exerciseHeading:'Exercise',storyHeading:'Choose a story',topicHeading:'Choose a topic',settingsHeading:'Settings',
-    effectsTitle:'Effects',effectsDescription:'Choose the visual effect for the exercises.',futureTitle:'Later',futureDescription:'See planned features.',
+    effectsTitle:'Effects',effectsDescription:'Choose the visual effect for the exercises.',futureTitle:'Later',futureDescription:'See planned features.',aboutTitle:'About & privacy',aboutDescription:'How SpeakUP works and handles your data.',
     learningLanguage:'Learning language',nativeLanguage:'Native language / translation',start:'Start',chooseStory:'Choose a story',startStory:'▶ Start story',chooseTopic:'Choose a topic',startL2:'Start L2',startL3:'Start L3',
     modes:{emotions:['Emotions','Words, sentences and playful expressions for feelings.'],anxiety:['Anxiety','Learn with short stories about anxious thoughts, perspective and humour.'],'fill-gap':['Sentences','Choose your level and complete the sentence.'],memory:['Memory','Match words and meanings.'],words:['Words','One word at a time.'],'speak-practice':['Speaking','Answer freely in short conversations.'],'repeat-practice':['Repeat after me','Listen, repeat and practise with the microphone.'],'communication-strength':['Communication','Learn clearer ways to say things.'],story:['Stories','Learn language through short stories.']},
     levels:{l1:['L1 · Language','Words, sentences, speaking and stories.'],l2:['L2 · Interests & Work','Learn through topics that interest you.'],l3:['L3 · Knowledge','Learn facts and practical knowledge.']},
@@ -16,7 +16,7 @@ const MENU = {
   },
   de:{
     levelHeading:'Level',exerciseHeading:'Übung',storyHeading:'Geschichte wählen',topicHeading:'Thema wählen',settingsHeading:'Einstellungen',
-    effectsTitle:'Effekte',effectsDescription:'Effekt für die Übungen auswählen.',futureTitle:'Später',futureDescription:'Geplante Funktionen ansehen.',
+    effectsTitle:'Effekte',effectsDescription:'Effekt für die Übungen auswählen.',futureTitle:'Später',futureDescription:'Geplante Funktionen ansehen.',aboutTitle:'Über SpeakUP & Datenschutz',aboutDescription:'So funktioniert SpeakUP und behandelt deine Daten.',
     learningLanguage:'Lernsprache',nativeLanguage:'Muttersprache / Übersetzung',start:'Start',chooseStory:'Geschichte wählen',startStory:'▶ Geschichte starten',chooseTopic:'Thema wählen',startL2:'L2 starten',startL3:'L3 starten',
     modes:{emotions:['Emotionen','Wörter, Sätze und Ausdrücke für Gefühle.'],anxiety:['Angst','Lerne mit kurzen Geschichten über ängstliche Gedanken, Perspektive und Humor.'],'fill-gap':['Sätze','Wähle dein Level und ergänze den Satz.'],memory:['Memory','Finde passende Wörter und Bedeutungen.'],words:['Wörter','Ein Wort nach dem anderen.'],'speak-practice':['Sprechen','Antworte frei in kurzen Gesprächen.'],'repeat-practice':['Nachsprechen','Anhören, nachsprechen und mit dem Mikrofon üben.'],'communication-strength':['Kommunikation','Lerne klarere Formulierungen.'],story:['Geschichten','Lerne Sprache in kurzen Geschichten.']},
     levels:{l1:['L1 · Sprache','Wörter, Sätze, Sprechen und Geschichten.'],l2:['L2 · Interessen & Beruf','Lerne über Themen, die dich interessieren.'],l3:['L3 · Wissen','Lerne Fakten und praktisches Wissen.']},
@@ -24,7 +24,7 @@ const MENU = {
   },
   pt:{
     levelHeading:'Nível',exerciseHeading:'Exercício',storyHeading:'Escolher história',topicHeading:'Escolher tema',settingsHeading:'Definições',
-    effectsTitle:'Efeitos',effectsDescription:'Escolhe o efeito visual para os exercícios.',futureTitle:'Mais tarde',futureDescription:'Ver funcionalidades planeadas.',
+    effectsTitle:'Efeitos',effectsDescription:'Escolhe o efeito visual para os exercícios.',futureTitle:'Mais tarde',futureDescription:'Ver funcionalidades planeadas.',aboutTitle:'Sobre o SpeakUP e privacidade',aboutDescription:'Como funciona e trata os teus dados.',
     learningLanguage:'Língua a aprender',nativeLanguage:'Língua materna / tradução',start:'Começar',chooseStory:'Escolher história',startStory:'▶ Começar história',chooseTopic:'Escolher tema',startL2:'Começar L2',startL3:'Começar L3',
     modes:{emotions:['Emoções','Palavras, frases e expressões para sentimentos.'],anxiety:['Ansiedade','Aprende com pequenas histórias sobre pensamentos ansiosos, perspetiva e humor.'],'fill-gap':['Frases','Escolhe o teu nível e completa a frase.'],memory:['Memória','Relaciona palavras e significados.'],words:['Palavras','Uma palavra de cada vez.'],'speak-practice':['Falar','Responde livremente em conversas curtas.'],'repeat-practice':['Repetir','Ouve, repete e pratica com o microfone.'],'communication-strength':['Comunicação','Aprende formas mais claras de dizer as coisas.'],story:['Histórias','Aprende a língua em pequenas histórias.']},
     levels:{l1:['L1 · Língua','Palavras, frases, fala e histórias.'],l2:['L2 · Interesses e trabalho','Aprende através de temas que te interessam.'],l3:['L3 · Conhecimento','Aprende factos e conhecimentos práticos.']},
@@ -32,7 +32,7 @@ const MENU = {
   },
   es:{
     levelHeading:'Nivel',exerciseHeading:'Ejercicio',storyHeading:'Elegir historia',topicHeading:'Elegir tema',settingsHeading:'Ajustes',
-    effectsTitle:'Efectos',effectsDescription:'Elige el efecto visual para los ejercicios.',futureTitle:'Más adelante',futureDescription:'Ver funciones previstas.',
+    effectsTitle:'Efectos',effectsDescription:'Elige el efecto visual para los ejercicios.',futureTitle:'Más adelante',futureDescription:'Ver funciones previstas.',aboutTitle:'Sobre SpeakUP y privacidad',aboutDescription:'Cómo funciona y trata tus datos.',
     learningLanguage:'Idioma que aprendes',nativeLanguage:'Lengua materna / traducción',start:'Empezar',chooseStory:'Elegir historia',startStory:'▶ Empezar historia',chooseTopic:'Elegir tema',startL2:'Empezar L2',startL3:'Empezar L3',
     modes:{emotions:['Emociones','Palabras, frases y expresiones para los sentimientos.'],anxiety:['Ansiedad','Aprende con pequeñas historias sobre pensamientos ansiosos, perspectiva y humor.'],'fill-gap':['Frases','Elige tu nivel y completa la frase.'],memory:['Memoria','Relaciona palabras y significados.'],words:['Palabras','Una palabra cada vez.'],'speak-practice':['Hablar','Responde libremente en conversaciones breves.'],'repeat-practice':['Repetir','Escucha, repite y practica con el micrófono.'],'communication-strength':['Comunicación','Aprende formas más claras de decir las cosas.'],story:['Historias','Aprende el idioma con pequeñas historias.']},
     levels:{l1:['L1 · Idioma','Palabras, frases, conversación e historias.'],l2:['L2 · Intereses y trabajo','Aprende con temas que te interesan.'],l3:['L3 · Conocimiento','Aprende datos y conocimientos prácticos.']},
@@ -40,7 +40,7 @@ const MENU = {
   },
   hr:{
     levelHeading:'Razina',exerciseHeading:'Vježba',storyHeading:'Odaberi priču',topicHeading:'Odaberi temu',settingsHeading:'Postavke',
-    effectsTitle:'Efekti',effectsDescription:'Odaberi vizualni efekt za vježbe.',futureTitle:'Kasnije',futureDescription:'Pogledaj planirane funkcije.',
+    effectsTitle:'Efekti',effectsDescription:'Odaberi vizualni efekt za vježbe.',futureTitle:'Kasnije',futureDescription:'Pogledaj planirane funkcije.',aboutTitle:'O SpeakUP-u i privatnosti',aboutDescription:'Kako SpeakUP radi i postupa s tvojim podacima.',
     learningLanguage:'Jezik koji učiš',nativeLanguage:'Materinski jezik / prijevod',start:'Počni',chooseStory:'Odaberi priču',startStory:'▶ Pokreni priču',chooseTopic:'Odaberi temu',startL2:'Pokreni L2',startL3:'Pokreni L3',
     modes:{emotions:['Emocije','Riječi, rečenice i izrazi za osjećaje.'],anxiety:['Anksioznost','Uči kroz kratke priče o tjeskobnim mislima, perspektivi i humoru.'],'fill-gap':['Rečenice','Odaberi razinu i dopuni rečenicu.'],memory:['Memorija','Poveži riječi i značenja.'],words:['Riječi','Jedna riječ po jedna.'],'speak-practice':['Govor','Slobodno odgovaraj u kratkim razgovorima.'],'repeat-practice':['Ponovi','Poslušaj, ponovi i vježbaj s mikrofonom.'],'communication-strength':['Komunikacija','Nauči jasnije načine izražavanja.'],story:['Priče','Uči jezik kroz kratke priče.']},
     levels:{l1:['L1 · Jezik','Riječi, rečenice, govor i priče.'],l2:['L2 · Interesi i posao','Uči kroz teme koje te zanimaju.'],l3:['L3 · Znanje','Uči činjenice i praktično znanje.']},
@@ -48,7 +48,7 @@ const MENU = {
   },
   fr:{
     levelHeading:'Niveau',exerciseHeading:'Exercice',storyHeading:'Choisir une histoire',topicHeading:'Choisir un thème',settingsHeading:'Paramètres',
-    effectsTitle:'Effets',effectsDescription:'Choisis l’effet visuel pour les exercices.',futureTitle:'Plus tard',futureDescription:'Voir les fonctionnalités prévues.',
+    effectsTitle:'Effets',effectsDescription:'Choisis l’effet visuel pour les exercices.',futureTitle:'Plus tard',futureDescription:'Voir les fonctionnalités prévues.',aboutTitle:'À propos et confidentialité',aboutDescription:'Comment SpeakUP fonctionne et traite tes données.',
     learningLanguage:'Langue à apprendre',nativeLanguage:'Langue maternelle / traduction',start:'Commencer',chooseStory:'Choisir une histoire',startStory:'▶ Commencer l’histoire',chooseTopic:'Choisir un thème',startL2:'Commencer L2',startL3:'Commencer L3',
     modes:{emotions:['Émotions','Mots, phrases et expressions pour les émotions.'],anxiety:['Anxiété','Apprends avec de petites histoires sur les pensées anxieuses, le recul et l’humour.'],'fill-gap':['Phrases','Choisis ton niveau et complète la phrase.'],memory:['Mémoire','Associe les mots et les significations.'],words:['Mots','Un mot à la fois.'],'speak-practice':['Parler','Réponds librement dans de courtes conversations.'],'repeat-practice':['Répéter','Écoute, répète et pratique avec le microphone.'],'communication-strength':['Communication','Apprends des formulations plus claires.'],story:['Histoires','Apprends la langue avec de petites histoires.']},
     levels:{l1:['L1 · Langue','Mots, phrases, expression orale et histoires.'],l2:['L2 · Intérêts et travail','Apprends avec des sujets qui t’intéressent.'],l3:['L3 · Connaissances','Apprends des faits et des connaissances pratiques.']},
