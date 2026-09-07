@@ -1,3 +1,5 @@
+import { getExtraSpeakingTurns } from './speaking-conversations-extra.js?v=1';
+
 const FAMILY_BY_CODE={
   'pt-PT':'pt','de-DE':'de','en-GB':'en','es-ES':'es','es-AN':'es',
   'hr-HR':'hr','hr-DAL':'hr','fr-FR':'fr'
@@ -35,9 +37,11 @@ const INTENT_SIGNALS={
 
 const normalize=value=>String(value||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
 export function isRelevantSpeakingAnswer(transcript,intent){
+  const turn=typeof intent==='object'?intent:{intent};
   const answer=` ${normalize(transcript)} `;
   if(answer.trim().length<2)return false;
-  return (INTENT_SIGNALS[intent]||[]).some(signal=>answer.includes(normalize(signal)));
+  const signals=[...(INTENT_SIGNALS[turn.intent]||[]),...(turn.signals||[])];
+  return signals.some(signal=>answer.includes(normalize(signal)));
 }
 
 const TOPICS=[
@@ -84,6 +88,6 @@ export function getSpeakingTopics(learningLanguage,nativeLanguage){
   const native=speakingFamily(nativeLanguage);
   return TOPICS.map(topic=>({
     id:topic.id,emoji:topic.emoji,title:topic.title[native]||topic.title.en,
-    turns:topic.turns.map((turn,index)=>({intent:INTENTS_BY_TOPIC[topic.id]?.[index],question:turn.q[learning]||turn.q.en,translation:turn.q[native]||turn.q.en,example:turn.a[learning]||turn.a.en,exampleTranslation:turn.a[native]||turn.a.en}))
+    turns:[...topic.turns.map((turn,index)=>({intent:INTENTS_BY_TOPIC[topic.id]?.[index],question:turn.q[learning]||turn.q.en,translation:turn.q[native]||turn.q.en,example:turn.a[learning]||turn.a.en,exampleTranslation:turn.a[native]||turn.a.en})),...getExtraSpeakingTurns(topic.id,learning,native)]
   }));
 }

@@ -1,5 +1,5 @@
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
-import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=2';
+import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=3';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
@@ -44,7 +44,7 @@ export function renderSpeakPractice(root,store){
   function playQuestion(){stopSpeech();return speak(current().question,speechLanguage,{enabled:store.getState().audioOn,rate:.66}).catch(()=>{});}
   function startListening(){
     if(listening||!Recognition)return;stopSpeech();recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false;listening=true;message=copy.listening;draw();
-    recognition.onresult=event=>{listening=false;const heard=String(event.results?.[0]?.[0]?.transcript||'').trim();if(heard&&isRelevantSpeakingAnswer(heard,current().intent)){transcript=heard;heardAttempt='';message=copy.clear;}else{transcript='';heardAttempt=heard;message=heard?copy.offTopic:copy.retry;}draw();};
+    recognition.onresult=event=>{listening=false;const heard=String(event.results?.[0]?.[0]?.transcript||'').trim();if(heard&&isRelevantSpeakingAnswer(heard,current())){transcript=heard;heardAttempt='';message=copy.clear;}else{transcript='';heardAttempt=heard;message=heard?copy.offTopic:copy.retry;}draw();};
     recognition.onerror=event=>{listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};
     recognition.onend=()=>{if(!listening)return;listening=false;message=copy.retry;draw();};
     try{recognition.start();}catch(_){listening=false;message=copy.retry;draw();}

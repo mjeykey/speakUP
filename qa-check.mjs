@@ -11,7 +11,8 @@ import { L2_TOPICS } from './src/data/l2/index.js';
 import { L3_TOPIC_GROUPS } from './src/data/l3/index.js';
 import { fantasyStory } from './src/data/stories/fantasy.js';
 import { FANTASY_TRANSLATIONS, getFantasyTranslation } from './src/data/stories/fantasy-translations.js';
-import { isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
+import { getSpeakingTopics, isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
+import { EXTRA_SPEAKING_TURN_COUNT } from './src/data/speaking-conversations-extra.js';
 
 const codes = LANGUAGE_OPTIONS.map(language => language.code);
 const failures = [];
@@ -69,6 +70,20 @@ check('free speaking checks meaning instead of accepting any word', () => {
   assert.equal(isRelevantSpeakingAnswer('I live in Porto','residence'),true);
   assert.equal(isRelevantSpeakingAnswer('Ich wohne in München','residence'),true);
   assert.equal(isRelevantSpeakingAnswer('Queria um chá, por favor','drink'),true);
+});
+check('free speaking contains exactly 100 localized question datasets', () => {
+  assert.equal(EXTRA_SPEAKING_TURN_COUNT,79);
+  for(const learningLanguage of codes){
+    for(const nativeLanguage of codes){
+      if(learningLanguage===nativeLanguage)continue;
+      const topics=getSpeakingTopics(learningLanguage,nativeLanguage);
+      assert.equal(topics.flatMap(topic=>topic.turns).length,100,`${learningLanguage} -> ${nativeLanguage}`);
+      topics.flatMap(topic=>topic.turns).forEach(turn=>{
+        assert.ok(nonEmptyText(turn.question));assert.ok(nonEmptyText(turn.translation));
+        assert.ok(nonEmptyText(turn.example));assert.ok(nonEmptyText(turn.exampleTranslation));
+      });
+    }
+  }
 });
 check('fantasy has a real translation for all 72 source pages', () => {
   assert.equal(fantasyStory.pages.length,72);
