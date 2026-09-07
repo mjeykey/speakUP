@@ -11,6 +11,7 @@ import { L2_TOPICS } from './src/data/l2/index.js';
 import { L3_TOPIC_GROUPS } from './src/data/l3/index.js';
 import { fantasyStory } from './src/data/stories/fantasy.js';
 import { FANTASY_TRANSLATIONS, getFantasyTranslation } from './src/data/stories/fantasy-translations.js';
+import { isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
 
 const codes = LANGUAGE_OPTIONS.map(language => language.code);
 const failures = [];
@@ -61,6 +62,13 @@ check('every selectable topic and story has complete navigation copy', () => {
 check('invalid or identical stored language pairs are repaired', () => {
   assert.deepEqual(normalizeLanguagePair({learningLanguage:'it-IT',nativeLanguage:'it-IT'}), {learningLanguage:'pt-PT',nativeLanguage:'en-GB'});
   assert.deepEqual(normalizeLanguagePair({learningLanguage:'fr-FR',nativeLanguage:'fr-FR'}), {learningLanguage:'fr-FR',nativeLanguage:'en-GB'});
+});
+check('free speaking checks meaning instead of accepting any word', () => {
+  assert.equal(isRelevantSpeakingAnswer('Hausaufgaben','residence'),false);
+  assert.equal(isRelevantSpeakingAnswer('Moro em Lisboa','residence'),true);
+  assert.equal(isRelevantSpeakingAnswer('I live in Porto','residence'),true);
+  assert.equal(isRelevantSpeakingAnswer('Ich wohne in München','residence'),true);
+  assert.equal(isRelevantSpeakingAnswer('Queria um chá, por favor','drink'),true);
 });
 check('fantasy has a real translation for all 72 source pages', () => {
   assert.equal(fantasyStory.pages.length,72);

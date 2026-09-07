@@ -3,6 +3,43 @@ const FAMILY_BY_CODE={
   'hr-HR':'hr','hr-DAL':'hr','fr-FR':'fr'
 };
 
+const INTENTS_BY_TOPIC={
+  meet:['name','origin','residence'],cafe:['drink','extras','food'],shopping:['shopping-help','size','try-on'],
+  directions:['destination','travel-mode','map-help'],work:['job','remote-work','work-like'],
+  feelings:['feeling','feeling-reason','current-help'],everyday:['morning','after-work','evening']
+};
+
+const INTENT_SIGNALS={
+  name:['my name','name is','called','chamo','meu nome','heiße','heisse','ich bin','me llamo','mi nombre','zovem','je m appelle'],
+  origin:['from','come from','sou de','venho de','komme aus','stamme aus','soy de','vengo de','iz ','dolazim','viens de'],
+  residence:['live in','living in','moro','vivo','wohne','lebe','habite','živim','zivim'],
+  drink:['coffee','tea','water','juice','wine','beer','drink','café','cafe','chá','cha','água','agua','sumo','vinho','cerveja','beber','kaffee','tee','wasser','saft','trinken','kava','čaj','caj','voda','boisson'],
+  extras:['yes','no','with','without','milk','sugar','sim','não','nao','com','sem','leite','açúcar','acucar','ja','nein','mit','ohne','milch','zucker','sí','si','con','sin','leche','azúcar','da','ne','mlijeko','šećer','secer','oui','non','avec','sans','lait','sucre'],
+  food:['eat','food','sandwich','cake','yes','no','comer','sandes','bolo','sim','não','essen','brot','kuchen','ja','nein','comer','bocadillo','sí','jesti','sendvič','da','manger','oui'],
+  'shopping-help':['looking for','need','want','procuro','preciso','quero','suche','brauche','möchte','busco','necesito','quiero','tražim','trebam','želim','cherche','faut','voudrais'],
+  size:['size','small','medium','large','tamanho','pequeno','médio','medio','grande','größe','groesse','klein','mittel','talla','veličin','velicin','taille'],
+  'try-on':['yes','no','fitting','try','sim','não','provador','experiment','ja','nein','umkleide','anprob','sí','probador','probar','da','ne','kabina','oui','non','cabine','essayer'],
+  destination:['go to','station','airport','beach','hospital','quero ir','estação','estacao','aeroporto','praia','möchte','bahnhof','flughafen','strand','quiero ir','estación','zelim','stanic','kolodvor','voudrais aller','gare'],
+  'travel-mode':['walk','foot','bus','train','car','taxi','pé','pe ','autocarro','comboio','carro','zu fuß','fuss','bus','zug','auto','pie','autobús','tren','pješ','pjes','vlak','voiture'],
+  'map-help':['yes','no','map','help','sim','não','mapa','ajuda','ja','nein','karte','hilf','sí','da','ne','karti','pomo','oui','non','carte','aide'],
+  job:['work','job','support','teacher','student','trabalho','apoio','professor','estud','arbeite','beruf','lehrer','arbeit','trabajo','profesor','radim','posao','učitelj','ucitelj','travail','emploi','professeur'],
+  'remote-work':['home','office','remote','week','casa','escritório','escritorio','semana','zuhause','büro','buro','woche','casa','oficina','kuće','kuce','ured','tjed','maison','bureau','semaine'],
+  'work-like':['like','enjoy','help','people','gosto','ajud','pessoas','gefällt','gefallt','gern','menschen','gusta','ayud','volim','pomag','ljud','aime','aider','gens'],
+  feeling:['feel','happy','sad','calm','tired','sinto','feliz','triste','calm','cansad','fühle','fuhle','glücklich','glucklich','müde','mude','siento','osjeć','osjec','heureux','triste','fatigu'],
+  'feeling-reason':['because','had','happened','porque','tive','aconteceu','weil','hatte','passiert','porque','tuve','pasó','paso','jer','imao','dogod','parce que','eu','arrivé','arrive'],
+  'current-help':['help','need','want','break','ajud','preciso','quero','pausa','helfen','brauche','pause','ayud','necesito','descanso','pomo','trebam','pauz','aider','besoin','pause'],
+  morning:['morning','wake','breakfast','coffee','work','manhã','manha','acordo','pequeno-almoço','café','morgen','stehe','frühstück','kaffee','mañana','desayuno','ujutro','doručak','matin','réveille','petit-déjeuner'],
+  'after-work':['after work','walk','home','gym','friends','depois do trabalho','passeio','casa','nach der arbeit','spazieren','después del trabajo','paseo','nakon posla','šet','set','après le travail','promen'],
+  evening:['evening','tonight','dinner','sleep','esta noite','jantar','dormir','heute abend','abendessen','schlafen','esta noche','cena','večeras','veceras','večeru','veceru','ce soir','dîner','diner']
+};
+
+const normalize=value=>String(value||'').toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
+export function isRelevantSpeakingAnswer(transcript,intent){
+  const answer=` ${normalize(transcript)} `;
+  if(answer.trim().length<2)return false;
+  return (INTENT_SIGNALS[intent]||[]).some(signal=>answer.includes(normalize(signal)));
+}
+
 const TOPICS=[
   {id:'meet',emoji:'👋',title:{en:'Getting to know you',de:'Kennenlernen',pt:'Conhecer alguém',es:'Conocerse',hr:'Upoznavanje',fr:'Faire connaissance'},turns:[
     {q:{en:'What is your name?',de:'Wie heißt du?',pt:'Como te chamas?',es:'¿Cómo te llamas?',hr:'Kako se zoveš?',fr:'Comment tu t’appelles ?'},a:{en:'My name is Marina.',de:'Ich heiße Marina.',pt:'Chamo-me Marina.',es:'Me llamo Marina.',hr:'Zovem se Marina.',fr:'Je m’appelle Marina.'}},
@@ -47,6 +84,6 @@ export function getSpeakingTopics(learningLanguage,nativeLanguage){
   const native=speakingFamily(nativeLanguage);
   return TOPICS.map(topic=>({
     id:topic.id,emoji:topic.emoji,title:topic.title[native]||topic.title.en,
-    turns:topic.turns.map(turn=>({question:turn.q[learning]||turn.q.en,translation:turn.q[native]||turn.q.en,example:turn.a[learning]||turn.a.en,exampleTranslation:turn.a[native]||turn.a.en}))
+    turns:topic.turns.map((turn,index)=>({intent:INTENTS_BY_TOPIC[topic.id]?.[index],question:turn.q[learning]||turn.q.en,translation:turn.q[native]||turn.q.en,example:turn.a[learning]||turn.a.en,exampleTranslation:turn.a[native]||turn.a.en}))
   }));
 }
