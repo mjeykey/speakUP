@@ -1,5 +1,6 @@
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=6';
+import { getSpeakingAdditions } from '../data/speaking-additions/index.js?v=1';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
@@ -26,7 +27,7 @@ const isRelevantCandidate=(value,item,learningLanguage)=>hasMoreThanOneWord(valu
 export function renderSpeakPractice(root,store){
   const state=store.getState(),learningLanguage=state.learningLanguage,nativeLanguage=state.nativeLanguage;
   const speechLanguage=getSpeechLanguage(learningLanguage),copy=COPY[getUiFamily(nativeLanguage)]||COPY.en;
-  const topics=getSpeakingTopics(learningLanguage,nativeLanguage),progressKey=`${learningLanguage}|${nativeLanguage}`;
+  const topics=getSpeakingTopics(learningLanguage,nativeLanguage).map(item=>({...item,turns:[...item.turns,...getSpeakingAdditions(item.id,learningLanguage,nativeLanguage)]})),progressKey=`${learningLanguage}|${nativeLanguage}`;
   const saved=state.progress?.speakPractice?.[progressKey]||{};
   let topic=topics.find(item=>item.id===saved.topicId)||null,index=Math.max(0,Number(saved.currentIndex)||0);
   let recognition=null,listening=false,transcript='',heardAttempt='',message='';
