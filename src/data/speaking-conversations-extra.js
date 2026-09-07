@@ -143,17 +143,30 @@ const TEMPLATES={
   everyday:{intent:'routine',q:s('When do you usually make time for {x}?','Wann nimmst du dir normalerweise Zeit für {x}?','Quando costumas reservar tempo para {x}?','¿Cuándo sueles dedicar tiempo a {x}?','Kada obično odvojiš vrijeme za {x}?','Quand prends-tu généralement du temps pour {x} ?'),a:s('I usually make time for {x} after work.','Normalerweise nehme ich mir nach der Arbeit Zeit für {x}.','Normalmente reservo tempo para {x} depois do trabalho.','Normalmente dedico tiempo a {x} después del trabajo.','Obično odvojim vrijeme za {x} nakon posla.','Je prends généralement du temps pour {x} après le travail.')}
 };
 
+const SECOND_TEMPLATES={
+  meet:{intent:'profile',q:s('Why is {x} important to you?','Warum ist {x} für dich wichtig?','Porque é que {x} é importante para ti?','¿Por qué es importante para ti {x}?','Zašto su ti važni {x}?','Pourquoi {x} est important pour toi ?'),a:s('{x} matters to me because it makes my life richer.','{x} ist mir wichtig, weil es mein Leben bereichert.','{x} é importante para mim porque enriquece a minha vida.','{x} es importante para mí porque enriquece mi vida.','{x} mi je važno jer obogaćuje moj život.','{x} compte pour moi parce que cela enrichit ma vie.')},
+  cafe:{intent:'cafe-choice',q:s('What do you like about {x}?','Was magst du an {x}?','O que gostas em {x}?','¿Qué te gusta de {x}?','Što voliš kod {x}?','Qu’est-ce que tu aimes dans {x} ?'),a:s('I like {x} because it tastes good.','Ich mag {x}, weil es gut schmeckt.','Gosto de {x} porque sabe bem.','Me gusta {x} porque sabe bien.','Volim {x} jer je ukusno.','J’aime {x} parce que c’est bon.')},
+  shopping:{intent:'shopping-choice',q:s('Where would you look for {x}?','Wo würdest du nach {x} suchen?','Onde procurarias {x}?','¿Dónde buscarías {x}?','Gdje bi potražio {x}?','Où chercherais-tu {x} ?'),a:s('I would look for {x} in a nearby shop.','Ich würde in einem Geschäft in der Nähe nach {x} suchen.','Procuraria {x} numa loja próxima.','Buscaría {x} en una tienda cercana.','Potražio bih {x} u obližnjoj trgovini.','Je chercherais {x} dans un magasin voisin.')},
+  directions:{intent:'destination',q:s('Why do you need to find the {x}?','Warum musst du den Weg zum {x} finden?','Porque precisas de encontrar a {x}?','¿Por qué necesitas encontrar la {x}?','Zašto trebaš pronaći {x}?','Pourquoi dois-tu trouver la {x} ?'),a:s('I need to find the {x} because I have an appointment.','Ich muss den {x} finden, weil ich einen Termin habe.','Preciso de encontrar a {x} porque tenho um compromisso.','Necesito encontrar la {x} porque tengo una cita.','Moram pronaći {x} jer imam dogovor.','Je dois trouver la {x} parce que j’ai un rendez-vous.')},
+  work:{intent:'work-topic',q:s('How could you improve {x} at work?','Wie könntest du {x} bei der Arbeit verbessern?','Como poderias melhorar {x} no trabalho?','¿Cómo podrías mejorar {x} en el trabajo?','Kako bi mogao poboljšati {x} na poslu?','Comment pourrais-tu améliorer {x} au travail ?'),a:s('I could improve {x} with practice and clear communication.','Ich könnte {x} durch Übung und klare Kommunikation verbessern.','Poderia melhorar {x} com prática e comunicação clara.','Podría mejorar {x} con práctica y comunicación clara.','Mogao bih poboljšati {x} vježbom i jasnom komunikacijom.','Je pourrais améliorer {x} avec de la pratique et une communication claire.')},
+  feelings:{intent:'feeling',q:s('What helps you when {x}?','Was hilft dir, wenn {x}?','O que te ajuda quando {x}?','¿Qué te ayuda cuando {x}?','Što ti pomaže kada {x}?','Qu’est-ce qui t’aide quand {x} ?'),a:s('When {x}, taking a moment to breathe helps me.','Wenn {x}, hilft es mir, einen Moment durchzuatmen.','Quando {x}, ajuda-me parar um momento para respirar.','Cuando {x}, me ayuda parar un momento para respirar.','Kada {x}, pomaže mi da zastanem i udahnem.','Quand {x}, prendre un moment pour respirer m’aide.')},
+  everyday:{intent:'routine',q:s('Why do you make time for {x}?','Warum nimmst du dir Zeit für {x}?','Porque reservas tempo para {x}?','¿Por qué dedicas tiempo a {x}?','Zašto odvajaš vrijeme za {x}?','Pourquoi prends-tu du temps pour {x} ?'),a:s('I make time for {x} because it is good for me.','Ich nehme mir Zeit für {x}, weil es mir guttut.','Reservo tempo para {x} porque me faz bem.','Dedico tiempo a {x} porque me hace bien.','Odvajam vrijeme za {x} jer mi koristi.','Je prends du temps pour {x} parce que cela me fait du bien.')}
+};
+
 const fill=(template,slot)=>template.replace('{x}',slot);
 export function getExtraSpeakingTurns(topicId,learning,native){
   const template=TEMPLATES[topicId];
-  return allSlots(topicId).map(slot=>({
-    intent:template.intent,
+  const makeTurn=(slot,selectedTemplate)=>({
+    intent:selectedTemplate.intent,
     signals:Object.values(slot),
-    question:fill(template.q[learning]||template.q.en,slot[learning]||slot.en),
-    translation:fill(template.q[native]||template.q.en,slot[native]||slot.en),
-    example:fill(template.a[learning]||template.a.en,slot[learning]||slot.en),
-    exampleTranslation:fill(template.a[native]||template.a.en,slot[native]||slot.en)
-  }));
+    question:fill(selectedTemplate.q[learning]||selectedTemplate.q.en,slot[learning]||slot.en),
+    translation:fill(selectedTemplate.q[native]||selectedTemplate.q.en,slot[native]||slot.en),
+    example:fill(selectedTemplate.a[learning]||selectedTemplate.a.en,slot[learning]||slot.en),
+    exampleTranslation:fill(selectedTemplate.a[native]||selectedTemplate.a.en,slot[native]||slot.en)
+  });
+  const primary=allSlots(topicId).map(slot=>makeTurn(slot,template));
+  const secondary=allSlots(topicId).slice(0,15).map(slot=>makeTurn(slot,SECOND_TEMPLATES[topicId]));
+  return [...primary,...secondary];
 }
 
-export const EXTRA_SPEAKING_TURN_COUNT=[...Object.values(SLOTS),...Object.values(MORE_SLOTS)].reduce((sum,items)=>sum+items.length,0);
+export const EXTRA_SPEAKING_TURN_COUNT=[...Object.values(SLOTS),...Object.values(MORE_SLOTS)].reduce((sum,items)=>sum+items.length,0)+Object.keys(TEMPLATES).length*15;

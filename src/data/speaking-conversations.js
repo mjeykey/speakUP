@@ -1,4 +1,4 @@
-import { getExtraSpeakingTurns } from './speaking-conversations-extra.js?v=2';
+import { getExtraSpeakingTurns } from './speaking-conversations-extra.js?v=3';
 
 const FAMILY_BY_CODE={
   'pt-PT':'pt','de-DE':'de','en-GB':'en','es-ES':'es','es-AN':'es',

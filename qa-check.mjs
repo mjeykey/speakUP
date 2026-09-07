@@ -74,14 +74,14 @@ check('free speaking checks meaning instead of accepting any word', () => {
   assert.equal(isRelevantSpeakingAnswer('Moja najbolja prijateljica radi u frizerskom salonu',croatianBestFriend),true);
   assert.equal(isRelevantSpeakingAnswer('Pišem domaću zadaću',croatianBestFriend),false);
 });
-check('free speaking contains exactly 205 localized question datasets', () => {
-  assert.equal(EXTRA_SPEAKING_TURN_COUNT,184);
+check('free speaking contains exactly 310 localized question datasets', () => {
+  assert.equal(EXTRA_SPEAKING_TURN_COUNT,289);
   for(const learningLanguage of codes){
     for(const nativeLanguage of codes){
       if(learningLanguage===nativeLanguage)continue;
       const topics=getSpeakingTopics(learningLanguage,nativeLanguage);
-      assert.equal(topics.flatMap(topic=>topic.turns).length,205,`${learningLanguage} -> ${nativeLanguage}`);
-      assert.deepEqual(topics.map(topic=>topic.turns.length),[30,30,29,29,29,29,29],`${learningLanguage} -> ${nativeLanguage}`);
+      assert.equal(topics.flatMap(topic=>topic.turns).length,310,`${learningLanguage} -> ${nativeLanguage}`);
+      assert.deepEqual(topics.map(topic=>topic.turns.length),[45,45,44,44,44,44,44],`${learningLanguage} -> ${nativeLanguage}`);
       topics.flatMap(topic=>topic.turns).forEach(turn=>{
         assert.ok(nonEmptyText(turn.question));assert.ok(nonEmptyText(turn.translation));
         assert.ok(nonEmptyText(turn.example));assert.ok(nonEmptyText(turn.exampleTranslation));
