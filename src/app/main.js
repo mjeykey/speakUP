@@ -1,7 +1,7 @@
 import { createStore } from './state.js?v=58';
 import { getHtmlLanguage } from './ui-language.js?v=4';
 import { renderWelcome } from '../modules/welcome.js?v=53';
-import { renderMenu } from '../modules/menu.js?v=268';
+import { renderMenu } from '../modules/menu.js?v=269';
 import { renderWords } from '../modules/words-matrix.js?v=4';
 import { renderMemory } from '../modules/memory-matrix.js?v=5';
 import { renderFillGap } from '../modules/fill-gap-matrix.js?v=4';
