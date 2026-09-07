@@ -71,13 +71,14 @@ check('free speaking checks meaning instead of accepting any word', () => {
   assert.equal(isRelevantSpeakingAnswer('Ich wohne in München','residence'),true);
   assert.equal(isRelevantSpeakingAnswer('Queria um chá, por favor','drink'),true);
 });
-check('free speaking contains exactly 100 localized question datasets', () => {
-  assert.equal(EXTRA_SPEAKING_TURN_COUNT,79);
+check('free speaking contains exactly 205 localized question datasets', () => {
+  assert.equal(EXTRA_SPEAKING_TURN_COUNT,184);
   for(const learningLanguage of codes){
     for(const nativeLanguage of codes){
       if(learningLanguage===nativeLanguage)continue;
       const topics=getSpeakingTopics(learningLanguage,nativeLanguage);
-      assert.equal(topics.flatMap(topic=>topic.turns).length,100,`${learningLanguage} -> ${nativeLanguage}`);
+      assert.equal(topics.flatMap(topic=>topic.turns).length,205,`${learningLanguage} -> ${nativeLanguage}`);
+      assert.deepEqual(topics.map(topic=>topic.turns.length),[30,30,29,29,29,29,29],`${learningLanguage} -> ${nativeLanguage}`);
       topics.flatMap(topic=>topic.turns).forEach(turn=>{
         assert.ok(nonEmptyText(turn.question));assert.ok(nonEmptyText(turn.translation));
         assert.ok(nonEmptyText(turn.example));assert.ok(nonEmptyText(turn.exampleTranslation));
