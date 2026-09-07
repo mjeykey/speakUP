@@ -14,6 +14,14 @@ const COPY={
 };
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const hasMoreThanOneWord=value=>String(value||'').trim().split(/\s+/).filter(Boolean).length>1;
+const validationText=(value,learningLanguage)=>{
+  const text=String(value||'');
+  if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return text;
+  return text
+    .replace(/\bhobby\b/giu,'hobijima')
+    .replace(/\bhobi(?:ji|ja|je|ju|jem|jima)?\b/giu,'hobijima');
+};
+const isRelevantCandidate=(value,item,learningLanguage)=>hasMoreThanOneWord(value)&&isRelevantSpeakingAnswer(validationText(value,learningLanguage),item);
 
 export function renderSpeakPractice(root,store){
   const state=store.getState(),learningLanguage=state.learningLanguage,nativeLanguage=state.nativeLanguage;
@@ -43,8 +51,19 @@ export function renderSpeakPractice(root,store){
   }
   function playQuestion(){stopSpeech();return speak(current().question,speechLanguage,{enabled:store.getState().audioOn,rate:.66}).catch(()=>{});}
   function startListening(){
-    if(listening||!Recognition)return;stopSpeech();recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false;listening=true;message=copy.listening;draw();
-    recognition.onresult=event=>{listening=false;const heard=String(event.results?.[0]?.[0]?.transcript||'').trim();if(heard&&hasMoreThanOneWord(heard)&&isRelevantSpeakingAnswer(heard,current())){transcript=heard;heardAttempt='';message=copy.clear;}else{transcript='';heardAttempt=heard;message=!heard?copy.retry:hasMoreThanOneWord(heard)?copy.offTopic:copy.incomplete;}draw();};
+    if(listening||!Recognition)return;stopSpeech();recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=3;recognition.continuous=false;listening=true;message=copy.listening;draw();
+    recognition.onresult=event=>{
+      listening=false;
+      const result=event.results?.[0],candidates=[];
+      for(let i=0;i<(result?.length||0);i++){
+        const candidate=String(result?.[i]?.transcript||'').trim();
+        if(candidate&&!candidates.includes(candidate))candidates.push(candidate);
+      }
+      const matched=candidates.find(candidate=>isRelevantCandidate(candidate,current(),learningLanguage));
+      const heard=matched||candidates[0]||'';
+      if(matched){transcript=matched;heardAttempt='';message=copy.clear;}else{transcript='';heardAttempt=heard;message=!heard?copy.retry:hasMoreThanOneWord(heard)?copy.offTopic:copy.incomplete;}
+      draw();
+    };
     recognition.onerror=event=>{listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};
     recognition.onend=()=>{if(!listening)return;listening=false;message=copy.retry;draw();};
     try{recognition.start();}catch(_){listening=false;message=copy.retry;draw();}
