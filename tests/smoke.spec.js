@@ -201,7 +201,7 @@ test('speaking practice offers distinct free conversation topics', async ({ page
   await expect(page.locator('.free-speak-screen')).toContainText('Antworte frei');
   await page.locator('.free-speak-topic').filter({ hasText: 'Alltag' }).click();
   await expect(page.locator('.free-speak-question')).toContainText('O que costumas fazer de manhã?');
-  await expect(page.locator('.speak-translation')).toContainText('Was machst du normalerweise morgens?');
+  await expect(page.locator('.free-speak-card .speak-translation')).toContainText('Was machst du normalerweise morgens?');
   await expect(page.locator('[data-listen]')).toBeVisible();
   await expect(page.locator('[data-answer]')).toBeVisible();
 });
