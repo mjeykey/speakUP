@@ -38,6 +38,12 @@ const CROATIAN_MEET_POSSESSIVE={
   'budućim ciljevima':'svojim budućim ciljevima'
 };
 
+const CROATIAN_FAMILY_SIGNALS=[
+  'obitelj','familija','roditelj','roditelji','majka','mama','otac','tata',
+  'brat','sestra','braća','sestre','baka','djed','djeca','dijete','sin','kći',
+  'suprug','supruga','partner','partnerica'
+];
+
 const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
 
 const polishCroatianQuestion=value=>{
@@ -66,11 +72,17 @@ const polishCroatianExample=value=>{
   return text;
 };
 
+const isCroatianFamilyTurn=turn=>{
+  const question=String(turn?.question||'');
+  return question==='Reci mi nešto o svojoj obitelji.'||question==='Zašto ti je važno razgovarati o obitelji?';
+};
+
 export function polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage){
   const next={...turn};
   if(isCroatian(learningLanguage)){
     next.question=polishCroatianQuestion(next.question);
     next.example=polishCroatianExample(next.example);
+    if(isCroatianFamilyTurn(next))next.signals=[...(next.signals||[]),...CROATIAN_FAMILY_SIGNALS];
   }
   if(isCroatian(nativeLanguage)){
     next.translation=polishCroatianQuestion(next.translation);
