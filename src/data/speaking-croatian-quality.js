@@ -43,14 +43,12 @@ const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
 const polishCroatianQuestion=value=>{
   let text=String(value||'');
 
-  // Older generated Meet questions used plural "svojim" for every noun.
   if(text.startsWith('Reci mi nešto o svojim ')){
     const topic=text.slice('Reci mi nešto o svojim '.length).replace(/\.$/u,'');
     const natural=CROATIAN_MEET_POSSESSIVE[topic]||asLocativeTopic(topic);
     text=`Reci mi nešto o ${natural}.`;
   }
 
-  // The second generated Meet template also mixed number/case agreement.
   if(text.startsWith('Zašto su ti važni ')){
     const topic=text.slice('Zašto su ti važni '.length).replace(/\?$/u,'');
     text=`Zašto ti je važno razgovarati o ${asLocativeTopic(topic)}?`;
@@ -61,6 +59,8 @@ const polishCroatianQuestion=value=>{
 
 const polishCroatianExample=value=>{
   const text=String(value||'');
+  if(text==='Moja obitelj važan je dio mog života.')return 'Moja obitelj mi je jako važna.';
+  if(text==='obitelj mi je važno jer obogaćuje moj život.')return 'Obitelj mi je važna jer obogaćuje moj život.';
   if(/^Moja .+ važan je dio mog života\.$/u.test(text))return 'To mi je važan dio života.';
   if(/ mi je važno jer obogaćuje moj život\.$/u.test(text))return 'Ta mi je tema važna jer obogaćuje moj život.';
   return text;
