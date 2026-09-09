@@ -34,34 +34,32 @@ async function openLocationQuestion(page){
   return answer;
 }
 
-test('Croatian Lisbon recognition variant keeps the answer valid but recommends Lisabonu',async({page})=>{
+test('small Lisbon recognition error is accepted and cleaned up',async({page})=>{
   const answer=await openLocationQuestion(page);
   await answer('živim u listbonu');
   await expect(page.locator('.speak-feedback')).toContainText('matched the topic');
   await expect(page.locator('.free-speak-transcript')).toContainText('živim u listbonu');
   await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).not.toContainText('listbonu');
   await expect(page.locator('[data-next]')).toBeVisible();
 });
 
-test('broken mobile recognition like živimo li zabona is corrected instead of praised',async({page})=>{
+test('broken Lisbon recognition asks for confirmation instead of praising it',async({page})=>{
   const answer=await openLocationQuestion(page);
   await answer('živimo li zabona');
-  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
+  await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
   await expect(page.locator('.free-speak-transcript')).toContainText('živimo li zabona');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).not.toContainText('živimo li zabona');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
   await expect(page.locator('[data-next]')).toHaveCount(0);
   await expect(page.locator('[data-answer]')).toBeVisible();
+
+  await answer('Da');
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65',{timeout:2500});
 });
 
-test('split mobile recognition like živimo Liza bonu is normalized to Lisabonu',async({page})=>{
+test('split Lisbon recognition asks for confirmation too',async({page})=>{
   const answer=await openLocationQuestion(page);
   await answer('živimo Liza bonu');
-  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
-  await expect(page.locator('.free-speak-transcript')).toContainText('živimo Liza bonu');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).not.toContainText('Liza bonu');
+  await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
   await expect(page.locator('[data-next]')).toHaveCount(0);
-  await expect(page.locator('[data-answer]')).toBeVisible();
 });
