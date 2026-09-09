@@ -58,6 +58,21 @@ const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
   ['zivim u lisabonu','Živim u Lisabonu.']
 ]);
 
+const lisbonRecommendation=value=>{
+  const text=normalize(value);
+  if(!/^(?:zivim|zivimo)\b/u.test(text))return '';
+  const compact=text.replace(/\s+/g,'');
+  if(!/(?:lisabon|lisbon|lizbon|listbon)/u.test(compact))return '';
+  return 'Živim u Lisabonu.';
+};
+
+const hasLocationRecognitionIssue=value=>{
+  const recommendation=lisbonRecommendation(value);
+  if(!recommendation)return false;
+  const text=normalize(value);
+  return !/^zivim u (?:lisabonu|listbonu|lisbonu|lizbonu)$/u.test(text);
+};
+
 const hobbyForm=(noun,infinitive)=>({noun,infinitive});
 const HOBBY_FORMS=new Map([
   ['crtati',hobbyForm('crtanje','crtati')],['crtanje',hobbyForm('crtanje','crtati')],['crtani',hobbyForm('crtanje','crtati')],
@@ -240,7 +255,7 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
     /\bsvojim\s+obitelj\b/u,/\bmoji\s+hobi\b/u,/\bmoj\s+hobiji\b/u,
     /^moje\s+hobije\b/u,/^moji\s+hobije\b/u,/^moje\s+hobi\b/u
   ];
-  return badPatterns.some(pattern=>pattern.test(text))||hasHobbyGrammarIssue(value)||hasMusicGrammarIssue(value);
+  return badPatterns.some(pattern=>pattern.test(text))||hasHobbyGrammarIssue(value)||hasMusicGrammarIssue(value)||hasLocationRecognitionIssue(value);
 }
 
 export function getRecommendedSpeakingSentence(value,learningLanguage){
@@ -248,7 +263,7 @@ export function getRecommendedSpeakingSentence(value,learningLanguage){
   if(!source||!isCroatian(learningLanguage))return source;
   const exact=SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source));
   if(exact)return exact;
-  return hobbyRecommendation(source)||musicRecommendation(source)||source;
+  return lisbonRecommendation(source)||hobbyRecommendation(source)||musicRecommendation(source)||source;
 }
 
 export function getAlternativeSpeakingSentence(value,learningLanguage){
