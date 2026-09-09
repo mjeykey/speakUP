@@ -44,6 +44,12 @@ const CROATIAN_FAMILY_SIGNALS=[
   'suprug','supruga','partner','partnerica'
 ];
 
+const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
+  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.'],
+  ['moji hobi je crtati i izaci vani','Moji hobiji su crtanje i izlasci.'],
+  ['moj hobi je crtati','Moj hobi je crtanje.']
+]);
+
 const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
 
 const polishCroatianQuestion=value=>{
@@ -101,7 +107,15 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
     /\bmojoj\s+obitelj\b/u,
     /\bmoju\s+obitelji\b/u,
     /\bmojom\s+obitelj\b/u,
-    /\bsvojim\s+obitelj\b/u
+    /\bsvojim\s+obitelj\b/u,
+    /\bmoji\s+hobi\b/u,
+    /\bmoj\s+hobiji\b/u
   ];
   return badPatterns.some(pattern=>pattern.test(text));
+}
+
+export function getRecommendedSpeakingSentence(value,learningLanguage){
+  const source=String(value||'').trim();
+  if(!source||!isCroatian(learningLanguage))return source;
+  return SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source))||source;
 }
