@@ -1,17 +1,15 @@
 import assert from 'node:assert/strict';
 import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence, getAlternativeSpeakingSentence } from './src/data/speaking-croatian-quality.js';
+import { isSpeakingAnswerIncomplete, getSpeakingConversationScaffold, isEasyConversationAnswer } from './src/data/speaking-conversation-scaffold.js';
 import { isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
 
 let checks=0;
 const check=(condition,message)=>{checks+=1;assert.ok(condition,message);};
 
 const family=polishCroatianSpeakingTurn({
-  intent:'profile',
-  signals:['family','Familie','família','familia','obitelj','famille'],
-  question:'Reci mi nešto o svojim obitelj.',
-  translation:'Tell me about your family.',
-  example:'Moja obitelj važan je dio mog života.',
-  exampleTranslation:'My family is an important part of my life.'
+  intent:'profile',signals:['family','Familie','família','familia','obitelj','famille'],
+  question:'Reci mi nešto o svojim obitelj.',translation:'Tell me about your family.',
+  example:'Moja obitelj važan je dio mog života.',exampleTranslation:'My family is an important part of my life.'
 },'hr-HR','en-GB');
 check(family.question==='Reci mi nešto o svojoj obitelji.','family question was not corrected');
 check(family.example==='Moja obitelj mi je jako važna.','natural family example was not applied');
@@ -20,10 +18,8 @@ check(isRelevantSpeakingAnswer('Moji roditelji žive blizu meni',family),'speech
 check(isRelevantSpeakingAnswer('Moja mama živi u Splitu.',family),'mother should count as a family answer');
 
 const music=polishCroatianSpeakingTurn({
-  question:'Reci mi nešto o svojim omiljenoj glazbi.',
-  translation:'Tell me about your favourite music.',
-  example:'Moja omiljenoj glazbi važan je dio mog života.',
-  exampleTranslation:'My favourite music is an important part of my life.',
+  question:'Reci mi nešto o svojim omiljenoj glazbi.',translation:'Tell me about your favourite music.',
+  example:'Moja omiljenoj glazbi važan je dio mog života.',exampleTranslation:'My favourite music is an important part of my life.',
   signals:['music','Musik','música','glazbi','musique']
 },'hr-HR','en-GB');
 check(music.question==='Reci mi nešto o svojoj omiljenoj glazbi.','favourite music agreement was not corrected');
@@ -31,28 +27,33 @@ check(music.example==='Moja omiljena glazba važan je dio mog života.','music e
 check(isRelevantSpeakingAnswer('Najviše slušam jazz.',music),'music genre should count as on-topic');
 check(isRelevantSpeakingAnswer('Volim rock.',music),'rock should count as on-topic');
 
+const musicScaffold=getSpeakingConversationScaffold(music,'hr-HR','en-GB');
+check(isSpeakingAnswerIncomplete('moja najdraža muzika svira kad idem na','hr-HR'),'dangling Croatian music answer should be treated as unfinished');
+check(!isSpeakingAnswerIncomplete('Najviše slušam jazz.','hr-HR'),'complete music answer was marked unfinished');
+check(!isSpeakingAnswerIncomplete('music when I go to','en-GB'),'Croatian unfinished-answer heuristic leaked to English');
+check(musicScaffold?.followUp==='Gdje obično slušaš glazbu?','music follow-up should continue the conversation naturally');
+check(musicScaffold?.example==='Ja, primjerice, slušam glazbu na putu na posao.','music scaffold should contain the easy personal example');
+check(musicScaffold?.easyQuestion==='Je li i kod tebe tako?','music scaffold should finish with an easy yes/no question');
+check(musicScaffold?.easyTranslation==='Is it like that for you too?','music scaffold translation was not selected from the native language');
+check(isEasyConversationAnswer('Da','hr-HR'),'Croatian yes should be accepted in the easy step');
+check(isEasyConversationAnswer('Ne','hr-HR'),'Croatian no should be accepted in the easy step');
+
 const hobbies=polishCroatianSpeakingTurn({
-  question:'Reci mi nešto o svojim hobijima.',
-  translation:'Tell me about your hobbies.',
-  example:'Moja hobijima važan je dio mog života.',
-  exampleTranslation:'My hobbies are an important part of my life.'
+  question:'Reci mi nešto o svojim hobijima.',translation:'Tell me about your hobbies.',
+  example:'Moja hobijima važan je dio mog života.',exampleTranslation:'My hobbies are an important part of my life.'
 },'hr-HR','en-GB');
 check(hobbies.question==='Reci mi nešto o svojim hobijima.','correct plural possessive was damaged');
 
 const second=polishCroatianSpeakingTurn({
-  question:'Zašto su ti važni obitelj?',
-  translation:'Why is family important to you?',
-  example:'obitelj mi je važno jer obogaćuje moj život.',
-  exampleTranslation:'Family matters to me.'
+  question:'Zašto su ti važni obitelj?',translation:'Why is family important to you?',
+  example:'obitelj mi je važno jer obogaćuje moj život.',exampleTranslation:'Family matters to me.'
 },'hr-HR','en-GB');
 check(second.question==='Zašto ti je važno razgovarati o obitelji?','secondary family question was not corrected');
 check(second.example==='Obitelj mi je važna jer obogaćuje moj život.','secondary family example was not corrected');
 
 const nativeCroatian=polishCroatianSpeakingTurn({
-  question:'Tell me about your family.',
-  translation:'Reci mi nešto o svojim obitelj.',
-  example:'My family matters to me.',
-  exampleTranslation:'Moja obitelj važan je dio mog života.'
+  question:'Tell me about your family.',translation:'Reci mi nešto o svojim obitelj.',
+  example:'My family matters to me.',exampleTranslation:'Moja obitelj važan je dio mog života.'
 },'en-GB','hr-HR');
 check(nativeCroatian.translation==='Reci mi nešto o svojoj obitelji.','Croatian native-language translation was not corrected');
 check(nativeCroatian.exampleTranslation==='Moja obitelj mi je jako važna.','Croatian native-language example was not corrected');
