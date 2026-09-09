@@ -16,34 +16,31 @@ const normalize=value=>String(value||'')
   .replace(/\s+/g,' ')
   .trim();
 
+const t=(en,de,pt,es,hr,fr)=>({en,de,pt,es,hr,fr});
+
 const MUSIC_SCAFFOLD={
   followUp:'Gdje obično slušaš glazbu?',
-  followUpTranslation:{
-    en:'Where do you usually listen to music?',
-    de:'Wo hörst du normalerweise Musik?',
-    pt:'Onde costumas ouvir música?',
-    es:'¿Dónde sueles escuchar música?',
-    hr:'Gdje obično slušaš glazbu?',
-    fr:'Où écoutes-tu habituellement de la musique ?'
-  },
+  followUpTranslation:t('Where do you usually listen to music?','Wo hörst du normalerweise Musik?','Onde costumas ouvir música?','¿Dónde sueles escuchar música?','Gdje obično slušaš glazbu?','Où écoutes-tu habituellement de la musique ?'),
   example:'Ja, primjerice, slušam glazbu na putu na posao.',
-  exampleTranslation:{
-    en:'For example, I listen to music on the way to work.',
-    de:'Ich höre zum Beispiel auf dem Weg zur Arbeit Musik.',
-    pt:'Por exemplo, ouço música a caminho do trabalho.',
-    es:'Por ejemplo, escucho música de camino al trabajo.',
-    hr:'Ja, primjerice, slušam glazbu na putu na posao.',
-    fr:'Par exemple, j’écoute de la musique sur le chemin du travail.'
-  },
+  exampleTranslation:t('For example, I listen to music on the way to work.','Ich höre zum Beispiel auf dem Weg zur Arbeit Musik.','Por exemplo, ouço música a caminho do trabalho.','Por ejemplo, escucho música de camino al trabajo.','Ja, primjerice, slušam glazbu na putu na posao.','Par exemple, j’écoute de la musique sur le chemin du travail.'),
   easyQuestion:'Je li i kod tebe tako?',
-  easyTranslation:{
-    en:'Is it like that for you too?',
-    de:'Ist das bei dir auch so?',
-    pt:'Contigo também é assim?',
-    es:'¿A ti también te pasa?',
-    hr:'Je li i kod tebe tako?',
-    fr:'C’est pareil pour toi aussi ?'
-  }
+  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?')
+};
+
+const FAMILY_SCAFFOLD={
+  followUp:'Živi li tvoja obitelj blizu tebe?',
+  followUpTranslation:t('Does your family live near you?','Wohnt deine Familie in deiner Nähe?','A tua família vive perto de ti?','¿Tu familia vive cerca de ti?','Živi li tvoja obitelj blizu tebe?','Ta famille habite près de chez toi ?'),
+  example:'Moja obitelj živi blizu mene.',
+  exampleTranslation:t('My family lives near me.','Meine Familie wohnt in meiner Nähe.','A minha família vive perto de mim.','Mi familia vive cerca de mí.','Moja obitelj živi blizu mene.','Ma famille habite près de chez moi.'),
+  easyQuestion:'Je li i kod tebe tako?',
+  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?')
+};
+
+const GENERIC_FOLLOW_UP={
+  followUp:'Možeš li to reći jednostavnije?',
+  followUpTranslation:t('Can you say it more simply?','Kannst du es einfacher sagen?','Consegues dizer isso de forma mais simples?','¿Puedes decirlo de forma más sencilla?','Možeš li to reći jednostavnije?','Peux-tu le dire plus simplement ?'),
+  easyQuestion:'Je li kod tebe slično?',
+  easyTranslation:t('Is it similar for you?','Ist es bei dir ähnlich?','Contigo é parecido?','¿En tu caso es parecido?','Je li kod tebe slično?','C’est similaire pour toi ?')
 };
 
 const DANGLING_CROATIAN_WORDS=new Set([
@@ -62,20 +59,40 @@ export function isSpeakingAnswerIncomplete(value,learningLanguage){
 export function getSpeakingConversationScaffold(turn,learningLanguage,nativeLanguage){
   if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return null;
   const question=String(turn?.question||'');
-  if(!question.includes('omiljenoj glazbi'))return null;
   const f=family(nativeLanguage);
+  let scaffold=null;
+  if(question.includes('omiljenoj glazbi'))scaffold=MUSIC_SCAFFOLD;
+  else if(question.includes('obitelji'))scaffold=FAMILY_SCAFFOLD;
+
+  if(scaffold){
+    return {
+      followUp:scaffold.followUp,
+      followUpTranslation:scaffold.followUpTranslation[f],
+      example:scaffold.example,
+      exampleTranslation:scaffold.exampleTranslation[f],
+      easyQuestion:scaffold.easyQuestion,
+      easyTranslation:scaffold.easyTranslation[f]
+    };
+  }
+
   return {
-    followUp:MUSIC_SCAFFOLD.followUp,
-    followUpTranslation:MUSIC_SCAFFOLD.followUpTranslation[f],
-    example:MUSIC_SCAFFOLD.example,
-    exampleTranslation:MUSIC_SCAFFOLD.exampleTranslation[f],
-    easyQuestion:MUSIC_SCAFFOLD.easyQuestion,
-    easyTranslation:MUSIC_SCAFFOLD.easyTranslation[f]
+    followUp:GENERIC_FOLLOW_UP.followUp,
+    followUpTranslation:GENERIC_FOLLOW_UP.followUpTranslation[f],
+    example:String(turn?.example||''),
+    exampleTranslation:String(turn?.exampleTranslation||''),
+    easyQuestion:GENERIC_FOLLOW_UP.easyQuestion,
+    easyTranslation:GENERIC_FOLLOW_UP.easyTranslation[f]
   };
 }
 
-export function isEasyConversationAnswer(value,learningLanguage){
-  if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return false;
+export function getEasyConversationAnswerIntent(value,learningLanguage){
+  if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return '';
   const text=normalize(value);
-  return /^(da|ne|jest|je|nije|jesam|nisam|naravno|ponekad|da jesam|ne nisam|da je|nije tako)$/u.test(text);
+  if(/^(da|jest|je|jesam|naravno|da jesam|da je)$/u.test(text))return 'yes';
+  if(/^(ne|nije|nisam|ne nisam|nije tako)$/u.test(text))return 'no';
+  return '';
+}
+
+export function isEasyConversationAnswer(value,learningLanguage){
+  return Boolean(getEasyConversationAnswerIntent(value,learningLanguage));
 }
