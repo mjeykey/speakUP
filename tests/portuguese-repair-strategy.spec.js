@@ -57,6 +57,15 @@ async function reachFamily(page){
   await expect(page.locator('.free-speak-question')).toContainText('família');
 }
 
+async function reachBestFriend(page){
+  await reachFamily(page);
+  await answer(page,'A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.speak-progress')).toContainText('5 / 65');
+  await expect(page.locator('.free-speak-question')).toContainText('melhor');
+}
+
 test.beforeEach(async({page})=>{await seed(page);});
 
 test('previous question button returns to the previous speaking page',async({page})=>{
@@ -213,5 +222,32 @@ test('a better speech-recognition alternative wins over a broken first alternati
   await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
   await expect(page.locator('.free-speak-transcript')).toContainText('A minha família vive na Croácia e na Alemanha.');
   await expect(page.locator('.speak-feedback')).toContainText('Great');
+  await expect(page.locator('[data-next]')).toBeVisible();
+});
+
+test('best-friend doctor transcription is repaired instead of praised as correct',async({page})=>{
+  await reachBestFriend(page);
+  await answer(page,'é melhor amiga a trabalhar como um doutor');
+
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('A minha melhor amiga trabalha como médica.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+
+  await answer(page,'Sim');
+  await expect(page.locator('.speak-progress')).toContainText('5 / 65');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('A minha melhor amiga trabalha como médica.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.waitForTimeout(1700);
+  await expect(page.locator('.speak-progress')).toContainText('5 / 65');
+});
+
+test('a valid best-friend doctor sentence is still accepted freely',async({page})=>{
+  await reachBestFriend(page);
+  await answer(page,'A minha melhor amiga trabalha como médica.');
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.free-speak-transcript')).toContainText('A minha melhor amiga trabalha como médica.');
   await expect(page.locator('[data-next]')).toBeVisible();
 });
