@@ -50,6 +50,31 @@ test('ambiguous sou dela Maia transcription follows the current Alemanha learnin
   await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
 });
 
+test('Brave sou dela manha transcription is repaired like Croatian instead of praised as correct',async({page})=>{
+  await reachOrigin(page);
+  await answer(page,'sou dela manha');
+
+  await expect(page.locator('.free-speak-transcript')).toContainText('sou dela manha');
+  await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('Sou da Alemanha.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+
+  await answer(page,'Sim');
+  await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
+});
+
+test('a genuinely correct Sou da Alemanha answer is accepted directly',async({page})=>{
+  await reachOrigin(page);
+  await answer(page,'Sou da Alemanha.');
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.free-speak-transcript')).toContainText('Sou da Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+});
+
 test('a genuinely correct Sou da Maia answer is not rewritten as Germany',async({page})=>{
   await reachOrigin(page);
   await answer(page,'Sou da Maia.');
@@ -57,6 +82,16 @@ test('a genuinely correct Sou da Maia answer is not rewritten as Germany',async(
   await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
   await expect(page.locator('.free-speak-transcript')).toContainText('Sou da Maia.');
   await expect(page.locator('[data-next]')).toBeVisible();
+});
+
+test('unknown malformed Portuguese origin falls back to a simple question instead of green praise',async({page})=>{
+  await reachOrigin(page);
+  await answer(page,'sou dela Angola');
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-conversation-card')).toContainText('És de Portugal?');
+  await expect(page.locator('[data-next]')).toHaveCount(0);
 });
 
 test('rejecting the ambiguous Portuguese repair falls back to an easy natural question',async({page})=>{
