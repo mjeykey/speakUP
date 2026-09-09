@@ -79,7 +79,13 @@ test('ambiguous sou dela Maia transcription follows the current Alemanha learnin
   await expect(page.locator('[data-next]')).toHaveCount(0);
 
   await answer(page,'Sim');
-  await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
+  await expect(page.locator('.speak-progress')).toContainText('2 / 65');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Sou da Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.waitForTimeout(1700);
+  await expect(page.locator('.speak-progress')).toContainText('2 / 65');
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.speak-progress')).toContainText('3 / 65');
 });
 
 test('Brave sou dela manha transcription is repaired like Croatian instead of praised as correct',async({page})=>{
@@ -95,7 +101,9 @@ test('Brave sou dela manha transcription is repaired like Croatian instead of pr
   await expect(page.locator('[data-next]')).toHaveCount(0);
 
   await answer(page,'Sim');
-  await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
+  await expect(page.locator('.speak-progress')).toContainText('2 / 65');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Sou da Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
 });
 
 test('a genuinely correct Sou da Alemanha answer is accepted directly',async({page})=>{
@@ -162,6 +170,19 @@ test('screenshot family transcription with nada mae is never praised as correct'
   await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
   await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('A minha família vive na Croácia e na Alemanha.');
   await expect(page.locator('[data-next]')).toHaveCount(0);
+});
+
+test('family repair confirmation stays on the same question and shows pronunciation until Next',async({page})=>{
+  await reachFamily(page);
+  await answer(page,'a minha família vive na Croácia E nada mãe');
+  await expect(page.locator('.free-speak-repair-card')).toBeVisible();
+
+  await answer(page,'Sim');
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.waitForTimeout(1700);
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
 });
 
 test('family location slot rejects an implausible tail even without a known correction',async({page})=>{
