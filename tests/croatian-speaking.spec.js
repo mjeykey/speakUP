@@ -41,7 +41,6 @@ test.beforeEach(async({page})=>{await seed(page);});
 
 test('Croatian family prompt accepts family vocabulary, rejects broken agreement and resumes at the saved question',async({page})=>{
   await openCroatianMeet(page);
-
   await answerAndNext(page,'Zovem se Marina.');
   await answerAndNext(page,'Dolazim iz Hrvatske.');
   await answerAndNext(page,'Živim u Lisabonu.');
@@ -89,4 +88,32 @@ test('Croatian hobby answer repairs malformed mobile recognition before pronunci
   await expect(page.locator('[data-pronunciation]')).toBeVisible();
   await expect(page.locator('[data-alternative]')).toBeVisible();
   await expect(page.locator('[data-next]')).toHaveCount(0);
+});
+
+test('Croatian music answer rejects malformed recognition and gives a real music sentence',async({page})=>{
+  await openCroatianMeet(page);
+  await answerAndNext(page,'Zovem se Marina.');
+  await answerAndNext(page,'Dolazim iz Hrvatske.');
+  await answerAndNext(page,'Živim u Lisabonu.');
+  await answerAndNext(page,'Moja obitelj mi je jako važna.');
+  await answerAndNext(page,'Moj najbolji prijatelj živi u Zagrebu.');
+  await answerAndNext(page,'Moji hobiji su crtanje i vježbanje.');
+
+  await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojoj omiljenoj glazbi.');
+  await expect(page.locator('.speak-progress')).toContainText('7 / 65');
+  await expect(page.locator('.free-speak-example-card .free-speak-example')).toHaveText('Moja omiljena glazba važan je dio mog života.');
+  await expect(page.locator('.free-speak-example-card .speak-translation')).toHaveText('My favourite music is an important part of my life.');
+
+  await answer(page,'Mio glazbi su mi');
+  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moja omiljena glazba mi je jako važna.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Volim slušati glazbu.');
+  await expect(page.locator('.free-speak-pronunciation-card')).not.toContainText('Mio glazbi su mi');
+
+  await answer(page,'Najviše slušam jazz.');
+  await expect(page.locator('.speak-feedback')).toContainText('matched the topic');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moja omiljena glazba je jazz.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Najviše volim slušati jazz.');
+  await expect(page.locator('[data-next]')).toBeVisible();
 });
