@@ -31,7 +31,7 @@ async function answerAndNext(page,text){
 
 test.beforeEach(async({page})=>{await seed(page);});
 
-test('Croatian family prompt is grammatical and malformed family agreement is not accepted',async({page})=>{
+test('Croatian family prompt accepts family vocabulary, rejects broken agreement and resumes at the saved question',async({page})=>{
   await page.goto('./');
   await page.locator('[data-start]').click();
   await page.locator('[data-mode="speak-practice"]').click();
@@ -43,13 +43,23 @@ test('Croatian family prompt is grammatical and malformed family agreement is no
   await answerAndNext(page,'Živim u Lisabonu.');
 
   await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojoj obitelji.');
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
 
   await answer(page,'moji obitelji živi kao meni');
   await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
   await expect(page.locator('[data-next]')).toHaveCount(0);
   await expect(page.locator('[data-answer]')).toBeVisible();
 
-  await answer(page,'Moja obitelj mi je jako važna.');
+  await answer(page,'moji roditelji žive blizu meni');
   await expect(page.locator('.speak-feedback')).toContainText('matched the topic');
   await expect(page.locator('[data-next]')).toBeVisible();
+
+  await page.locator('[data-menu]').click();
+  await expect(page.locator('.menu-screen')).toBeVisible();
+  await page.locator('[data-mode="speak-practice"]').click();
+  await page.locator('[data-start]').click();
+
+  await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojoj obitelji.');
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
+  await expect(page.locator('[data-answer]')).toBeVisible();
 });
