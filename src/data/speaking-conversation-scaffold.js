@@ -9,7 +9,7 @@ const family=value=>{
 };
 
 const normalize=value=>String(value||'')
-  .toLocaleLowerCase('hr')
+  .toLocaleLowerCase('pt')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g,'')
   .replace(/[^\p{L}\p{N}\s-]/gu,' ')
@@ -38,6 +38,16 @@ const FAMILY_SCAFFOLD={
   followUpAcceptsYesNo:true
 };
 
+const PORTUGUESE_ORIGIN_SCAFFOLD={
+  followUp:'És de Portugal?',
+  followUpTranslation:t('Are you from Portugal?','Kommst du aus Portugal?','És de Portugal?','¿Eres de Portugal?','Jesi li iz Portugala?','Tu viens du Portugal ?'),
+  example:'Eu, por exemplo, sou de Lisboa.',
+  exampleTranslation:t('For example, I am from Lisbon.','Ich komme zum Beispiel aus Lissabon.','Eu, por exemplo, sou de Lisboa.','Por ejemplo, soy de Lisboa.','Ja sam, primjerice, iz Lisabona.','Par exemple, je viens de Lisbonne.'),
+  easyQuestion:'És de Portugal?',
+  easyTranslation:t('Are you from Portugal?','Kommst du aus Portugal?','És de Portugal?','¿Eres de Portugal?','Jesi li iz Portugala?','Tu viens du Portugal ?'),
+  followUpAcceptsYesNo:true
+};
+
 const GENERIC_FOLLOW_UP={
   followUp:'Možeš li to reći jednostavnije?',
   followUpTranslation:t('Can you say it more simply?','Kannst du es einfacher sagen?','Consegues dizer isso de forma mais simples?','¿Puedes decirlo de forma más sencilla?','Možeš li to reći jednostavnije?','Peux-tu le dire plus simplement ?'),
@@ -60,9 +70,28 @@ export function isSpeakingAnswerIncomplete(value,learningLanguage){
 }
 
 export function getSpeakingConversationScaffold(turn,learningLanguage,nativeLanguage){
-  if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return null;
+  const learning=String(learningLanguage||'').toLowerCase();
   const question=String(turn?.question||'');
+  const normalizedQuestion=normalize(question);
   const f=family(nativeLanguage);
+
+  if(learning.startsWith('pt')){
+    if(/^de onde (?:es|e)$/u.test(normalizedQuestion)){
+      const scaffold=PORTUGUESE_ORIGIN_SCAFFOLD;
+      return {
+        followUp:scaffold.followUp,
+        followUpTranslation:scaffold.followUpTranslation[f],
+        example:scaffold.example,
+        exampleTranslation:scaffold.exampleTranslation[f],
+        easyQuestion:scaffold.easyQuestion,
+        easyTranslation:scaffold.easyTranslation[f],
+        followUpAcceptsYesNo:true
+      };
+    }
+    return null;
+  }
+
+  if(!learning.startsWith('hr'))return null;
   let scaffold=null;
   if(question.includes('omiljenoj glazbi'))scaffold=MUSIC_SCAFFOLD;
   else if(question.includes('obitelji'))scaffold=FAMILY_SCAFFOLD;
@@ -91,8 +120,14 @@ export function getSpeakingConversationScaffold(turn,learningLanguage,nativeLang
 }
 
 export function getEasyConversationAnswerIntent(value,learningLanguage){
-  if(!String(learningLanguage||'').toLowerCase().startsWith('hr'))return '';
+  const learning=String(learningLanguage||'').toLowerCase();
   const text=normalize(value);
+  if(learning.startsWith('pt')){
+    if(/^(sim|claro|claro que sim|sou|sim sou)$/u.test(text))return 'yes';
+    if(/^(nao|nao sou|claro que nao)$/u.test(text))return 'no';
+    return '';
+  }
+  if(!learning.startsWith('hr'))return '';
   if(/^(da|jest|je|jesam|naravno|da jesam|da je)$/u.test(text))return 'yes';
   if(/^(ne|nije|nisam|ne nisam|nije tako)$/u.test(text))return 'no';
   return '';
