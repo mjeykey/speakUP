@@ -34,7 +34,29 @@ async function reachOrigin(page){
   await expect(page.locator('.free-speak-example-card')).toContainText('Sou da Alemanha.');
 }
 
+async function reachFamily(page){
+  await reachOrigin(page);
+  await answer(page,'Sou da Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.speak-progress')).toContainText('3 / 65');
+  await answer(page,'Moro em Lisboa.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
+  await expect(page.locator('.free-speak-question')).toContainText('família');
+}
+
 test.beforeEach(async({page})=>{await seed(page);});
+
+test('previous question button returns to the previous speaking page',async({page})=>{
+  await reachOrigin(page);
+  await expect(page.locator('[data-prev]')).toBeVisible();
+  await page.locator('[data-prev]').click();
+  await expect(page.locator('.speak-progress')).toContainText('1 / 65');
+  await expect(page.locator('.free-speak-question')).toHaveText('Como te chamas?');
+  await expect(page.locator('[data-prev]')).toBeDisabled();
+});
 
 test('ambiguous sou dela Maia transcription follows the current Alemanha learning context',async({page})=>{
   await reachOrigin(page);
@@ -106,4 +128,17 @@ test('rejecting the ambiguous Portuguese repair falls back to an easy natural qu
 
   await answer(page,'Sim');
   await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
+});
+
+test('Croatia and Germany family speech-to-text noise is corrected instead of praised',async({page})=>{
+  await reachFamily(page);
+  await answer(page,'a minha família viveu Croácia é mala mãe');
+
+  await expect(page.locator('.free-speak-transcript')).toContainText('viveu Croácia');
+  await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
+  await expect(page.locator('[data-next]')).toHaveCount(0);
 });
