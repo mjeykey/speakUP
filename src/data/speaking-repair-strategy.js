@@ -136,8 +136,21 @@ const portugueseFamilySuggestion=(value,turn)=>{
   return '';
 };
 
+const hasPortugueseBestFriendStructureNoise=(value,turn)=>{
+  if(!isPortugueseBestFriendTurn(turn))return false;
+  const text=normalize(value);
+  if(!/\bmelhor\s+(?:amigo|amiga)\b/u.test(text))return false;
+
+  if(/^e\s+melhor\s+(?:amigo|amiga)\b/u.test(text))return true;
+  if(/\bmelhor\s+(?:amigo|amiga)\s+a\s+trabalhar\b/u.test(text)&&!/\besta\s+a\s+trabalhar\b/u.test(text))return true;
+  if(/\bmelhor\s+(?:amigo|amiga)\s+trabalhar\b/u.test(text))return true;
+  if(/\bmelhor\s+amiga\b.*\bcomo\s+um\s+doutor\b/u.test(text))return true;
+  if(/\bmelhor\s+amigo\b.*\bcomo\s+uma\s+doutora\b/u.test(text))return true;
+  return false;
+};
+
 const portugueseBestFriendSuggestion=(value,turn)=>{
-  if(!isPortugueseBestFriendTurn(turn))return '';
+  if(!hasPortugueseBestFriendStructureNoise(value,turn))return '';
   const text=normalize(value);
   const female=/\bmelhor\s+amiga\b/u.test(text);
   const male=/\bmelhor\s+amigo\b/u.test(text);
@@ -147,23 +160,6 @@ const portugueseBestFriendSuggestion=(value,turn)=>{
   if(female)return 'A minha melhor amiga trabalha como médica.';
   if(male)return 'O meu melhor amigo trabalha como médico.';
   return '';
-};
-
-const hasPortugueseBestFriendStructureNoise=(value,turn)=>{
-  if(!isPortugueseBestFriendTurn(turn))return false;
-  const text=normalize(value);
-  if(!/\bmelhor\s+(?:amigo|amiga)\b/u.test(text))return false;
-
-  if(/^(?:e|é)\s+melhor\s+(?:amigo|amiga)\b/u.test(String(value||'').trim().toLocaleLowerCase('pt')))return true;
-  if(/\bmelhor\s+(?:amigo|amiga)\s+a\s+trabalhar\b/u.test(text)&&!/\besta\s+a\s+trabalhar\b/u.test(text))return true;
-  if(/\bmelhor\s+(?:amigo|amiga)\s+trabalhar\b/u.test(text))return true;
-  if(/\bmelhor\s+amiga\b.*\bcomo\s+um\s+doutor\b/u.test(text))return true;
-  if(/\bmelhor\s+amigo\b.*\bcomo\s+uma\s+doutora\b/u.test(text))return true;
-
-  const hasPossessiveSubject=/\b(?:a\s+minha\s+melhor\s+amiga|o\s+meu\s+melhor\s+amigo)\b/u.test(text);
-  const hasFinitePredicate=/\b(?:e|trabalha|vive|mora|gosta|tem|faz|conhece|ajuda|estuda|viaja|fala|somos)\b/u.test(text);
-  if(!hasPossessiveSubject&&!/^e\s+(?:a\s+minha|o\s+meu)\b/u.test(text))return true;
-  return !hasFinitePredicate;
 };
 
 export function scoreSpeakingCandidate(value,turn,learningLanguage){
@@ -183,9 +179,8 @@ export function scoreSpeakingCandidate(value,turn,learningLanguage){
 
   if(family==='pt'&&isPortugueseBestFriendTurn(turn)){
     if(hasPortugueseBestFriendStructureNoise(text,turn))return 5;
-    let score=35;
-    if(/\b(?:a\s+minha\s+melhor\s+amiga|o\s+meu\s+melhor\s+amigo)\b/u.test(text))score+=25;
-    if(/\b(?:trabalha|vive|mora|gosta|tem|faz|ajuda|estuda|viaja|fala|e)\b/u.test(text))score+=20;
+    let score=45;
+    if(/\b(?:a\s+minha\s+melhor\s+amiga|o\s+meu\s+melhor\s+amigo|minha\s+melhor\s+amiga|meu\s+melhor\s+amigo)\b/u.test(text))score+=25;
     return Math.min(100,score);
   }
 
