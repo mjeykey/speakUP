@@ -1,7 +1,7 @@
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=6';
 import { getSpeakingAdditions } from '../data/speaking-additions/index.js?v=2';
-import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue } from '../data/speaking-croatian-quality.js?v=2';
+import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue } from '../data/speaking-croatian-quality.js?v=3';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
@@ -31,17 +31,19 @@ export function renderSpeakPractice(root,store){
   const topics=getSpeakingTopics(learningLanguage,nativeLanguage).map(item=>({...item,turns:[...item.turns,...getSpeakingAdditions(item.id,learningLanguage,nativeLanguage)].map(turn=>polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage))})),progressKey=`${learningLanguage}|${nativeLanguage}`;
   const saved=state.progress?.speakPractice?.[progressKey]||{};
   let topic=topics.find(item=>item.id===saved.topicId)||null,index=Math.max(0,Number(saved.currentIndex)||0);
+  let resumeTopicId=topic?.id||saved.topicId||null,resumeIndex=index;
   let recognition=null,listening=false,transcript='',heardAttempt='',message='';
   const current=()=>topic.turns[index%topic.turns.length];
-  const save=()=>store.saveProgress?.('speakPractice',progressKey,{topicId:topic?.id||null,currentIndex:index,learningLanguage,nativeLanguage});
+  const rememberCurrent=()=>{if(topic){resumeTopicId=topic.id;resumeIndex=index;}};
+  const save=()=>{rememberCurrent();store.saveProgress?.('speakPractice',progressKey,{topicId:resumeTopicId,currentIndex:resumeIndex,learningLanguage,nativeLanguage});};
   const leave=()=>{recognition?.abort?.();stopSpeech();save();store.setState({screen:'menu'});};
 
   function showTopics(){
-    recognition?.abort?.();stopSpeech();topic=null;transcript='';heardAttempt='';message='';
+    recognition?.abort?.();stopSpeech();save();topic=null;transcript='';heardAttempt='';message='';
     root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><div class="center speak-view"><p class="kicker">${copy.kicker} · ${esc(languageName(learningLanguage))}</p><h1>${copy.choose}</h1><p class="muted free-speak-hint">${copy.hint}</p><div class="free-speak-topic-grid" data-topics></div></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     const grid=root.querySelector('[data-topics]');
-    topics.forEach(item=>{const button=document.createElement('button');button.className='free-speak-topic';button.innerHTML=`<span>${item.emoji}</span><strong>${esc(item.title)}</strong><small>${item.turns.length} ${copy.questions}</small>`;button.onclick=()=>{topic=item;index=0;transcript='';heardAttempt='';message='';save();draw();window.setTimeout(playQuestion,260);};grid.appendChild(button);});
+    topics.forEach(item=>{const button=document.createElement('button');button.className='free-speak-topic';button.innerHTML=`<span>${item.emoji}</span><strong>${esc(item.title)}</strong><small>${item.turns.length} ${copy.questions}</small>`;button.onclick=()=>{topic=item;index=item.id===resumeTopicId?Math.min(Math.max(0,resumeIndex),Math.max(0,item.turns.length-1)):0;transcript='';heardAttempt='';message='';save();draw();window.setTimeout(playQuestion,260);};grid.appendChild(button);});
   }
 
   function draw(){
@@ -74,5 +76,5 @@ export function renderSpeakPractice(root,store){
     recognition.onend=()=>{if(!listening)return;listening=false;message=copy.retry;draw();};
     try{recognition.start();}catch(_){listening=false;message=copy.retry;draw();}
   }
-  showTopics();
+  if(topic){index=Math.min(index,Math.max(0,topic.turns.length-1));resumeIndex=index;draw();window.setTimeout(playQuestion,260);}else showTopics();
 }
