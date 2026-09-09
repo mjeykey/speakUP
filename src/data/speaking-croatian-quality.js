@@ -54,6 +54,36 @@ const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
   ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
 ]);
 
+const FAMILY_COUNTRY_LOCATIVES=new Map([
+  ['njemackoj','Njemačkoj'],
+  ['hrvatskoj','Hrvatskoj'],
+  ['austriji','Austriji'],
+  ['svicarskoj','Švicarskoj'],
+  ['srbiji','Srbiji'],
+  ['bosni','Bosni'],
+  ['portugalu','Portugalu']
+]);
+
+const familyParentsRecommendation=value=>{
+  const text=normalize(value);
+  const match=text.match(/^moji\s+roditelji\s+(?:zive|zivi)(?:\s+zivo)?\s+(.+)$/u);
+  if(!match)return '';
+  const tail=match[1].trim();
+  if(/^blizu\s+(?:mene|meni)$/u.test(tail))return 'Moji roditelji žive blizu mene.';
+  const country=tail.match(/^u\s+(.+)$/u);
+  if(country){
+    const locative=FAMILY_COUNTRY_LOCATIVES.get(country[1].trim());
+    if(locative)return `Moji roditelji žive u ${locative}.`;
+  }
+  return '';
+};
+
+const hasFamilyGrammarIssue=value=>{
+  const text=normalize(value);
+  if(!/^moji\s+roditelji\b/u.test(text))return false;
+  return /^moji\s+roditelji\s+zivi\b/u.test(text)||/^moji\s+roditelji\s+zive\s+zivo\b/u.test(text);
+};
+
 const editDistance=(left,right)=>{
   const a=String(left||''),b=String(right||'');
   if(a===b)return 0;
@@ -276,7 +306,7 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
     /\bsvojim\s+obitelj\b/u,/\bmoji\s+hobi\b/u,/\bmoj\s+hobiji\b/u,
     /^moje\s+hobije\b/u,/^moji\s+hobije\b/u,/^moje\s+hobi\b/u
   ];
-  return badPatterns.some(pattern=>pattern.test(text))||hasHobbyGrammarIssue(value)||hasMusicGrammarIssue(value)||hasLocationRecognitionIssue(value);
+  return badPatterns.some(pattern=>pattern.test(text))||hasFamilyGrammarIssue(value)||hasHobbyGrammarIssue(value)||hasMusicGrammarIssue(value)||hasLocationRecognitionIssue(value);
 }
 
 export function getRecommendedSpeakingSentence(value,learningLanguage){
@@ -284,7 +314,7 @@ export function getRecommendedSpeakingSentence(value,learningLanguage){
   if(!source||!isCroatian(learningLanguage))return source;
   const exact=SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source));
   if(exact)return exact;
-  return lisbonRecommendation(source)||hobbyRecommendation(source)||musicRecommendation(source)||source;
+  return familyParentsRecommendation(source)||lisbonRecommendation(source)||hobbyRecommendation(source)||musicRecommendation(source)||source;
 }
 
 export function getAlternativeSpeakingSentence(value,learningLanguage){
