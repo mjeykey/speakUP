@@ -51,7 +51,11 @@ const CROATIAN_MUSIC_SIGNALS=[
 ];
 
 const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
-  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
+  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.'],
+  ['zivim u listbonu','Živim u Lisabonu.'],
+  ['zivim u lisbonu','Živim u Lisabonu.'],
+  ['zivim u lizbonu','Živim u Lisabonu.'],
+  ['zivim u lisabonu','Živim u Lisabonu.']
 ]);
 
 const hobbyForm=(noun,infinitive)=>({noun,infinitive});
