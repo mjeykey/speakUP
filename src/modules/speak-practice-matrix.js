@@ -32,14 +32,15 @@ export function renderSpeakPractice(root,store){
   const saved=state.progress?.speakPractice?.[progressKey]||{};
   let topic=topics.find(item=>item.id===saved.topicId)||null,index=Math.max(0,Number(saved.currentIndex)||0);
   let resumeTopicId=topic?.id||saved.topicId||null,resumeIndex=index;
-  let recognition=null,listening=false,transcript='',heardAttempt='',message='';
+  let recognition=null,listening=false,transcript='',heardAttempt='',message='',recognitionTimer=null;
   const current=()=>topic.turns[index%topic.turns.length];
+  const clearRecognitionTimer=()=>{if(recognitionTimer!==null){window.clearTimeout(recognitionTimer);recognitionTimer=null;}};
   const rememberCurrent=()=>{if(topic){resumeTopicId=topic.id;resumeIndex=index;}};
   const save=()=>{rememberCurrent();store.saveProgress?.('speakPractice',progressKey,{topicId:resumeTopicId,currentIndex:resumeIndex,learningLanguage,nativeLanguage});};
-  const leave=()=>{recognition?.abort?.();stopSpeech();save();store.setState({screen:'menu'});};
+  const leave=()=>{clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();store.setState({screen:'menu'});};
 
   function showTopics(){
-    recognition?.abort?.();stopSpeech();save();topic=null;transcript='';heardAttempt='';message='';
+    clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();topic=null;transcript='';heardAttempt='';message='';
     root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><div class="center speak-view"><p class="kicker">${copy.kicker} · ${esc(languageName(learningLanguage))}</p><h1>${copy.choose}</h1><p class="muted free-speak-hint">${copy.hint}</p><div class="free-speak-topic-grid" data-topics></div></div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     const grid=root.querySelector('[data-topics]');
@@ -55,9 +56,13 @@ export function renderSpeakPractice(root,store){
   }
   function playQuestion(){stopSpeech();return speak(current().question,speechLanguage,{enabled:store.getState().audioOn,rate:.66}).catch(()=>{});}
   function startListening(){
-    if(listening||!Recognition)return;stopSpeech();recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=3;recognition.continuous=false;listening=true;message=copy.listening;draw();
+    if(listening||!Recognition)return;stopSpeech();clearRecognitionTimer();recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=3;recognition.continuous=false;listening=true;message=copy.listening;draw();
+    const stopRecognition=()=>{if(!listening)return;try{recognition?.stop?.();}catch(_){}};
+    recognition.onspeechend=()=>{window.setTimeout(stopRecognition,120);};
+    recognition.onsoundend=()=>{window.setTimeout(stopRecognition,180);};
+    recognitionTimer=window.setTimeout(stopRecognition,6500);
     recognition.onresult=event=>{
-      listening=false;
+      clearRecognitionTimer();listening=false;
       const result=event.results?.[0],candidates=[];
       for(let i=0;i<(result?.length||0);i++){
         const candidate=String(result?.[i]?.transcript||'').trim();
@@ -72,9 +77,9 @@ export function renderSpeakPractice(root,store){
       else{transcript='';heardAttempt=heard;message=!heard?copy.retry:hasMoreThanOneWord(heard)?copy.offTopic:copy.incomplete;}
       draw();
     };
-    recognition.onerror=event=>{listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};
-    recognition.onend=()=>{if(!listening)return;listening=false;message=copy.retry;draw();};
-    try{recognition.start();}catch(_){listening=false;message=copy.retry;draw();}
+    recognition.onerror=event=>{clearRecognitionTimer();listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};
+    recognition.onend=()=>{clearRecognitionTimer();if(!listening)return;listening=false;message=copy.retry;draw();};
+    try{recognition.start();}catch(_){clearRecognitionTimer();listening=false;message=copy.retry;draw();}
   }
   if(topic){index=Math.min(index,Math.max(0,topic.turns.length-1));resumeIndex=index;draw();window.setTimeout(playQuestion,260);}else showTopics();
 }
