@@ -29,7 +29,7 @@ async function answerAndNext(page,text){
   await page.locator('[data-next]').click();
 }
 
-test('malformed family doctor answer is corrected instead of praised',async({page})=>{
+test('malformed family doctor answer is confirmed instead of praised',async({page})=>{
   await seed(page);
   await page.goto('./');
   await page.locator('[data-start]').click();
@@ -43,9 +43,11 @@ test('malformed family doctor answer is corrected instead of praised',async({pag
   await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojoj obitelji.');
   await answer(page,'moji roditelji ima ih puno doktori');
 
-  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
-  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('U mojoj obitelji ima puno doktora.');
-  await expect(page.locator('.free-speak-pronunciation-card')).not.toContainText('moji roditelji ima ih puno doktori');
+  await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('U mojoj obitelji ima puno doktora.');
   await expect(page.locator('[data-next]')).toHaveCount(0);
   await expect(page.locator('[data-answer]')).toBeVisible();
+
+  await answer(page,'Da');
+  await expect(page.locator('.speak-progress')).toContainText('5 / 65',{timeout:2500});
 });
