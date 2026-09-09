@@ -18,9 +18,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Install Chromium
-        run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
-          npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Run syntax check
         run: npm run check:syntax
       - name: Wait for GitHub Pages
