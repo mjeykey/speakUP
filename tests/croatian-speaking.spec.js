@@ -65,6 +65,13 @@ test('Croatian family prompt accepts family vocabulary, rejects broken agreement
   await expect(page.locator('[data-next]')).toHaveCount(0);
   await expect(page.locator('[data-answer]')).toBeVisible();
 
+  await answer(page,'moji roditelji živi živo u Njemačkoj');
+  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji roditelji žive u Njemačkoj.');
+  await expect(page.locator('.free-speak-pronunciation-card')).not.toContainText('živi živo');
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+  await expect(page.locator('[data-answer]')).toBeVisible();
+
   await answer(page,'moji roditelji žive blizu meni');
   await expect(page.locator('.speak-feedback')).toContainText('matched the topic');
   await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji roditelji žive blizu mene.');
