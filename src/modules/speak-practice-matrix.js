@@ -1,7 +1,7 @@
 import { getSpeechLanguage, languageName } from '../data/language-content-matrix.js?v=1';
 import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-conversations.js?v=6';
 import { getSpeakingAdditions } from '../data/speaking-additions/index.js?v=2';
-import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence, getAlternativeSpeakingSentence } from '../data/speaking-croatian-quality.js?v=7';
+import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence, getAlternativeSpeakingSentence } from '../data/speaking-croatian-quality.js?v=8';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
@@ -39,65 +39,12 @@ export function renderSpeakPractice(root,store){
   const save=()=>{rememberCurrent();store.saveProgress?.('speakPractice',progressKey,{topicId:resumeTopicId,currentIndex:resumeIndex,learningLanguage,nativeLanguage});};
   const leave=()=>{clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();store.setState({screen:'menu'});};
 
-  function showTopics(){
-    clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();topic=null;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';
-    root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><div class="center speak-view"><p class="kicker">${copy.kicker} · ${esc(languageName(learningLanguage))}</p><h1>${copy.choose}</h1><p class="muted free-speak-hint">${copy.hint}</p><div class="free-speak-topic-grid" data-topics></div></div></section>`;
-    root.querySelector('[data-menu]').onclick=leave;
-    const grid=root.querySelector('[data-topics]');
-    topics.forEach(item=>{const button=document.createElement('button');button.className='free-speak-topic';button.innerHTML=`<span>${item.emoji}</span><strong>${esc(item.title)}</strong><small>${item.turns.length} ${copy.questions}</small>`;button.onclick=()=>{topic=item;index=item.id===resumeTopicId?Math.min(Math.max(0,resumeIndex),Math.max(0,item.turns.length-1)):0;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';save();draw();window.setTimeout(playQuestion,260);};grid.appendChild(button);});
-  }
+  function showTopics(){clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();topic=null;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><div class="center speak-view"><p class="kicker">${copy.kicker} · ${esc(languageName(learningLanguage))}</p><h1>${copy.choose}</h1><p class="muted free-speak-hint">${copy.hint}</p><div class="free-speak-topic-grid" data-topics></div></div></section>`;root.querySelector('[data-menu]').onclick=leave;const grid=root.querySelector('[data-topics]');topics.forEach(item=>{const button=document.createElement('button');button.className='free-speak-topic';button.innerHTML=`<span>${item.emoji}</span><strong>${esc(item.title)}</strong><small>${item.turns.length} ${copy.questions}</small>`;button.onclick=()=>{topic=item;index=item.id===resumeTopicId?Math.min(Math.max(0,resumeIndex),Math.max(0,item.turns.length-1)):0;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';save();draw();window.setTimeout(playQuestion,260);};grid.appendChild(button);});}
 
-  function draw(){
-    const item=current();
-    const resultBlock=transcript?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(transcript)}”</p><p class="speak-feedback is-success">${copy.clear}</p></div>`:heardAttempt?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(heardAttempt)}”</p><p class="speak-feedback is-gentle">${esc(message)}</p></div>`:`<p class="speak-feedback ${listening?'is-listening':'is-gentle'}">${esc(message)}</p>`;
-    const alternativeBlock=alternativeText?`<div class="free-speak-alternative"><p class="speak-label">${esc(copy.alternative)}</p><p class="speak-translation">${esc(alternativeText)}</p><button class="secondary-button" data-alternative>🔊 ${esc(copy.hearAlternative)}</button></div>`:'';
-    const pronunciationBlock=pronunciationText?`<div class="free-speak-result free-speak-pronunciation-card"><p class="speak-label">${esc(copy.recommended)}</p><p class="free-speak-example">${esc(pronunciationText)}</p><button class="secondary-button" data-pronunciation>🔊 ${esc(copy.hearAgain)}</button>${alternativeBlock}</div>`:'';
-    root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><button class="secondary-button speak-back" data-back>${copy.back}</button><div class="center speak-view"><p class="kicker">${topic.emoji} ${esc(topic.title)}</p><p class="speak-progress">${copy.question} ${index+1} / ${topic.turns.length}</p><div class="free-speak-card"><p class="speak-label">${esc(languageName(learningLanguage))}</p><h1 class="free-speak-question">${esc(item.question)}</h1><p class="speak-label">${esc(languageName(nativeLanguage))}</p><p class="speak-translation">${esc(item.translation)}</p></div><div class="free-speak-result free-speak-example-card"><p class="free-speak-natural">${copy.natural}</p><p class="free-speak-example">${esc(item.example)}</p><p class="speak-translation">${esc(item.exampleTranslation)}</p></div>${resultBlock}${pronunciationBlock}<div class="speak-actions"><button class="secondary-button" data-listen>🔊 ${copy.listen}</button>${transcript?`<button class="primary-button" data-next>${copy.next}</button>`:`<button class="primary-button speak-mic" data-answer ${Recognition?'':'disabled'}>${listening?copy.listening:copy.answer}</button>`}</div>${Recognition?'':`<p class="speak-support">${copy.unsupported}</p>`}</div></section>`;
-    root.querySelector('[data-menu]').onclick=leave;root.querySelector('[data-back]').onclick=showTopics;root.querySelector('[data-listen]').onclick=playQuestion;
-    root.querySelector('[data-pronunciation]')?.addEventListener('click',playRecommendedPronunciation);
-    root.querySelector('[data-alternative]')?.addEventListener('click',playAlternativeSentence);
-    root.querySelector('[data-next]')?.addEventListener('click',()=>{stopSpeech();index=(index+1)%topic.turns.length;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';save();draw();window.setTimeout(playQuestion,220);});
-    root.querySelector('[data-answer]')?.addEventListener('click',startListening);
-  }
+  function draw(){const item=current();const resultBlock=transcript?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(transcript)}”</p><p class="speak-feedback is-success">${copy.clear}</p></div>`:heardAttempt?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(heardAttempt)}”</p><p class="speak-feedback is-gentle">${esc(message)}</p></div>`:`<p class="speak-feedback ${listening?'is-listening':'is-gentle'}">${esc(message)}</p>`;const alternativeBlock=alternativeText?`<div class="free-speak-alternative"><p class="speak-label">${esc(copy.alternative)}</p><p class="speak-translation">${esc(alternativeText)}</p><button class="secondary-button" data-alternative>🔊 ${esc(copy.hearAlternative)}</button></div>`:'';const pronunciationBlock=pronunciationText?`<div class="free-speak-result free-speak-pronunciation-card"><p class="speak-label">${esc(copy.recommended)}</p><p class="free-speak-example">${esc(pronunciationText)}</p><button class="secondary-button" data-pronunciation>🔊 ${esc(copy.hearAgain)}</button>${alternativeBlock}</div>`:'';root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><button class="secondary-button speak-back" data-back>${copy.back}</button><div class="center speak-view"><p class="kicker">${topic.emoji} ${esc(topic.title)}</p><p class="speak-progress">${copy.question} ${index+1} / ${topic.turns.length}</p><div class="free-speak-card"><p class="speak-label">${esc(languageName(learningLanguage))}</p><h1 class="free-speak-question">${esc(item.question)}</h1><p class="speak-label">${esc(languageName(nativeLanguage))}</p><p class="speak-translation">${esc(item.translation)}</p></div><div class="free-speak-result free-speak-example-card"><p class="free-speak-natural">${copy.natural}</p><p class="free-speak-example">${esc(item.example)}</p><p class="speak-translation">${esc(item.exampleTranslation)}</p></div>${resultBlock}${pronunciationBlock}<div class="speak-actions"><button class="secondary-button" data-listen>🔊 ${copy.listen}</button>${transcript?`<button class="primary-button" data-next>${copy.next}</button>`:`<button class="primary-button speak-mic" data-answer ${Recognition?'':'disabled'}>${listening?copy.listening:copy.answer}</button>`}</div>${Recognition?'':`<p class="speak-support">${copy.unsupported}</p>`}</div></section>`;root.querySelector('[data-menu]').onclick=leave;root.querySelector('[data-back]').onclick=showTopics;root.querySelector('[data-listen]').onclick=playQuestion;root.querySelector('[data-pronunciation]')?.addEventListener('click',playRecommendedPronunciation);root.querySelector('[data-alternative]')?.addEventListener('click',playAlternativeSentence);root.querySelector('[data-next]')?.addEventListener('click',()=>{stopSpeech();index=(index+1)%topic.turns.length;transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';save();draw();window.setTimeout(playQuestion,220);});root.querySelector('[data-answer]')?.addEventListener('click',startListening);}
   function playQuestion(){stopSpeech();return speak(current().question,speechLanguage,{enabled:store.getState().audioOn,rate:.66}).catch(()=>{});}
-  function playRecommendedPronunciation(){
-    if(!pronunciationText)return Promise.resolve();
-    stopSpeech();
-    return speak(pronunciationText,speechLanguage,{enabled:store.getState().audioOn,rate:.72}).catch(()=>{});
-  }
-  function playAlternativeSentence(){
-    if(!alternativeText)return Promise.resolve();
-    stopSpeech();
-    return speak(alternativeText,speechLanguage,{enabled:store.getState().audioOn,rate:.72}).catch(()=>{});
-  }
-  function startListening(){
-    if(listening||!Recognition)return;stopSpeech();clearRecognitionTimer();pronunciationText='';alternativeText='';recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=3;recognition.continuous=false;listening=true;message=copy.listening;draw();
-    const stopRecognition=()=>{if(!listening)return;try{recognition?.stop?.();}catch(_){}};
-    recognition.onspeechend=()=>{window.setTimeout(stopRecognition,120);};
-    recognition.onsoundend=()=>{window.setTimeout(stopRecognition,180);};
-    recognitionTimer=window.setTimeout(stopRecognition,6500);
-    recognition.onresult=event=>{
-      clearRecognitionTimer();listening=false;
-      const result=event.results?.[0],candidates=[];
-      for(let i=0;i<(result?.length||0);i++){
-        const candidate=String(result?.[i]?.transcript||'').trim();
-        if(candidate&&!candidates.includes(candidate))candidates.push(candidate);
-      }
-      const relevant=candidates.filter(candidate=>isRelevantCandidate(candidate,current(),learningLanguage));
-      const matched=relevant.find(candidate=>!hasObviousCroatianGrammarIssue(candidate,learningLanguage));
-      const grammarCandidate=relevant.find(candidate=>hasObviousCroatianGrammarIssue(candidate,learningLanguage));
-      const heard=matched||grammarCandidate||candidates[0]||'';
-      pronunciationText=heard?getRecommendedSpeakingSentence(heard,learningLanguage):'';
-      alternativeText=heard?getAlternativeSpeakingSentence(heard,learningLanguage):'';
-      if(matched){transcript=matched;heardAttempt='';message=copy.clear;}
-      else if(grammarCandidate){transcript='';heardAttempt=grammarCandidate;message=copy.grammar;}
-      else{transcript='';heardAttempt=heard;message=!heard?copy.retry:hasMoreThanOneWord(heard)?copy.offTopic:copy.incomplete;}
-      draw();
-      if(pronunciationText)window.setTimeout(playRecommendedPronunciation,120);
-    };
-    recognition.onerror=event=>{clearRecognitionTimer();listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};
-    recognition.onend=()=>{clearRecognitionTimer();if(!listening)return;listening=false;message=copy.retry;draw();};
-    try{recognition.start();}catch(_){clearRecognitionTimer();listening=false;message=copy.retry;draw();}
-  }
+  function playRecommendedPronunciation(){if(!pronunciationText)return Promise.resolve();stopSpeech();return speak(pronunciationText,speechLanguage,{enabled:store.getState().audioOn,rate:.72}).catch(()=>{});}
+  function playAlternativeSentence(){if(!alternativeText)return Promise.resolve();stopSpeech();return speak(alternativeText,speechLanguage,{enabled:store.getState().audioOn,rate:.72}).catch(()=>{});}
+  function startListening(){if(listening||!Recognition)return;stopSpeech();clearRecognitionTimer();pronunciationText='';alternativeText='';recognition=new Recognition();recognition.lang=speechLanguage;recognition.interimResults=false;recognition.maxAlternatives=3;recognition.continuous=false;listening=true;message=copy.listening;draw();const stopRecognition=()=>{if(!listening)return;try{recognition?.stop?.();}catch(_){}};recognition.onspeechend=()=>{window.setTimeout(stopRecognition,120);};recognition.onsoundend=()=>{window.setTimeout(stopRecognition,180);};recognitionTimer=window.setTimeout(stopRecognition,6500);recognition.onresult=event=>{clearRecognitionTimer();listening=false;const result=event.results?.[0],candidates=[];for(let i=0;i<(result?.length||0);i++){const candidate=String(result?.[i]?.transcript||'').trim();if(candidate&&!candidates.includes(candidate))candidates.push(candidate);}const relevant=candidates.filter(candidate=>isRelevantCandidate(candidate,current(),learningLanguage));const matched=relevant.find(candidate=>!hasObviousCroatianGrammarIssue(candidate,learningLanguage));const grammarCandidate=relevant.find(candidate=>hasObviousCroatianGrammarIssue(candidate,learningLanguage));const heard=matched||grammarCandidate||candidates[0]||'';pronunciationText=heard?getRecommendedSpeakingSentence(heard,learningLanguage):'';alternativeText=heard?getAlternativeSpeakingSentence(heard,learningLanguage):'';if(matched){transcript=matched;heardAttempt='';message=copy.clear;}else if(grammarCandidate){transcript='';heardAttempt=grammarCandidate;message=copy.grammar;}else{transcript='';heardAttempt=heard;message=!heard?copy.retry:hasMoreThanOneWord(heard)?copy.offTopic:copy.incomplete;}draw();if(pronunciationText)window.setTimeout(playRecommendedPronunciation,120);};recognition.onerror=event=>{clearRecognitionTimer();listening=false;message=(event.error==='not-allowed'||event.error==='service-not-allowed')?copy.mic:copy.retry;draw();};recognition.onend=()=>{clearRecognitionTimer();if(!listening)return;listening=false;message=copy.retry;draw();};try{recognition.start();}catch(_){clearRecognitionTimer();listening=false;message=copy.retry;draw();}}
   if(topic){index=Math.min(index,Math.max(0,topic.turns.length-1));resumeIndex=index;draw();window.setTimeout(playQuestion,260);}else showTopics();
 }
