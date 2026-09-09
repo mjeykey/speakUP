@@ -29,14 +29,18 @@ async function answerAndNext(page,text){
   await page.locator('[data-next]').click();
 }
 
-test.beforeEach(async({page})=>{await seed(page);});
-
-test('Croatian family prompt accepts family vocabulary, rejects broken agreement and resumes at the saved question',async({page})=>{
+async function openCroatianMeet(page){
   await page.goto('./');
   await page.locator('[data-start]').click();
   await page.locator('[data-mode="speak-practice"]').click();
   await page.locator('[data-start]').click();
   await page.locator('.free-speak-topic').filter({hasText:'Getting to know you'}).click();
+}
+
+test.beforeEach(async({page})=>{await seed(page);});
+
+test('Croatian family prompt accepts family vocabulary, rejects broken agreement and resumes at the saved question',async({page})=>{
+  await openCroatianMeet(page);
 
   await answerAndNext(page,'Zovem se Marina.');
   await answerAndNext(page,'Dolazim iz Hrvatske.');
@@ -52,6 +56,7 @@ test('Croatian family prompt accepts family vocabulary, rejects broken agreement
 
   await answer(page,'moji roditelji žive blizu meni');
   await expect(page.locator('.speak-feedback')).toContainText('matched the topic');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji roditelji žive blizu mene.');
   await expect(page.locator('[data-next]')).toBeVisible();
 
   await page.locator('[data-menu]').click();
@@ -62,4 +67,22 @@ test('Croatian family prompt accepts family vocabulary, rejects broken agreement
   await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojoj obitelji.');
   await expect(page.locator('.speak-progress')).toContainText('4 / 65');
   await expect(page.locator('[data-answer]')).toBeVisible();
+});
+
+test('Croatian hobby answer gets a corrected pronunciation recommendation',async({page})=>{
+  await openCroatianMeet(page);
+  await answerAndNext(page,'Zovem se Marina.');
+  await answerAndNext(page,'Dolazim iz Hrvatske.');
+  await answerAndNext(page,'Živim u Lisabonu.');
+  await answerAndNext(page,'Moja obitelj mi je jako važna.');
+  await answerAndNext(page,'Moj najbolji prijatelj živi u Zagrebu.');
+
+  await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojim hobijima.');
+  await expect(page.locator('.speak-progress')).toContainText('6 / 65');
+
+  await answer(page,'moji hobi je crtati i izaći vani');
+  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji hobiji su crtanje i izlasci.');
+  await expect(page.locator('[data-pronunciation]')).toBeVisible();
+  await expect(page.locator('[data-next]')).toHaveCount(0);
 });
