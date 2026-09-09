@@ -48,11 +48,52 @@ const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
   ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
 ]);
 
-const HOBBY_NOUNS=new Map([
-  ['crtati','crtanje'],['trcati','trčanje'],['plivati','plivanje'],['citati','čitanje'],
-  ['kuhati','kuhanje'],['plesati','plesanje'],['pjevati','pjevanje'],['pisati','pisanje'],
-  ['fotografirati','fotografiranje'],['vjezbati','vježbanje'],['voziti bicikl','vožnja bicikla'],
-  ['igrati nogomet','igranje nogometa'],['igrati tenis','igranje tenisa'],['izaci vani','izlasci']
+const hobbyForm=(noun,infinitive)=>({noun,infinitive});
+const HOBBY_FORMS=new Map([
+  ['crtati',hobbyForm('crtanje','crtati')],
+  ['crtanje',hobbyForm('crtanje','crtati')],
+  ['crtani',hobbyForm('crtanje','crtati')],
+  ['trcati',hobbyForm('trčanje','trčati')],
+  ['trcanje',hobbyForm('trčanje','trčati')],
+  ['vjezbati',hobbyForm('vježbanje','vježbati')],
+  ['vjezbanje',hobbyForm('vježbanje','vježbati')],
+  ['plivati',hobbyForm('plivanje','plivati')],
+  ['plivanje',hobbyForm('plivanje','plivati')],
+  ['citati',hobbyForm('čitanje','čitati')],
+  ['citanje',hobbyForm('čitanje','čitati')],
+  ['kuhati',hobbyForm('kuhanje','kuhati')],
+  ['kuhanje',hobbyForm('kuhanje','kuhati')],
+  ['plesati',hobbyForm('plesanje','plesati')],
+  ['plesanje',hobbyForm('plesanje','plesati')],
+  ['pjevati',hobbyForm('pjevanje','pjevati')],
+  ['pjevanje',hobbyForm('pjevanje','pjevati')],
+  ['pisati',hobbyForm('pisanje','pisati')],
+  ['pisanje',hobbyForm('pisanje','pisati')],
+  ['fotografirati',hobbyForm('fotografiranje','fotografirati')],
+  ['fotografiranje',hobbyForm('fotografiranje','fotografirati')],
+  ['setati',hobbyForm('šetnja','šetati')],
+  ['setnja',hobbyForm('šetnja','šetati')],
+  ['planinariti',hobbyForm('planinarenje','planinariti')],
+  ['planinarenje',hobbyForm('planinarenje','planinariti')],
+  ['putovati',hobbyForm('putovanja','putovati')],
+  ['putovanja',hobbyForm('putovanja','putovati')],
+  ['peci',hobbyForm('pečenje','peći')],
+  ['pecenje',hobbyForm('pečenje','peći')],
+  ['voziti bicikl',hobbyForm('vožnja bicikla','voziti bicikl')],
+  ['voznja bicikla',hobbyForm('vožnja bicikla','voziti bicikl')],
+  ['igrati nogomet',hobbyForm('igranje nogometa','igrati nogomet')],
+  ['igranje nogometa',hobbyForm('igranje nogometa','igrati nogomet')],
+  ['igrati tenis',hobbyForm('igranje tenisa','igrati tenis')],
+  ['igranje tenisa',hobbyForm('igranje tenisa','igrati tenis')],
+  ['slusati glazbu',hobbyForm('slušanje glazbe','slušati glazbu')],
+  ['slusanje glazbe',hobbyForm('slušanje glazbe','slušati glazbu')],
+  ['gledati filmove',hobbyForm('gledanje filmova','gledati filmove')],
+  ['gledanje filmova',hobbyForm('gledanje filmova','gledati filmove')],
+  ['svirati gitaru',hobbyForm('sviranje gitare','svirati gitaru')],
+  ['sviranje gitare',hobbyForm('sviranje gitare','svirati gitaru')],
+  ['izaci vani',hobbyForm('izlasci','izlaziti')],
+  ['izlaziti',hobbyForm('izlasci','izlaziti')],
+  ['izlasci',hobbyForm('izlasci','izlaziti')]
 ]);
 
 const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
@@ -88,30 +129,62 @@ const isCroatianFamilyTurn=turn=>{
   return question==='Reci mi nešto o svojoj obitelji.'||question==='Zašto ti je važno razgovarati o obitelji?';
 };
 
+const resolveHobbyActivity=value=>HOBBY_FORMS.get(normalize(value))||null;
+
+const splitHobbyActivities=value=>{
+  const source=String(value||'').trim();
+  if(!source)return [];
+  const explicit=source.split(/\s+i\s+|\s*,\s*/iu).map(part=>part.trim()).filter(Boolean);
+  if(explicit.length>1)return explicit;
+  if(resolveHobbyActivity(source))return [source];
+
+  const tokens=source.split(/\s+/u).filter(Boolean);
+  const memo=new Map();
+  const segment=start=>{
+    if(start===tokens.length)return [];
+    if(memo.has(start))return memo.get(start);
+    for(let end=tokens.length;end>start;end-=1){
+      const piece=tokens.slice(start,end).join(' ');
+      if(!resolveHobbyActivity(piece))continue;
+      const rest=segment(end);
+      if(rest){const result=[piece,...rest];memo.set(start,result);return result;}
+    }
+    memo.set(start,null);
+    return null;
+  };
+  const segmented=segment(0);
+  return segmented?.length?segmented:[source];
+};
+
 const parseHobbyAnswer=value=>{
   const source=String(value||'').trim().replace(/[.!?]+$/u,'').trim();
   const match=source.match(/^(moj|moji|moje)\s+hobi(?:ji|je|ja|jem|jima)?\s+(?:(?:je|su)\s+)?(.+)$/iu);
   if(!match)return null;
   const activities=match[2].trim();
   if(!activities)return null;
-  const parts=activities.split(/\s+i\s+|\s*,\s*/iu).map(part=>part.trim()).filter(Boolean);
+  const parts=splitHobbyActivities(activities);
   if(!parts.length)return null;
-  return {subject:match[1].toLocaleLowerCase('hr'),activities,parts};
+  const forms=parts.map(resolveHobbyActivity);
+  return {subject:match[1].toLocaleLowerCase('hr'),activities,parts,forms};
 };
 
 const hobbyRecommendation=value=>{
   const parsed=parseHobbyAnswer(value);
-  if(!parsed)return '';
-  const nouns=parsed.parts.map(part=>HOBBY_NOUNS.get(normalize(part))||'');
-  if(nouns.some(item=>!item))return '';
+  if(!parsed||parsed.forms.some(item=>!item))return '';
+  const nouns=parsed.forms.map(item=>item.noun);
   return nouns.length===1?`Moj hobi je ${nouns[0]}.`:`Moji hobiji su ${nouns.join(' i ')}.`;
 };
 
 const hobbyAlternative=value=>{
   const parsed=parseHobbyAnswer(value);
-  if(!parsed)return '';
-  const activities=parsed.parts.map(part=>normalize(part)==='izaci vani'?'izlaziti':part).join(' i ');
-  return activities?`Volim ${activities}.`:'';
+  if(!parsed||parsed.forms.some(item=>!item))return '';
+  const infinitives=parsed.forms.map(item=>item.infinitive);
+  return infinitives.length?`Volim ${infinitives.join(' i ')}.`:'';
+};
+
+const hasHobbyGrammarIssue=value=>{
+  const recommendation=hobbyRecommendation(value);
+  return Boolean(recommendation&&normalize(value)!==normalize(recommendation));
 };
 
 export function polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage){
@@ -145,7 +218,7 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
     /^moji\s+hobije\b/u,
     /^moje\s+hobi\b/u
   ];
-  return badPatterns.some(pattern=>pattern.test(text));
+  return badPatterns.some(pattern=>pattern.test(text))||hasHobbyGrammarIssue(value);
 }
 
 export function getRecommendedSpeakingSentence(value,learningLanguage){
