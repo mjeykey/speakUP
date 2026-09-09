@@ -54,3 +54,14 @@ test('broken mobile recognition like živimo li zabona is corrected instead of p
   await expect(page.locator('[data-next]')).toHaveCount(0);
   await expect(page.locator('[data-answer]')).toBeVisible();
 });
+
+test('split mobile recognition like živimo Liza bonu is normalized to Lisabonu',async({page})=>{
+  const answer=await openLocationQuestion(page);
+  await answer('živimo Liza bonu');
+  await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
+  await expect(page.locator('.free-speak-transcript')).toContainText('živimo Liza bonu');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Živim u Lisabonu.');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).not.toContainText('Liza bonu');
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+  await expect(page.locator('[data-answer]')).toBeVisible();
+});
