@@ -31,17 +31,18 @@ async function reachOrigin(page){
   await page.locator('[data-next]').click();
   await expect(page.locator('.free-speak-question')).toHaveText('De onde és?');
   await expect(page.locator('.speak-progress')).toContainText('2 / 65');
+  await expect(page.locator('.free-speak-example-card')).toContainText('Sou da Alemanha.');
 }
 
 test.beforeEach(async({page})=>{await seed(page);});
 
-test('Portuguese speech-to-text error sou dela Maia becomes a did-you-mean repair',async({page})=>{
+test('ambiguous sou dela Maia transcription follows the current Alemanha learning context',async({page})=>{
   await reachOrigin(page);
   await answer(page,'sou dela Maia');
 
   await expect(page.locator('.speak-feedback')).toContainText('I think I understood you');
   await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
-  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('Sou da Maia.');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('Sou da Alemanha.');
   await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
   await expect(page.locator('[data-next]')).toHaveCount(0);
 
@@ -49,7 +50,16 @@ test('Portuguese speech-to-text error sou dela Maia becomes a did-you-mean repai
   await expect(page.locator('.speak-progress')).toContainText('3 / 65',{timeout:3000});
 });
 
-test('rejecting the Portuguese repair falls back to an easy natural question',async({page})=>{
+test('a genuinely correct Sou da Maia answer is not rewritten as Germany',async({page})=>{
+  await reachOrigin(page);
+  await answer(page,'Sou da Maia.');
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.free-speak-transcript')).toContainText('Sou da Maia.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+});
+
+test('rejecting the ambiguous Portuguese repair falls back to an easy natural question',async({page})=>{
   await reachOrigin(page);
   await answer(page,'sou dela Maia');
   await expect(page.locator('.free-speak-repair-card')).toBeVisible();
