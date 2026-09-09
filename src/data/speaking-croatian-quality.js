@@ -45,9 +45,14 @@ const CROATIAN_FAMILY_SIGNALS=[
 ];
 
 const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
-  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.'],
-  ['moji hobi je crtati i izaci vani','Volim crtati i izlaziti.'],
-  ['moj hobi je crtati','Moj hobi je crtanje.']
+  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
+]);
+
+const HOBBY_NOUNS=new Map([
+  ['crtati','crtanje'],['trcati','trčanje'],['plivati','plivanje'],['citati','čitanje'],
+  ['kuhati','kuhanje'],['plesati','plesanje'],['pjevati','pjevanje'],['pisati','pisanje'],
+  ['fotografirati','fotografiranje'],['vjezbati','vježbanje'],['voziti bicikl','vožnja bicikla'],
+  ['igrati nogomet','igranje nogometa'],['igrati tenis','igranje tenisa'],['izaci vani','izlasci']
 ]);
 
 const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
@@ -83,16 +88,30 @@ const isCroatianFamilyTurn=turn=>{
   return question==='Reci mi nešto o svojoj obitelji.'||question==='Zašto ti je važno razgovarati o obitelji?';
 };
 
-const hobbyRecommendation=value=>{
+const parseHobbyAnswer=value=>{
   const source=String(value||'').trim().replace(/[.!?]+$/u,'').trim();
-  const match=source.match(/^(?:moj|moji|moje)\s+hobi(?:ji|je|ja|jem|jima)?\s+(?:(?:je|su)\s+)?(.+)$/iu);
-  if(!match)return '';
-  let activities=match[1].trim();
-  if(!activities)return '';
-  activities=activities
-    .replace(/\bizaći\s+vani\b/giu,'izlaziti')
-    .replace(/\bizaci\s+vani\b/giu,'izlaziti');
-  return `Volim ${activities}.`;
+  const match=source.match(/^(moj|moji|moje)\s+hobi(?:ji|je|ja|jem|jima)?\s+(?:(?:je|su)\s+)?(.+)$/iu);
+  if(!match)return null;
+  const activities=match[2].trim();
+  if(!activities)return null;
+  const parts=activities.split(/\s+i\s+|\s*,\s*/iu).map(part=>part.trim()).filter(Boolean);
+  if(!parts.length)return null;
+  return {subject:match[1].toLocaleLowerCase('hr'),activities,parts};
+};
+
+const hobbyRecommendation=value=>{
+  const parsed=parseHobbyAnswer(value);
+  if(!parsed)return '';
+  const nouns=parsed.parts.map(part=>HOBBY_NOUNS.get(normalize(part))||'');
+  if(nouns.some(item=>!item))return '';
+  return nouns.length===1?`Moj hobi je ${nouns[0]}.`:`Moji hobiji su ${nouns.join(' i ')}.`;
+};
+
+const hobbyAlternative=value=>{
+  const parsed=parseHobbyAnswer(value);
+  if(!parsed)return '';
+  const activities=parsed.parts.map(part=>normalize(part)==='izaci vani'?'izlaziti':part).join(' i ');
+  return activities?`Volim ${activities}.`:'';
 };
 
 export function polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage){
@@ -135,4 +154,10 @@ export function getRecommendedSpeakingSentence(value,learningLanguage){
   const exact=SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source));
   if(exact)return exact;
   return hobbyRecommendation(source)||source;
+}
+
+export function getAlternativeSpeakingSentence(value,learningLanguage){
+  const source=String(value||'').trim();
+  if(!source||!isCroatian(learningLanguage))return '';
+  return hobbyAlternative(source);
 }
