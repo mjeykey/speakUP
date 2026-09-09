@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence } from './src/data/speaking-croatian-quality.js';
+import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence, getAlternativeSpeakingSentence } from './src/data/speaking-croatian-quality.js';
 import { isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
 
 let checks=0;
@@ -57,17 +57,21 @@ check(hasObviousCroatianGrammarIssue('moji obitelji živi kao meni','hr-HR'),'th
 check(hasObviousCroatianGrammarIssue('Moja obitelji živi blizu mene','hr-HR'),'wrong family agreement was not flagged');
 check(hasObviousCroatianGrammarIssue('moji hobi je crtati i izaći vani','hr-HR'),'broken hobby agreement was not flagged');
 check(hasObviousCroatianGrammarIssue('moje hobije crtati i trčati','hr-HR'),'reported hobby sentence was not flagged');
-check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i izlasci.','hr-HR'),'correct hobby sentence was rejected');
-check(!hasObviousCroatianGrammarIssue('Volim crtati i trčati.','hr-HR'),'natural hobby sentence was rejected');
+check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i trčanje.','hr-HR'),'correct hobby sentence was rejected');
+check(!hasObviousCroatianGrammarIssue('Volim crtati i trčati.','hr-HR'),'natural hobby alternative was rejected');
 check(!hasObviousCroatianGrammarIssue('Moja obitelj živi blizu mene.','hr-HR'),'correct nominative family sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Moja obitelj mi je jako važna.','hr-HR'),'correct family sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('U mojoj obitelji živi pet osoba.','hr-HR'),'correct locative family sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('moji obitelji živi kao meni','de-DE'),'Croatian heuristic leaked into another learning language');
 
-check(getRecommendedSpeakingSentence('moji hobi je crtati i izaći vani','hr-HR')==='Volim crtati i izlaziti.','hobby pronunciation recommendation was not corrected');
-check(getRecommendedSpeakingSentence('moje hobije crtati i trčati','hr-HR')==='Volim crtati i trčati.','reported hobby recommendation was not corrected');
-check(getRecommendedSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Volim plivati i plesati.','generic hobby recommendation was not corrected');
+check(getRecommendedSpeakingSentence('moji hobi je crtati i izaći vani','hr-HR')==='Moji hobiji su crtanje i izlasci.','hobby recommendation should keep hobby vocabulary');
+check(getAlternativeSpeakingSentence('moji hobi je crtati i izaći vani','hr-HR')==='Volim crtati i izlaziti.','hobby alternative was not generated');
+check(getRecommendedSpeakingSentence('moje hobije crtati i trčati','hr-HR')==='Moji hobiji su crtanje i trčanje.','reported hobby recommendation should keep hobby vocabulary');
+check(getAlternativeSpeakingSentence('moje hobije crtati i trčati','hr-HR')==='Volim crtati i trčati.','reported hobby alternative was not generated');
+check(getRecommendedSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Moji hobiji su plivanje i plesanje.','generic hobby recommendation was not corrected');
+check(getAlternativeSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Volim plivati i plesati.','generic hobby alternative was not generated');
 check(getRecommendedSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='Moji roditelji žive blizu mene.','family pronunciation recommendation was not corrected');
+check(getAlternativeSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='','family answer should not invent a hobby alternative');
 check(getRecommendedSpeakingSentence('I like drawing.','en-GB')==='I like drawing.','non-Croatian recommendation should preserve the sentence');
 
 console.log(`✅ ${checks} Croatian speaking QA checks passed.`);
