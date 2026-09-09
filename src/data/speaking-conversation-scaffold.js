@@ -24,7 +24,8 @@ const MUSIC_SCAFFOLD={
   example:'Ja, primjerice, slušam glazbu na putu na posao.',
   exampleTranslation:t('For example, I listen to music on the way to work.','Ich höre zum Beispiel auf dem Weg zur Arbeit Musik.','Por exemplo, ouço música a caminho do trabalho.','Por ejemplo, escucho música de camino al trabajo.','Ja, primjerice, slušam glazbu na putu na posao.','Par exemple, j’écoute de la musique sur le chemin du travail.'),
   easyQuestion:'Je li i kod tebe tako?',
-  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?')
+  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?'),
+  followUpAcceptsYesNo:false
 };
 
 const FAMILY_SCAFFOLD={
@@ -33,14 +34,16 @@ const FAMILY_SCAFFOLD={
   example:'Moja obitelj živi blizu mene.',
   exampleTranslation:t('My family lives near me.','Meine Familie wohnt in meiner Nähe.','A minha família vive perto de mim.','Mi familia vive cerca de mí.','Moja obitelj živi blizu mene.','Ma famille habite près de chez moi.'),
   easyQuestion:'Je li i kod tebe tako?',
-  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?')
+  easyTranslation:t('Is it like that for you too?','Ist das bei dir auch so?','Contigo também é assim?','¿A ti también te pasa?','Je li i kod tebe tako?','C’est pareil pour toi aussi ?'),
+  followUpAcceptsYesNo:true
 };
 
 const GENERIC_FOLLOW_UP={
   followUp:'Možeš li to reći jednostavnije?',
   followUpTranslation:t('Can you say it more simply?','Kannst du es einfacher sagen?','Consegues dizer isso de forma mais simples?','¿Puedes decirlo de forma más sencilla?','Možeš li to reći jednostavnije?','Peux-tu le dire plus simplement ?'),
   easyQuestion:'Je li kod tebe slično?',
-  easyTranslation:t('Is it similar for you?','Ist es bei dir ähnlich?','Contigo é parecido?','¿En tu caso es parecido?','Je li kod tebe slično?','C’est similaire pour toi ?')
+  easyTranslation:t('Is it similar for you?','Ist es bei dir ähnlich?','Contigo é parecido?','¿En tu caso es parecido?','Je li kod tebe slično?','C’est similaire pour toi ?'),
+  followUpAcceptsYesNo:false
 };
 
 const DANGLING_CROATIAN_WORDS=new Set([
@@ -71,7 +74,8 @@ export function getSpeakingConversationScaffold(turn,learningLanguage,nativeLang
       example:scaffold.example,
       exampleTranslation:scaffold.exampleTranslation[f],
       easyQuestion:scaffold.easyQuestion,
-      easyTranslation:scaffold.easyTranslation[f]
+      easyTranslation:scaffold.easyTranslation[f],
+      followUpAcceptsYesNo:Boolean(scaffold.followUpAcceptsYesNo)
     };
   }
 
@@ -81,7 +85,8 @@ export function getSpeakingConversationScaffold(turn,learningLanguage,nativeLang
     example:String(turn?.example||''),
     exampleTranslation:String(turn?.exampleTranslation||''),
     easyQuestion:GENERIC_FOLLOW_UP.easyQuestion,
-    easyTranslation:GENERIC_FOLLOW_UP.easyTranslation[f]
+    easyTranslation:GENERIC_FOLLOW_UP.easyTranslation[f],
+    followUpAcceptsYesNo:false
   };
 }
 
