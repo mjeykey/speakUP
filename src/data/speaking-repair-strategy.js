@@ -62,20 +62,29 @@ const PORTUGUESE_ORIGINS=new Map([
 ]);
 
 const isPortugueseOriginTurn=turn=>/^de onde (?:es|e)\??$/u.test(normalize(turn?.question));
+const isWellFormedPortugueseOrigin=value=>/^(?:eu\s+)?sou\s+(?:de|da|do|das|dos)\s+[\p{L}][\p{L}\s-]*$/u.test(normalize(value));
+
+const hasPortugueseOriginSpeechNoise=(value,turn)=>{
+  if(!isPortugueseOriginTurn(turn))return false;
+  const text=normalize(value);
+  if(!/^(?:eu\s+)?sou\b/u.test(text))return false;
+  return !isWellFormedPortugueseOrigin(text);
+};
 
 const portugueseOriginSuggestion=(value,turn)=>{
   if(!isPortugueseOriginTurn(turn))return '';
   const text=normalize(value);
   const turnExample=normalize(turn?.example);
 
-  // Brave can split the sound of "da Alemanha" into text such as
-  // "dela Maia". When the current learning example is Germany, keep
-  // that context instead of silently changing the learner's country to Maia.
-  if(/^sou\s+(?:dela|de\s+la)\s+maia$/u.test(text)&&/\bsou\s+da\s+alemanha\b/u.test(turnExample)){
+  // Speech-to-text often hears "da Alemanha" correctly but writes the sound
+  // as fragments such as "dela Maia" or "dela manha". In the Germany lesson
+  // context we ask for confirmation instead of accepting that broken spelling.
+  const germanyContext=/\bsou\s+da\s+alemanha\b/u.test(turnExample);
+  if(germanyContext&&/^(?:eu\s+)?sou\s+(?:(?:de\s+la)|dela|deia)\s+(?:maia|manha|lemanha|alemanha|alemania)$/u.test(text)){
     return 'Sou da Alemanha.';
   }
 
-  const match=text.match(/^sou\s+(?:(?:de\s+la)|dela|dele|da|do|de)\s+(.+)$/u);
+  const match=text.match(/^(?:eu\s+)?sou\s+(?:(?:de\s+la|dela|dele|deia|da|do|das|dos|de)\s+)?(.+)$/u);
   if(!match)return '';
   const place=match[1].trim();
   const suggestion=PORTUGUESE_ORIGINS.get(place)||'';
@@ -91,6 +100,14 @@ export function getSpeakingRepairDecision(value,turn,learningLanguage){
   if(family==='pt'){
     const suggestion=portugueseOriginSuggestion(source,turn);
     if(suggestion)return {mode:'confirm',suggestion};
+
+    // Same three-stage strategy as Croatian: obvious speech-to-text noise is
+    // never praised as correct. If we cannot safely reconstruct the sentence,
+    // continue with an easier conversational scaffold instead of guessing.
+    const suspicious=hasRepeatedNeighbour(source)
+      || hasPortugueseOriginSpeechNoise(source,turn);
+    if(suspicious)return {mode:'scaffold',suggestion:''};
+
     return {mode:'accept',suggestion:''};
   }
 
