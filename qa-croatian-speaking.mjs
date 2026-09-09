@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { polishCroatianSpeakingTurn, hasObviousCroatianGrammarIssue } from './src/data/speaking-croatian-quality.js';
+import { isRelevantSpeakingAnswer } from './src/data/speaking-conversations.js';
 
 let checks=0;
 const check=(condition,message)=>{checks+=1;assert.ok(condition,message);};
 
 const family=polishCroatianSpeakingTurn({
+  intent:'profile',
+  signals:['family','Familie','família','familia','obitelj','famille'],
   question:'Reci mi nešto o svojim obitelj.',
   translation:'Tell me about your family.',
   example:'Moja obitelj važan je dio mog života.',
@@ -12,6 +15,9 @@ const family=polishCroatianSpeakingTurn({
 },'hr-HR','en-GB');
 check(family.question==='Reci mi nešto o svojoj obitelji.','family question was not corrected');
 check(family.example==='Moja obitelj mi je jako važna.','natural family example was not applied');
+check(isRelevantSpeakingAnswer('Moji roditelji žive blizu mene.',family),'parents should count as a family answer');
+check(isRelevantSpeakingAnswer('Moji roditelji žive blizu meni',family),'speech-recognition case variation should still count as on-topic');
+check(isRelevantSpeakingAnswer('Moja mama živi u Splitu.',family),'mother should count as a family answer');
 
 const music=polishCroatianSpeakingTurn({
   question:'Reci mi nešto o svojim omiljenoj glazbi.',
