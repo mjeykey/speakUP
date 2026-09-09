@@ -1,9 +1,14 @@
 import { hasObviousCroatianGrammarIssue, getRecommendedSpeakingSentence } from './speaking-croatian-quality.js?v=12';
 
-const isCroatian=value=>String(value||'').toLowerCase().startsWith('hr');
+const languageFamily=value=>{
+  const code=String(value||'').toLowerCase();
+  if(code.startsWith('hr'))return 'hr';
+  if(code.startsWith('pt'))return 'pt';
+  return 'other';
+};
 
 const normalize=value=>String(value||'')
-  .toLocaleLowerCase('hr')
+  .toLocaleLowerCase('pt')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g,'')
   .replace(/[^\p{L}\p{N}\s&-]/gu,' ')
@@ -44,10 +49,43 @@ const isSafeGeneratedRepair=(value,suggestion,turn)=>{
   return false;
 };
 
+const PORTUGUESE_ORIGINS=new Map([
+  ['maia','Sou da Maia.'],
+  ['alemanha','Sou da Alemanha.'],
+  ['croacia','Sou da Croácia.'],
+  ['lisboa','Sou de Lisboa.'],
+  ['portugal','Sou de Portugal.'],
+  ['porto','Sou do Porto.'],
+  ['brasil','Sou do Brasil.'],
+  ['espanha','Sou de Espanha.'],
+  ['franca','Sou de França.']
+]);
+
+const isPortugueseOriginTurn=turn=>/^de onde (?:es|e)\??$/u.test(normalize(turn?.question));
+
+const portugueseOriginSuggestion=(value,turn)=>{
+  if(!isPortugueseOriginTurn(turn))return '';
+  const text=normalize(value);
+  const match=text.match(/^sou\s+(?:(?:de\s+la)|dela|dele|da|do|de)\s+(.+)$/u);
+  if(!match)return '';
+  const place=match[1].trim();
+  const suggestion=PORTUGUESE_ORIGINS.get(place)||'';
+  if(!suggestion)return '';
+  return normalize(suggestion)===text?'':suggestion;
+};
+
 export function getSpeakingRepairDecision(value,turn,learningLanguage){
-  if(!isCroatian(learningLanguage))return {mode:'accept',suggestion:''};
+  const family=languageFamily(learningLanguage);
   const source=String(value||'').trim();
   if(!source)return {mode:'accept',suggestion:''};
+
+  if(family==='pt'){
+    const suggestion=portugueseOriginSuggestion(source,turn);
+    if(suggestion)return {mode:'confirm',suggestion};
+    return {mode:'accept',suggestion:''};
+  }
+
+  if(family!=='hr')return {mode:'accept',suggestion:''};
 
   const suspicious=hasObviousCroatianGrammarIssue(source,learningLanguage)
     || hasRepeatedNeighbour(source)
