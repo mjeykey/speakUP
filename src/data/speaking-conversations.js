@@ -13,7 +13,7 @@ const INTENTS_BY_TOPIC={
 
 const INTENT_SIGNALS={
   name:['my name','name is','called','chamo','meu nome','heiße','heisse','ich bin','me llamo','mi nombre','zovem','je m appelle'],
-  origin:['from','come from','sou de','venho de','komme aus','stamme aus','soy de','vengo de','iz ','dolazim','viens de'],
+  origin:['from','come from','sou de','sou da','sou do','sou das','sou dos','venho de','komme aus','stamme aus','soy de','vengo de','iz ','dolazim','viens de'],
   residence:['live in','living in','moro','vivo','wohne','lebe','habite','živim','zivim'],
   drink:['coffee','tea','water','juice','wine','beer','drink','café','cafe','chá','cha','água','agua','sumo','vinho','cerveja','beber','kaffee','tee','wasser','saft','trinken','kava','čaj','caj','voda','boisson'],
   extras:['yes','no','with','without','milk','sugar','sim','não','nao','com','sem','leite','açúcar','acucar','ja','nein','mit','ohne','milch','zucker','sí','si','con','sin','leche','azúcar','da','ne','mlijeko','šećer','secer','oui','non','avec','sans','lait','sucre'],
