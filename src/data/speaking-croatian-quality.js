@@ -41,7 +41,7 @@ const CROATIAN_MEET_POSSESSIVE={
 const CROATIAN_FAMILY_SIGNALS=[
   'obitelj','familija','roditelj','roditelji','majka','mama','otac','tata',
   'brat','sestra','braća','sestre','baka','djed','djeca','dijete','sin','kći',
-  'suprug','supruga','partner','partnerica'
+  'suprug','supruga','partner','partnerica','doktor','doktori','doktora','liječnik','liječnici'
 ];
 
 const CROATIAN_MUSIC_SIGNALS=[
@@ -66,6 +66,9 @@ const FAMILY_COUNTRY_LOCATIVES=new Map([
 
 const familyParentsRecommendation=value=>{
   const text=normalize(value);
+  if(/^moji\s+roditelji\s+(?:ima|imaju)(?:\s+ih)?\s+puno\s+doktor(?:i|a)?$/u.test(text)){
+    return 'U mojoj obitelji ima puno doktora.';
+  }
   const match=text.match(/^moji\s+roditelji\s+(?:zive|zivi)(?:\s+zivo)?\s+(.+)$/u);
   if(!match)return '';
   const tail=match[1].trim();
@@ -81,7 +84,9 @@ const familyParentsRecommendation=value=>{
 const hasFamilyGrammarIssue=value=>{
   const text=normalize(value);
   if(!/^moji\s+roditelji\b/u.test(text))return false;
-  return /^moji\s+roditelji\s+zivi\b/u.test(text)||/^moji\s+roditelji\s+zive\s+zivo\b/u.test(text);
+  return /^moji\s+roditelji\s+zivi\b/u.test(text)
+    ||/^moji\s+roditelji\s+zive\s+zivo\b/u.test(text)
+    ||/^moji\s+roditelji\s+(?:ima|imaju)(?:\s+ih)?\s+puno\s+doktor(?:i|a)?$/u.test(text);
 };
 
 const editDistance=(left,right)=>{
