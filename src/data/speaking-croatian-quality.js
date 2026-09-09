@@ -46,7 +46,7 @@ const CROATIAN_FAMILY_SIGNALS=[
 
 const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
   ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.'],
-  ['moji hobi je crtati i izaci vani','Moji hobiji su crtanje i izlasci.'],
+  ['moji hobi je crtati i izaci vani','Volim crtati i izlaziti.'],
   ['moj hobi je crtati','Moj hobi je crtanje.']
 ]);
 
@@ -83,6 +83,18 @@ const isCroatianFamilyTurn=turn=>{
   return question==='Reci mi nešto o svojoj obitelji.'||question==='Zašto ti je važno razgovarati o obitelji?';
 };
 
+const hobbyRecommendation=value=>{
+  const source=String(value||'').trim().replace(/[.!?]+$/u,'').trim();
+  const match=source.match(/^(?:moj|moji|moje)\s+hobi(?:ji|je|ja|jem|jima)?\s+(?:(?:je|su)\s+)?(.+)$/iu);
+  if(!match)return '';
+  let activities=match[1].trim();
+  if(!activities)return '';
+  activities=activities
+    .replace(/\bizaći\s+vani\b/giu,'izlaziti')
+    .replace(/\bizaci\s+vani\b/giu,'izlaziti');
+  return `Volim ${activities}.`;
+};
+
 export function polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage){
   const next={...turn};
   if(isCroatian(learningLanguage)){
@@ -109,7 +121,10 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
     /\bmojom\s+obitelj\b/u,
     /\bsvojim\s+obitelj\b/u,
     /\bmoji\s+hobi\b/u,
-    /\bmoj\s+hobiji\b/u
+    /\bmoj\s+hobiji\b/u,
+    /^moje\s+hobije\b/u,
+    /^moji\s+hobije\b/u,
+    /^moje\s+hobi\b/u
   ];
   return badPatterns.some(pattern=>pattern.test(text));
 }
@@ -117,5 +132,7 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
 export function getRecommendedSpeakingSentence(value,learningLanguage){
   const source=String(value||'').trim();
   if(!source||!isCroatian(learningLanguage))return source;
-  return SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source))||source;
+  const exact=SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source));
+  if(exact)return exact;
+  return hobbyRecommendation(source)||source;
 }
