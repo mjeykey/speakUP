@@ -64,6 +64,7 @@ const PORTUGUESE_ORIGINS=new Map([
 const isPortugueseOriginTurn=turn=>/^de onde (?:es|e)\??$/u.test(normalize(turn?.question));
 const isWellFormedPortugueseOrigin=value=>/^(?:eu\s+)?sou\s+(?:de|da|do|das|dos)\s+[\p{L}][\p{L}\s-]*$/u.test(normalize(value));
 const isPortugueseFamilyTurn=turn=>/\b(?:familia|família)\b/u.test(String(turn?.question||'').toLocaleLowerCase('pt'));
+const isPortugueseBestFriendTurn=turn=>/\bmelhor\s+(?:amigo|amiga)\b/u.test(normalize(turn?.question));
 
 const hasPortugueseOriginSpeechNoise=(value,turn)=>{
   if(!isPortugueseOriginTurn(turn))return false;
@@ -77,9 +78,6 @@ const portugueseOriginSuggestion=(value,turn)=>{
   const text=normalize(value);
   const turnExample=normalize(turn?.example);
 
-  // Speech-to-text often hears "da Alemanha" correctly but writes the sound
-  // as fragments such as "dela Maia" or "dela manha". In the Germany lesson
-  // context we ask for confirmation instead of accepting that broken spelling.
   const germanyContext=/\bsou\s+da\s+alemanha\b/u.test(turnExample);
   if(germanyContext&&/^(?:eu\s+)?sou\s+(?:(?:de\s+la)|dela|deia)\s+(?:maia|manha|lemanha|alemanha|alemania)$/u.test(text)){
     return 'Sou da Alemanha.';
@@ -96,12 +94,9 @@ const portugueseOriginSuggestion=(value,turn)=>{
 const isPlausiblePortugueseFamilyCoordination=tail=>{
   const text=normalize(tail);
   if(!text)return false;
-  // A second location: "e na Alemanha", "e em Portugal", etc.
   if(/^(?:em|na|no|nas|nos)\s+[\p{L}][\p{L}\s-]*$/u.test(text))return true;
   if(/^tambem\s+(?:em|na|no|nas|nos)\s+[\p{L}][\p{L}\s-]*$/u.test(text))return true;
-  // A new clause: "e eu vivo...", "e a minha mãe mora...".
   if(/^(?:eu|ela|ele|nos|eles|elas|a\s+minha|minha|o\s+meu|meu|os\s+meus|meus|as\s+minhas|minhas)\b.*\b(?:vivo|vive|vivem|moro|mora|moram|sou|somos|e|sao|tenho|tem|gosto|gosta|gostam|trabalho|trabalha|estudo|estuda)\b/u.test(text))return true;
-  // A coordinated predicate: "e é muito unida", "e gosta de viajar".
   if(/^(?:e|sao|tem|vive|vivem|mora|moram|gosta|gostam|trabalha|trabalham|estuda|estudam)\b/u.test(text))return true;
   return false;
 };
@@ -111,8 +106,6 @@ const hasPortugueseFamilyStructureNoise=(value,turn)=>{
   const text=normalize(value);
   if(!/\b(?:minha\s+familia|a\s+minha\s+familia)\b/u.test(text))return false;
 
-  // Only apply this slot check to a clear residence construction. We do not
-  // try to grammar-check every possible free family answer here.
   const residence=text.match(/\b(?:vive|vivem|mora|moram)\b\s+(.+)$/u);
   if(!residence)return false;
   const rest=residence[1].trim();
@@ -143,6 +136,36 @@ const portugueseFamilySuggestion=(value,turn)=>{
   return '';
 };
 
+const portugueseBestFriendSuggestion=(value,turn)=>{
+  if(!isPortugueseBestFriendTurn(turn))return '';
+  const text=normalize(value);
+  const female=/\bmelhor\s+amiga\b/u.test(text);
+  const male=/\bmelhor\s+amigo\b/u.test(text);
+  const work=/\b(?:trabalhar|trabalha|trabalho|trabalhando)\b/u.test(text);
+  const doctor=/\b(?:doutor|doutora|medico|medica)\b/u.test(text);
+  if(!work||!doctor)return '';
+  if(female)return 'A minha melhor amiga trabalha como médica.';
+  if(male)return 'O meu melhor amigo trabalha como médico.';
+  return '';
+};
+
+const hasPortugueseBestFriendStructureNoise=(value,turn)=>{
+  if(!isPortugueseBestFriendTurn(turn))return false;
+  const text=normalize(value);
+  if(!/\bmelhor\s+(?:amigo|amiga)\b/u.test(text))return false;
+
+  if(/^(?:e|é)\s+melhor\s+(?:amigo|amiga)\b/u.test(String(value||'').trim().toLocaleLowerCase('pt')))return true;
+  if(/\bmelhor\s+(?:amigo|amiga)\s+a\s+trabalhar\b/u.test(text)&&!/\besta\s+a\s+trabalhar\b/u.test(text))return true;
+  if(/\bmelhor\s+(?:amigo|amiga)\s+trabalhar\b/u.test(text))return true;
+  if(/\bmelhor\s+amiga\b.*\bcomo\s+um\s+doutor\b/u.test(text))return true;
+  if(/\bmelhor\s+amigo\b.*\bcomo\s+uma\s+doutora\b/u.test(text))return true;
+
+  const hasPossessiveSubject=/\b(?:a\s+minha\s+melhor\s+amiga|o\s+meu\s+melhor\s+amigo)\b/u.test(text);
+  const hasFinitePredicate=/\b(?:e|trabalha|vive|mora|gosta|tem|faz|conhece|ajuda|estuda|viaja|fala|somos)\b/u.test(text);
+  if(!hasPossessiveSubject&&!/^e\s+(?:a\s+minha|o\s+meu)\b/u.test(text))return true;
+  return !hasFinitePredicate;
+};
+
 export function scoreSpeakingCandidate(value,turn,learningLanguage){
   const family=languageFamily(learningLanguage);
   const text=normalize(value);
@@ -155,6 +178,14 @@ export function scoreSpeakingCandidate(value,turn,learningLanguage){
     if(/\b(?:vive|vivem|mora|moram|e|sao|tem|tenho|gosta|gostam)\b/u.test(text))score+=15;
     if(/\b(?:em|na|no|nas|nos)\s+[\p{L}]/u.test(text))score+=15;
     if(/\s+e\s+(?:em|na|no|nas|nos)\s+[\p{L}]/u.test(text))score+=15;
+    return Math.min(100,score);
+  }
+
+  if(family==='pt'&&isPortugueseBestFriendTurn(turn)){
+    if(hasPortugueseBestFriendStructureNoise(text,turn))return 5;
+    let score=35;
+    if(/\b(?:a\s+minha\s+melhor\s+amiga|o\s+meu\s+melhor\s+amigo)\b/u.test(text))score+=25;
+    if(/\b(?:trabalha|vive|mora|gosta|tem|faz|ajuda|estuda|viaja|fala|e)\b/u.test(text))score+=20;
     return Math.min(100,score);
   }
 
@@ -177,11 +208,13 @@ export function getSpeakingRepairDecision(value,turn,learningLanguage){
     const familySuggestion=portugueseFamilySuggestion(source,turn);
     if(familySuggestion&&normalize(familySuggestion)!==normalize(source))return {mode:'confirm',suggestion:familySuggestion};
 
-    // Topic match is not enough: a family residence sentence must also have a
-    // plausible second slot after "e" before it can be praised as correct.
+    const bestFriendSuggestion=portugueseBestFriendSuggestion(source,turn);
+    if(bestFriendSuggestion&&normalize(bestFriendSuggestion)!==normalize(source))return {mode:'confirm',suggestion:bestFriendSuggestion};
+
     const suspicious=hasRepeatedNeighbour(source)
       || hasPortugueseOriginSpeechNoise(source,turn)
-      || hasPortugueseFamilyStructureNoise(source,turn);
+      || hasPortugueseFamilyStructureNoise(source,turn)
+      || hasPortugueseBestFriendStructureNoise(source,turn);
     if(suspicious)return {mode:'scaffold',suggestion:''};
 
     return {mode:'accept',suggestion:''};
