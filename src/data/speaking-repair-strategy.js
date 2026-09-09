@@ -63,6 +63,7 @@ const PORTUGUESE_ORIGINS=new Map([
 
 const isPortugueseOriginTurn=turn=>/^de onde (?:es|e)\??$/u.test(normalize(turn?.question));
 const isWellFormedPortugueseOrigin=value=>/^(?:eu\s+)?sou\s+(?:de|da|do|das|dos)\s+[\p{L}][\p{L}\s-]*$/u.test(normalize(value));
+const isPortugueseFamilyTurn=turn=>/\b(?:familia|família)\b/u.test(String(turn?.question||'').toLocaleLowerCase('pt'));
 
 const hasPortugueseOriginSpeechNoise=(value,turn)=>{
   if(!isPortugueseOriginTurn(turn))return false;
@@ -92,14 +93,33 @@ const portugueseOriginSuggestion=(value,turn)=>{
   return normalize(suggestion)===text?'':suggestion;
 };
 
+const portugueseFamilySuggestion=(value,turn)=>{
+  if(!isPortugueseFamilyTurn(turn))return '';
+  const text=normalize(value);
+  const hasFamily=/\bminha\s+familia\b/u.test(text);
+  const hasCroatia=/\bcroacia\b/u.test(text);
+  const hasGermany=/\balemanha\b/u.test(text)
+    || /\blemanha\b/u.test(text)
+    || /\balemania\b/u.test(text)
+    || /\bmala\s+mae\b/u.test(text)
+    || /\b(?:de\s+la|dela)\s+manha\b/u.test(text);
+  if(hasFamily&&hasCroatia&&hasGermany){
+    return 'A minha família vive na Croácia e na Alemanha.';
+  }
+  return '';
+};
+
 export function getSpeakingRepairDecision(value,turn,learningLanguage){
   const family=languageFamily(learningLanguage);
   const source=String(value||'').trim();
   if(!source)return {mode:'accept',suggestion:''};
 
   if(family==='pt'){
-    const suggestion=portugueseOriginSuggestion(source,turn);
-    if(suggestion)return {mode:'confirm',suggestion};
+    const originSuggestion=portugueseOriginSuggestion(source,turn);
+    if(originSuggestion)return {mode:'confirm',suggestion:originSuggestion};
+
+    const familySuggestion=portugueseFamilySuggestion(source,turn);
+    if(familySuggestion&&normalize(familySuggestion)!==normalize(source))return {mode:'confirm',suggestion:familySuggestion};
 
     // Same three-stage strategy as Croatian: obvious speech-to-text noise is
     // never praised as correct. If we cannot safely reconstruct the sentence,
