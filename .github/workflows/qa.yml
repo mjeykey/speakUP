@@ -18,7 +18,9 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          npx playwright install --with-deps chromium
       - name: Test page 189 audio
         run: npx playwright test tests/story-audio-189.spec.js --project=desktop-chromium
       - name: Run static QA
