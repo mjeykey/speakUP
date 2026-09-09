@@ -3,7 +3,7 @@ import { getSpeakingTopics, isRelevantSpeakingAnswer } from '../data/speaking-co
 import { getSpeakingAdditions } from '../data/speaking-additions/index.js?v=2';
 import { polishCroatianSpeakingTurn, getRecommendedSpeakingSentence, getAlternativeSpeakingSentence } from '../data/speaking-croatian-quality.js?v=12';
 import { isSpeakingAnswerIncomplete, getSpeakingConversationScaffold, isEasyConversationAnswer, getEasyConversationAnswerIntent } from '../data/speaking-conversation-scaffold.js?v=2';
-import { getSpeakingRepairDecision } from '../data/speaking-repair-strategy.js?v=1';
+import { getSpeakingRepairDecision } from '../data/speaking-repair-strategy.js?v=2';
 import { speak, stopSpeech } from '../audio/speech.js?v=60';
 import { getUiFamily } from '../app/ui-language.js?v=4';
 
@@ -26,6 +26,8 @@ const REPAIR_COPY={
   fr:{feedback:'Je pense avoir compris — vérifions.',title:'Tu voulais dire :',help:'Tu peux répondre simplement oui ou non.',listen:'Écouter la suggestion'}
 };
 
+const PREVIOUS_COPY={en:'Previous question',de:'Vorherige Frage',pt:'Pergunta anterior',es:'Pregunta anterior',hr:'Prethodno pitanje',fr:'Question précédente'};
+
 const esc=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const hasMoreThanOneWord=value=>String(value||'').trim().split(/\s+/).filter(Boolean).length>1;
 const validationText=(value,learningLanguage)=>{
@@ -37,7 +39,7 @@ const isRelevantCandidate=(value,item,learningLanguage)=>hasMoreThanOneWord(valu
 
 export function renderSpeakPractice(root,store){
   const state=store.getState(),learningLanguage=state.learningLanguage,nativeLanguage=state.nativeLanguage;
-  const speechLanguage=getSpeechLanguage(learningLanguage),uiFamily=getUiFamily(nativeLanguage),copy=COPY[uiFamily]||COPY.en,repairCopy=REPAIR_COPY[uiFamily]||REPAIR_COPY.en;
+  const speechLanguage=getSpeechLanguage(learningLanguage),uiFamily=getUiFamily(nativeLanguage),copy=COPY[uiFamily]||COPY.en,repairCopy=REPAIR_COPY[uiFamily]||REPAIR_COPY.en,previousLabel=PREVIOUS_COPY[uiFamily]||PREVIOUS_COPY.en;
   const topics=getSpeakingTopics(learningLanguage,nativeLanguage).map(item=>({...item,turns:[...item.turns,...getSpeakingAdditions(item.id,learningLanguage,nativeLanguage)].map(turn=>polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage))}));
   const progressKey=`${learningLanguage}|${nativeLanguage}`;
   const saved=state.progress?.speakPractice?.[progressKey]||{};
@@ -52,6 +54,7 @@ export function renderSpeakPractice(root,store){
   const save=()=>{rememberCurrent();store.saveProgress?.('speakPractice',progressKey,{topicId:resumeTopicId,currentIndex:resumeIndex,learningLanguage,nativeLanguage});};
   const resetTurnState=()=>{transcript='';heardAttempt='';message='';pronunciationText='';alternativeText='';conversationStep=0;conversationSupport=null;repairSuggestion='';repairOriginal='';};
   const advance=()=>{stopSpeech();index=(index+1)%topic.turns.length;resetTurnState();save();draw();window.setTimeout(playQuestion,220);};
+  const goPrevious=()=>{if(index<=0)return;clearRecognitionTimer();recognition?.abort?.();listening=false;stopSpeech();index-=1;resetTurnState();save();draw();window.setTimeout(playQuestion,220);};
   const leave=()=>{clearRecognitionTimer();recognition?.abort?.();stopSpeech();save();store.setState({screen:'menu'});};
 
   function showTopics(){
@@ -86,9 +89,10 @@ export function renderSpeakPractice(root,store){
     const resultBlock=transcript?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(transcript)}”</p><p class="speak-feedback is-success">${copy.clear}</p></div>`:heardAttempt?`<div class="free-speak-result"><p class="speak-label">${copy.heard}</p><p class="free-speak-transcript">“${esc(heardAttempt)}”</p><p class="speak-feedback is-gentle">${esc(message)}</p></div>`:`<p class="speak-feedback ${listening?'is-listening':'is-gentle'}">${esc(message)}</p>`;
     const alternativeBlock=alternativeText?`<div class="free-speak-alternative"><p class="speak-label">${esc(copy.alternative)}</p><p class="speak-translation">${esc(alternativeText)}</p><button class="secondary-button" data-alternative>🔊 ${esc(copy.hearAlternative)}</button></div>`:'';
     const pronunciationBlock=pronunciationText?`<div class="free-speak-result free-speak-pronunciation-card"><p class="speak-label">${esc(copy.recommended)}</p><p class="free-speak-example">${esc(pronunciationText)}</p><button class="secondary-button" data-pronunciation>🔊 ${esc(copy.hearAgain)}</button>${alternativeBlock}</div>`:'';
-    root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><button class="secondary-button speak-back" data-back>${copy.back}</button><div class="center speak-view"><p class="kicker">${topic.emoji} ${esc(topic.title)}</p><p class="speak-progress">${copy.question} ${index+1} / ${topic.turns.length}</p><div class="free-speak-card"><p class="speak-label">${esc(languageName(learningLanguage))}</p><h1 class="free-speak-question">${esc(item.question)}</h1><p class="speak-label">${esc(languageName(nativeLanguage))}</p><p class="speak-translation">${esc(item.translation)}</p></div><div class="free-speak-result free-speak-example-card"><p class="free-speak-natural">${copy.natural}</p><p class="free-speak-example">${esc(item.example)}</p><p class="speak-translation">${esc(item.exampleTranslation)}</p></div>${resultBlock}${repairBlock()}${conversationBlock()}${pronunciationBlock}<div class="speak-actions"><button class="secondary-button" data-listen>🔊 ${copy.listen}</button>${transcript?`<button class="primary-button" data-next>${copy.next}</button>`:`<button class="primary-button speak-mic" data-answer ${Recognition?'':'disabled'}>${listening?copy.listening:copy.answer}</button>`}</div>${Recognition?'':`<p class="speak-support">${copy.unsupported}</p>`}</div></section>`;
+    root.innerHTML=`<section class="screen speak-screen free-speak-screen"><button class="menu-button" data-menu>${copy.menu}</button><button class="secondary-button speak-back" data-back>${copy.back}</button><div class="center speak-view"><p class="kicker">${topic.emoji} ${esc(topic.title)}</p><p class="speak-progress">${copy.question} ${index+1} / ${topic.turns.length}</p><div class="speak-question-nav"><button class="secondary-button" data-prev ${index<=0?'disabled':''}>← ${esc(previousLabel)}</button></div><div class="free-speak-card"><p class="speak-label">${esc(languageName(learningLanguage))}</p><h1 class="free-speak-question">${esc(item.question)}</h1><p class="speak-label">${esc(languageName(nativeLanguage))}</p><p class="speak-translation">${esc(item.translation)}</p></div><div class="free-speak-result free-speak-example-card"><p class="free-speak-natural">${copy.natural}</p><p class="free-speak-example">${esc(item.example)}</p><p class="speak-translation">${esc(item.exampleTranslation)}</p></div>${resultBlock}${repairBlock()}${conversationBlock()}${pronunciationBlock}<div class="speak-actions"><button class="secondary-button" data-listen>🔊 ${copy.listen}</button>${transcript?`<button class="primary-button" data-next>${copy.next}</button>`:`<button class="primary-button speak-mic" data-answer ${Recognition?'':'disabled'}>${listening?copy.listening:copy.answer}</button>`}</div>${Recognition?'':`<p class="speak-support">${copy.unsupported}</p>`}</div></section>`;
     root.querySelector('[data-menu]').onclick=leave;
     root.querySelector('[data-back]').onclick=showTopics;
+    root.querySelector('[data-prev]')?.addEventListener('click',goPrevious);
     root.querySelector('[data-listen]').onclick=repairSuggestion?playRepairSuggestion:conversationStep?playConversationPrompt:playQuestion;
     root.querySelector('[data-repair-listen]')?.addEventListener('click',playRepairSuggestion);
     root.querySelector('[data-pronunciation]')?.addEventListener('click',playRecommendedPronunciation);
