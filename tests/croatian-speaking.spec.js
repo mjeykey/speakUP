@@ -69,7 +69,7 @@ test('Croatian family prompt accepts family vocabulary, rejects broken agreement
   await expect(page.locator('[data-answer]')).toBeVisible();
 });
 
-test('Croatian hobby answer keeps hobby vocabulary and offers a Volim alternative',async({page})=>{
+test('Croatian hobby answer repairs malformed mobile recognition before pronunciation',async({page})=>{
   await openCroatianMeet(page);
   await answerAndNext(page,'Zovem se Marina.');
   await answerAndNext(page,'Dolazim iz Hrvatske.');
@@ -80,12 +80,12 @@ test('Croatian hobby answer keeps hobby vocabulary and offers a Volim alternativ
   await expect(page.locator('.free-speak-question')).toHaveText('Reci mi nešto o svojim hobijima.');
   await expect(page.locator('.speak-progress')).toContainText('6 / 65');
 
-  await answer(page,'moje hobije crtati i trčati');
+  await answer(page,'moji hobiji su crtani vježbanje');
   await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
-  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji hobiji su crtanje i trčanje.');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Moji hobiji su crtanje i vježbanje.');
   await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Alternative sentence');
-  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Volim crtati i trčati.');
-  await expect(page.locator('.free-speak-pronunciation-card')).not.toContainText('moje hobije crtati i trčati');
+  await expect(page.locator('.free-speak-pronunciation-card')).toContainText('Volim crtati i vježbati.');
+  await expect(page.locator('.free-speak-pronunciation-card')).not.toContainText('moji hobiji su crtani vježbanje');
   await expect(page.locator('[data-pronunciation]')).toBeVisible();
   await expect(page.locator('[data-alternative]')).toBeVisible();
   await expect(page.locator('[data-next]')).toHaveCount(0);
