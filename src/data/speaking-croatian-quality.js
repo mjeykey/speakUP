@@ -51,26 +51,46 @@ const CROATIAN_MUSIC_SIGNALS=[
 ];
 
 const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
-  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.'],
-  ['zivim u listbonu','Živim u Lisabonu.'],
-  ['zivim u lisbonu','Živim u Lisabonu.'],
-  ['zivim u lizbonu','Živim u Lisabonu.'],
-  ['zivim u lisabonu','Živim u Lisabonu.']
+  ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
 ]);
 
-const lisbonRecommendation=value=>{
-  const text=normalize(value);
-  if(!/^(?:zivim|zivimo)\b/u.test(text))return '';
-  const compact=text.replace(/\s+/g,'');
-  if(!/(?:lisabon|lisbon|lizbon|listbon)/u.test(compact))return '';
-  return 'Živim u Lisabonu.';
+const editDistance=(left,right)=>{
+  const a=String(left||''),b=String(right||'');
+  if(a===b)return 0;
+  if(!a.length)return b.length;
+  if(!b.length)return a.length;
+  let previous=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i+=1){
+    const current=[i];
+    for(let j=1;j<=b.length;j+=1){
+      const cost=a[i-1]===b[j-1]?0:1;
+      current[j]=Math.min(current[j-1]+1,previous[j]+1,previous[j-1]+cost);
+    }
+    previous=current;
+  }
+  return previous[b.length];
 };
 
-const hasLocationRecognitionIssue=value=>{
-  const recommendation=lisbonRecommendation(value);
-  if(!recommendation)return false;
+const lisbonRecognition=value=>{
   const text=normalize(value);
-  return !/^zivim u (?:lisabonu|listbonu|lisbonu|lizbonu)$/u.test(text);
+  const start=text.match(/^(zivim|zivimo)\b/u);
+  if(!start)return null;
+  let tail=text.slice(start[0].length).trim();
+  if(tail.startsWith('u '))tail=tail.slice(2);
+  const compact=tail.replace(/\s+/g,'').replace(/^u(?=l)/u,'');
+  if(!compact)return null;
+  const targets=['lisabonu','lisabona','lisabon','lisbonu','lizbonu','listbonu'];
+  const distance=Math.min(...targets.map(target=>editDistance(compact,target)));
+  if(distance>2)return null;
+  return {text,verb:start[1],compact,distance};
+};
+
+const lisbonRecommendation=value=>lisbonRecognition(value)?'Živim u Lisabonu.':'';
+
+const hasLocationRecognitionIssue=value=>{
+  const match=lisbonRecognition(value);
+  if(!match)return false;
+  return match.text!=='zivim u lisabonu';
 };
 
 const hobbyForm=(noun,infinitive)=>({noun,infinitive});
