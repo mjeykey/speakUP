@@ -8,21 +8,52 @@ const normalize=value=>String(value||'')
   .replace(/\s+/g,' ')
   .trim();
 
+const CROATIAN_MEET_POSSESSIVE={
+  'obitelj':'svojoj obitelji',
+  'najboljem prijatelju ili prijateljici':'svom najboljem prijatelju ili prijateljici',
+  'hobijima':'svojim hobijima',
+  'omiljenoj glazbi':'svojoj omiljenoj glazbi',
+  'omiljenom filmu':'svom omiljenom filmu',
+  'omiljenoj knjizi':'svojoj omiljenoj knjizi',
+  'kućnim ljubimcima':'svojim kućnim ljubimcima',
+  'jezicima':'jezicima koje govoriš',
+  'rodnom gradu':'svom rodnom gradu',
+  'rođendanu':'svom rođendanu',
+  'vikendu':'svom vikendu',
+  'nečemu na što si ponosan':'nečemu na što si ponosan',
+  'poslu iz snova':'svom poslu iz snova',
+  'omiljenoj hrani':'svojoj omiljenoj hrani',
+  'posljednjem odmoru':'svom posljednjem odmoru',
+  'jutarnjoj rutini':'svojoj jutarnjoj rutini',
+  'omiljenom godišnjem dobu':'svom omiljenom godišnjem dobu',
+  'djetinjstvu':'svom djetinjstvu',
+  'susjedstvu':'svom susjedstvu',
+  'planovima putovanja':'svojim planovima putovanja',
+  'omiljenom mjestu':'svom omiljenom mjestu',
+  'svakodnevnom životu':'svom svakodnevnom životu',
+  'osobi kojoj se diviš':'osobi kojoj se diviš',
+  'nečemu što te nasmijava':'nečemu što te nasmijava',
+  'vještini koju želiš naučiti':'vještini koju želiš naučiti',
+  'svom savršenom danu':'svom savršenom danu',
+  'budućim ciljevima':'svojim budućim ciljevima'
+};
+
+const asLocativeTopic=topic=>topic==='obitelj'?'obitelji':topic;
+
 const polishCroatianQuestion=value=>{
   let text=String(value||'');
 
-  // Older generated Meet questions used the plural possessive "svojim"
-  // for every noun, including singular feminine/masculine topics.
+  // Older generated Meet questions used plural "svojim" for every noun.
   if(text.startsWith('Reci mi nešto o svojim ')){
-    text=text.replace('Reci mi nešto o svojim ','Reci mi nešto o ');
-    text=text.replace(/o obitelj\.$/u,'o obitelji.');
+    const topic=text.slice('Reci mi nešto o svojim '.length).replace(/\.$/u,'');
+    const natural=CROATIAN_MEET_POSSESSIVE[topic]||asLocativeTopic(topic);
+    text=`Reci mi nešto o ${natural}.`;
   }
 
-  // The second generated Meet template had the same agreement problem.
+  // The second generated Meet template also mixed number/case agreement.
   if(text.startsWith('Zašto su ti važni ')){
-    let topic=text.slice('Zašto su ti važni '.length).replace(/\?$/u,'');
-    if(topic==='obitelj')topic='obitelji';
-    text=`Zašto ti je važno razgovarati o ${topic}?`;
+    const topic=text.slice('Zašto su ti važni '.length).replace(/\?$/u,'');
+    text=`Zašto ti je važno razgovarati o ${asLocativeTopic(topic)}?`;
   }
 
   return text;
