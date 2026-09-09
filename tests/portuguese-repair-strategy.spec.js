@@ -8,15 +8,25 @@ async function seed(page){
       learningLevel:'l1',mode:'words',progress:{}
     }));
     window.__speechTranscript='';
+    window.__speechTranscripts=[];
     window.SpeechRecognition=class{
       abort(){}
-      start(){const transcript=window.__speechTranscript;window.setTimeout(()=>this.onresult?.({results:[[{transcript}]]}),10);}
+      start(){
+        const transcripts=window.__speechTranscripts?.length?window.__speechTranscripts:[window.__speechTranscript];
+        const alternatives=transcripts.filter(Boolean).map(transcript=>({transcript}));
+        window.setTimeout(()=>this.onresult?.({results:[alternatives]}),10);
+      }
     };
   });
 }
 
 async function answer(page,text){
-  await page.evaluate(value=>{window.__speechTranscript=value;},text);
+  await page.evaluate(value=>{window.__speechTranscript=value;window.__speechTranscripts=[value];},text);
+  await page.locator('[data-answer]').click();
+}
+
+async function answerAlternatives(page,texts){
+  await page.evaluate(values=>{window.__speechTranscript=values[0]||'';window.__speechTranscripts=values;},texts);
   await page.locator('[data-answer]').click();
 }
 
@@ -141,4 +151,46 @@ test('Croatia and Germany family speech-to-text noise is corrected instead of pr
   await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('A minha família vive na Croácia e na Alemanha.');
   await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
   await expect(page.locator('[data-next]')).toHaveCount(0);
+});
+
+test('screenshot family transcription with nada mae is never praised as correct',async({page})=>{
+  await reachFamily(page);
+  await answer(page,'a minha família vive na Croácia E nada mãe');
+
+  await expect(page.locator('.free-speak-transcript')).toContainText('nada mãe');
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-repair-card')).toContainText('Did you mean:');
+  await expect(page.locator('.free-speak-repair-card .free-speak-example')).toHaveText('A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+});
+
+test('family location slot rejects an implausible tail even without a known correction',async({page})=>{
+  await reachFamily(page);
+  await answer(page,'A minha família vive na Croácia e banana');
+
+  await expect(page.locator('.speak-feedback')).not.toContainText('Great');
+  await expect(page.locator('.free-speak-pronunciation-card')).toHaveCount(0);
+  await expect(page.locator('[data-next]')).toHaveCount(0);
+});
+
+test('a valid Croatia and Germany family sentence is accepted',async({page})=>{
+  await reachFamily(page);
+  await answer(page,'A minha família vive na Croácia e na Alemanha.');
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.free-speak-transcript')).toContainText('A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+});
+
+test('a better speech-recognition alternative wins over a broken first alternative',async({page})=>{
+  await reachFamily(page);
+  await answerAlternatives(page,[
+    'a minha família vive na Croácia E nada mãe',
+    'A minha família vive na Croácia e na Alemanha.'
+  ]);
+
+  await expect(page.locator('.free-speak-repair-card')).toHaveCount(0);
+  await expect(page.locator('.free-speak-transcript')).toContainText('A minha família vive na Croácia e na Alemanha.');
+  await expect(page.locator('.speak-feedback')).toContainText('Great');
+  await expect(page.locator('[data-next]')).toBeVisible();
 });
