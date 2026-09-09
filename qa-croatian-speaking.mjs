@@ -11,7 +11,7 @@ const family=polishCroatianSpeakingTurn({
   exampleTranslation:'My family is an important part of my life.'
 },'hr-HR','en-GB');
 check(family.question==='Reci mi nešto o svojoj obitelji.','family question was not corrected');
-check(family.example==='To mi je važan dio života.','generated family example was not polished');
+check(family.example==='Moja obitelj mi je jako važna.','natural family example was not applied');
 
 const music=polishCroatianSpeakingTurn({
   question:'Reci mi nešto o svojim omiljenoj glazbi.',
@@ -36,7 +36,7 @@ const second=polishCroatianSpeakingTurn({
   exampleTranslation:'Family matters to me.'
 },'hr-HR','en-GB');
 check(second.question==='Zašto ti je važno razgovarati o obitelji?','secondary family question was not corrected');
-check(second.example==='Ta mi je tema važna jer obogaćuje moj život.','secondary generated example was not polished');
+check(second.example==='Obitelj mi je važna jer obogaćuje moj život.','secondary family example was not corrected');
 
 const nativeCroatian=polishCroatianSpeakingTurn({
   question:'Tell me about your family.',
@@ -45,6 +45,7 @@ const nativeCroatian=polishCroatianSpeakingTurn({
   exampleTranslation:'Moja obitelj važan je dio mog života.'
 },'en-GB','hr-HR');
 check(nativeCroatian.translation==='Reci mi nešto o svojoj obitelji.','Croatian native-language translation was not corrected');
+check(nativeCroatian.exampleTranslation==='Moja obitelj mi je jako važna.','Croatian native-language example was not corrected');
 
 check(hasObviousCroatianGrammarIssue('moji obitelji živi kao meni','hr-HR'),'the reported malformed answer was not flagged');
 check(hasObviousCroatianGrammarIssue('Moja obitelji živi blizu mene','hr-HR'),'wrong family agreement was not flagged');
