@@ -51,7 +51,13 @@ test('repeated-word family speech asks did-you-mean instead of praising raw spee
   await expect(page.locator('[data-next]')).toHaveCount(0);
 
   await answer(page,'Da');
-  await expect(page.locator('.speak-progress')).toContainText('5 / 65',{timeout:2500});
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
+  await expect(page.locator('.free-speak-pronunciation-card .free-speak-example')).toHaveText('Moja obitelj me uvijek nasmije.');
+  await expect(page.locator('[data-next]')).toBeVisible();
+  await page.waitForTimeout(1700);
+  await expect(page.locator('.speak-progress')).toContainText('4 / 65');
+  await page.locator('[data-next]').click();
+  await expect(page.locator('.speak-progress')).toContainText('5 / 65');
 });
 
 test('saying no to a proposed repair turns into an easy natural family question',async({page})=>{
