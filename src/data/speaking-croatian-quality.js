@@ -90,7 +90,8 @@ const lisbonRecommendation=value=>lisbonRecognition(value)?'Živim u Lisabonu.':
 const hasLocationRecognitionIssue=value=>{
   const match=lisbonRecognition(value);
   if(!match)return false;
-  return match.text!=='zivim u lisabonu';
+  const accepted=/^zivim u (?:lisabonu|listbonu|lisbonu|lizbonu)$/u;
+  return !accepted.test(match.text);
 };
 
 const hobbyForm=(noun,infinitive)=>({noun,infinitive});
