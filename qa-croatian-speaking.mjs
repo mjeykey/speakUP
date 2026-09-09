@@ -23,9 +23,13 @@ const music=polishCroatianSpeakingTurn({
   question:'Reci mi nešto o svojim omiljenoj glazbi.',
   translation:'Tell me about your favourite music.',
   example:'Moja omiljenoj glazbi važan je dio mog života.',
-  exampleTranslation:'My favourite music is an important part of my life.'
+  exampleTranslation:'My favourite music is an important part of my life.',
+  signals:['music','Musik','música','glazbi','musique']
 },'hr-HR','en-GB');
 check(music.question==='Reci mi nešto o svojoj omiljenoj glazbi.','favourite music agreement was not corrected');
+check(music.example==='Moja omiljena glazba važan je dio mog života.','music example should stay specific and grammatical');
+check(isRelevantSpeakingAnswer('Najviše slušam jazz.',music),'music genre should count as on-topic');
+check(isRelevantSpeakingAnswer('Volim rock.',music),'rock should count as on-topic');
 
 const hobbies=polishCroatianSpeakingTurn({
   question:'Reci mi nešto o svojim hobijima.',
@@ -59,6 +63,9 @@ check(hasObviousCroatianGrammarIssue('moji hobi je crtati i izaći vani','hr-HR'
 check(hasObviousCroatianGrammarIssue('moje hobije crtati i trčati','hr-HR'),'reported hobby sentence was not flagged');
 check(hasObviousCroatianGrammarIssue('moji hobiji su crtani vježbanje','hr-HR'),'speech-recognition hobby form from the screenshot was not flagged');
 check(hasObviousCroatianGrammarIssue('moji hobiji su crtati i vježbati','hr-HR'),'infinitives after the hobby noun should be corrected to hobby nouns');
+check(hasObviousCroatianGrammarIssue('Mio glazbi su mi','hr-HR'),'reported malformed music answer was not flagged');
+check(!hasObviousCroatianGrammarIssue('Moja omiljena glazba je jazz.','hr-HR'),'correct music sentence was rejected');
+check(!hasObviousCroatianGrammarIssue('Najviše volim slušati rock.','hr-HR'),'natural music sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i vježbanje.','hr-HR'),'correct exercise hobby sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i trčanje.','hr-HR'),'correct hobby sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Volim crtati i trčati.','hr-HR'),'natural hobby alternative was rejected');
@@ -75,10 +82,12 @@ check(getRecommendedSpeakingSentence('moje hobije plivati i plesati','hr-HR')===
 check(getAlternativeSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Volim plivati i plesati.','generic hobby alternative was not generated');
 check(getRecommendedSpeakingSentence('moji hobiji su crtani vježbanje','hr-HR')==='Moji hobiji su crtanje i vježbanje.','screenshot hobby sentence was not repaired before pronunciation');
 check(getAlternativeSpeakingSentence('moji hobiji su crtani vježbanje','hr-HR')==='Volim crtati i vježbati.','screenshot hobby alternative was not repaired');
-check(getRecommendedSpeakingSentence('moji hobiji su crtati i vježbati','hr-HR')==='Moji hobiji su crtanje i vježbanje.','hobby infinitives were not converted to nouns');
-check(getAlternativeSpeakingSentence('Moji hobiji su crtanje i vježbanje.','hr-HR')==='Volim crtati i vježbati.','correct hobby sentence should still provide a canonical alternative');
+check(getRecommendedSpeakingSentence('Mio glazbi su mi','hr-HR')==='Moja omiljena glazba mi je jako važna.','malformed music sentence was not repaired before pronunciation');
+check(getAlternativeSpeakingSentence('Mio glazbi su mi','hr-HR')==='Volim slušati glazbu.','malformed music sentence should get a safe alternative');
+check(getRecommendedSpeakingSentence('Volim jazz.','hr-HR')==='Moja omiljena glazba je jazz.','genre answer should produce a topic-focused music recommendation');
+check(getAlternativeSpeakingSentence('Volim jazz.','hr-HR')==='Najviše volim slušati jazz.','genre answer should produce a natural music alternative');
 check(getRecommendedSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='Moji roditelji žive blizu mene.','family pronunciation recommendation was not corrected');
-check(getAlternativeSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='','family answer should not invent a hobby alternative');
+check(getAlternativeSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='','family answer should not invent a hobby or music alternative');
 check(getRecommendedSpeakingSentence('I like drawing.','en-GB')==='I like drawing.','non-Croatian recommendation should preserve the sentence');
 
 console.log(`✅ ${checks} Croatian speaking QA checks passed.`);
