@@ -93,6 +93,37 @@ const portugueseOriginSuggestion=(value,turn)=>{
   return normalize(suggestion)===text?'':suggestion;
 };
 
+const isPlausiblePortugueseFamilyCoordination=tail=>{
+  const text=normalize(tail);
+  if(!text)return false;
+  // A second location: "e na Alemanha", "e em Portugal", etc.
+  if(/^(?:em|na|no|nas|nos)\s+[\p{L}][\p{L}\s-]*$/u.test(text))return true;
+  if(/^tambem\s+(?:em|na|no|nas|nos)\s+[\p{L}][\p{L}\s-]*$/u.test(text))return true;
+  // A new clause: "e eu vivo...", "e a minha mãe mora...".
+  if(/^(?:eu|ela|ele|nos|eles|elas|a\s+minha|minha|o\s+meu|meu|os\s+meus|meus|as\s+minhas|minhas)\b.*\b(?:vivo|vive|vivem|moro|mora|moram|sou|somos|e|sao|tenho|tem|gosto|gosta|gostam|trabalho|trabalha|estudo|estuda)\b/u.test(text))return true;
+  // A coordinated predicate: "e é muito unida", "e gosta de viajar".
+  if(/^(?:e|sao|tem|vive|vivem|mora|moram|gosta|gostam|trabalha|trabalham|estuda|estudam)\b/u.test(text))return true;
+  return false;
+};
+
+const hasPortugueseFamilyStructureNoise=(value,turn)=>{
+  if(!isPortugueseFamilyTurn(turn))return false;
+  const text=normalize(value);
+  if(!/\b(?:minha\s+familia|a\s+minha\s+familia)\b/u.test(text))return false;
+
+  // Only apply this slot check to a clear residence construction. We do not
+  // try to grammar-check every possible free family answer here.
+  const residence=text.match(/\b(?:vive|vivem|mora|moram)\b\s+(.+)$/u);
+  if(!residence)return false;
+  const rest=residence[1].trim();
+  if(!/^(?:em|na|no|nas|nos)\s+/u.test(rest))return false;
+
+  const parts=rest.split(/\s+e\s+/u);
+  if(parts.length<2)return false;
+  const tail=parts.slice(1).join(' e ').trim();
+  return !isPlausiblePortugueseFamilyCoordination(tail);
+};
+
 const portugueseFamilySuggestion=(value,turn)=>{
   if(!isPortugueseFamilyTurn(turn))return '';
   const text=normalize(value);
@@ -102,12 +133,37 @@ const portugueseFamilySuggestion=(value,turn)=>{
     || /\blemanha\b/u.test(text)
     || /\balemania\b/u.test(text)
     || /\bmala\s+mae\b/u.test(text)
+    || /\bnada\s+mae\b/u.test(text)
+    || /\bna\s+da\s+mae\b/u.test(text)
+    || /\bnada\s+manha\b/u.test(text)
     || /\b(?:de\s+la|dela)\s+manha\b/u.test(text);
   if(hasFamily&&hasCroatia&&hasGermany){
     return 'A minha família vive na Croácia e na Alemanha.';
   }
   return '';
 };
+
+export function scoreSpeakingCandidate(value,turn,learningLanguage){
+  const family=languageFamily(learningLanguage);
+  const text=normalize(value);
+  if(!text)return 0;
+
+  if(family==='pt'&&isPortugueseFamilyTurn(turn)){
+    if(hasPortugueseFamilyStructureNoise(text,turn))return 5;
+    let score=30;
+    if(/\bminha\s+familia\b/u.test(text))score+=20;
+    if(/\b(?:vive|vivem|mora|moram|e|sao|tem|tenho|gosta|gostam)\b/u.test(text))score+=15;
+    if(/\b(?:em|na|no|nas|nos)\s+[\p{L}]/u.test(text))score+=15;
+    if(/\s+e\s+(?:em|na|no|nas|nos)\s+[\p{L}]/u.test(text))score+=15;
+    return Math.min(100,score);
+  }
+
+  if(family==='pt'&&isPortugueseOriginTurn(turn)){
+    return isWellFormedPortugueseOrigin(text)?90:25;
+  }
+
+  return 50;
+}
 
 export function getSpeakingRepairDecision(value,turn,learningLanguage){
   const family=languageFamily(learningLanguage);
@@ -121,11 +177,11 @@ export function getSpeakingRepairDecision(value,turn,learningLanguage){
     const familySuggestion=portugueseFamilySuggestion(source,turn);
     if(familySuggestion&&normalize(familySuggestion)!==normalize(source))return {mode:'confirm',suggestion:familySuggestion};
 
-    // Same three-stage strategy as Croatian: obvious speech-to-text noise is
-    // never praised as correct. If we cannot safely reconstruct the sentence,
-    // continue with an easier conversational scaffold instead of guessing.
+    // Topic match is not enough: a family residence sentence must also have a
+    // plausible second slot after "e" before it can be praised as correct.
     const suspicious=hasRepeatedNeighbour(source)
-      || hasPortugueseOriginSpeechNoise(source,turn);
+      || hasPortugueseOriginSpeechNoise(source,turn)
+      || hasPortugueseFamilyStructureNoise(source,turn);
     if(suspicious)return {mode:'scaffold',suggestion:''};
 
     return {mode:'accept',suggestion:''};
