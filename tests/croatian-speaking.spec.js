@@ -104,8 +104,8 @@ test('Croatian hobby answer repairs malformed mobile recognition before pronunci
 
 test('Croatian music answer rejects malformed recognition and gives a real music sentence',async({page})=>{
   await reachMusic(page);
-  await expect(page.locator('.free-speak-example-card .free-speak-example')).toHaveText('Moja omiljena glazba važan je dio mog života.');
-  await expect(page.locator('.free-speak-example-card .speak-translation')).toHaveText('My favourite music is an important part of my life.');
+  await expect(page.locator('.free-speak-example-card .free-speak-example')).toHaveText('Najviše volim slušati pop i soul.');
+  await expect(page.locator('.free-speak-example-card .speak-translation')).toHaveText('I like listening to pop and soul most.');
 
   await answer(page,'Mio glazbi su mi');
   await expect(page.locator('.speak-feedback')).toContainText('sentence form looks unusual');
