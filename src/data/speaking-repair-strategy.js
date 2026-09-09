@@ -66,6 +66,15 @@ const isPortugueseOriginTurn=turn=>/^de onde (?:es|e)\??$/u.test(normalize(turn?
 const portugueseOriginSuggestion=(value,turn)=>{
   if(!isPortugueseOriginTurn(turn))return '';
   const text=normalize(value);
+  const turnExample=normalize(turn?.example);
+
+  // Brave can split the sound of "da Alemanha" into text such as
+  // "dela Maia". When the current learning example is Germany, keep
+  // that context instead of silently changing the learner's country to Maia.
+  if(/^sou\s+(?:dela|de\s+la)\s+maia$/u.test(text)&&/\bsou\s+da\s+alemanha\b/u.test(turnExample)){
+    return 'Sou da Alemanha.';
+  }
+
   const match=text.match(/^sou\s+(?:(?:de\s+la)|dela|dele|da|do|de)\s+(.+)$/u);
   if(!match)return '';
   const place=match[1].trim();
