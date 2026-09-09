@@ -57,6 +57,9 @@ check(hasObviousCroatianGrammarIssue('moji obitelji živi kao meni','hr-HR'),'th
 check(hasObviousCroatianGrammarIssue('Moja obitelji živi blizu mene','hr-HR'),'wrong family agreement was not flagged');
 check(hasObviousCroatianGrammarIssue('moji hobi je crtati i izaći vani','hr-HR'),'broken hobby agreement was not flagged');
 check(hasObviousCroatianGrammarIssue('moje hobije crtati i trčati','hr-HR'),'reported hobby sentence was not flagged');
+check(hasObviousCroatianGrammarIssue('moji hobiji su crtani vježbanje','hr-HR'),'speech-recognition hobby form from the screenshot was not flagged');
+check(hasObviousCroatianGrammarIssue('moji hobiji su crtati i vježbati','hr-HR'),'infinitives after the hobby noun should be corrected to hobby nouns');
+check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i vježbanje.','hr-HR'),'correct exercise hobby sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Moji hobiji su crtanje i trčanje.','hr-HR'),'correct hobby sentence was rejected');
 check(!hasObviousCroatianGrammarIssue('Volim crtati i trčati.','hr-HR'),'natural hobby alternative was rejected');
 check(!hasObviousCroatianGrammarIssue('Moja obitelj živi blizu mene.','hr-HR'),'correct nominative family sentence was rejected');
@@ -70,6 +73,10 @@ check(getRecommendedSpeakingSentence('moje hobije crtati i trčati','hr-HR')==='
 check(getAlternativeSpeakingSentence('moje hobije crtati i trčati','hr-HR')==='Volim crtati i trčati.','reported hobby alternative was not generated');
 check(getRecommendedSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Moji hobiji su plivanje i plesanje.','generic hobby recommendation was not corrected');
 check(getAlternativeSpeakingSentence('moje hobije plivati i plesati','hr-HR')==='Volim plivati i plesati.','generic hobby alternative was not generated');
+check(getRecommendedSpeakingSentence('moji hobiji su crtani vježbanje','hr-HR')==='Moji hobiji su crtanje i vježbanje.','screenshot hobby sentence was not repaired before pronunciation');
+check(getAlternativeSpeakingSentence('moji hobiji su crtani vježbanje','hr-HR')==='Volim crtati i vježbati.','screenshot hobby alternative was not repaired');
+check(getRecommendedSpeakingSentence('moji hobiji su crtati i vježbati','hr-HR')==='Moji hobiji su crtanje i vježbanje.','hobby infinitives were not converted to nouns');
+check(getAlternativeSpeakingSentence('Moji hobiji su crtanje i vježbanje.','hr-HR')==='Volim crtati i vježbati.','correct hobby sentence should still provide a canonical alternative');
 check(getRecommendedSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='Moji roditelji žive blizu mene.','family pronunciation recommendation was not corrected');
 check(getAlternativeSpeakingSentence('moji roditelji žive blizu meni','hr-HR')==='','family answer should not invent a hobby alternative');
 check(getRecommendedSpeakingSentence('I like drawing.','en-GB')==='I like drawing.','non-Croatian recommendation should preserve the sentence');
