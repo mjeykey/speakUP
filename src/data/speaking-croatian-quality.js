@@ -1,4 +1,5 @@
 const isCroatian=value=>String(value||'').toLowerCase().startsWith('hr');
+const isPortuguese=value=>String(value||'').toLowerCase().startsWith('pt');
 
 const normalize=value=>String(value||'')
   .toLocaleLowerCase('hr')
@@ -50,6 +51,17 @@ const CROATIAN_MUSIC_SIGNALS=[
   'soul','metal','reggae','klasična glazba','elektronska glazba'
 ];
 
+const PORTUGUESE_BEST_FRIEND_PROFESSIONS=new Map([
+  ['policia',{female:'polícia',male:'polícia'}],
+  ['medico',{female:'médica',male:'médico'}],['medica',{female:'médica',male:'médico'}],
+  ['doutor',{female:'médica',male:'médico'}],['doutora',{female:'médica',male:'médico'}],
+  ['professor',{female:'professora',male:'professor'}],['professora',{female:'professora',male:'professor'}],
+  ['enfermeiro',{female:'enfermeira',male:'enfermeiro'}],['enfermeira',{female:'enfermeira',male:'enfermeiro'}],
+  ['advogado',{female:'advogada',male:'advogado'}],['advogada',{female:'advogada',male:'advogado'}],
+  ['engenheiro',{female:'engenheira',male:'engenheiro'}],['engenheira',{female:'engenheira',male:'engenheiro'}],
+  ['estudante',{female:'estudante',male:'estudante'}]
+]);
+
 const SAFE_PRONUNCIATION_CORRECTIONS=new Map([
   ['moji roditelji zive blizu meni','Moji roditelji žive blizu mene.']
 ]);
@@ -63,6 +75,19 @@ const FAMILY_COUNTRY_LOCATIVES=new Map([
   ['bosni','Bosni'],
   ['portugalu','Portugalu']
 ]);
+
+const portugueseBestFriendRecommendation=value=>{
+  const text=normalize(value);
+  const female=/\b(?:a\s+)?minha\s+melhor\s+amiga\b/u.test(text);
+  const male=/\b(?:o\s+)?meu\s+melhor\s+amigo\b/u.test(text);
+  if(!female&&!male)return '';
+  const professionMatch=text.match(/\b(?:trabalho|trabalha|trabalhar|trabalhando|e)\s+(?:como\s+)?(?:(?:um|uma)\s+)?(policia|medico|medica|doutor|doutora|professor|professora|enfermeiro|enfermeira|advogado|advogada|engenheiro|engenheira|estudante)\b/u);
+  if(!professionMatch)return '';
+  const forms=PORTUGUESE_BEST_FRIEND_PROFESSIONS.get(professionMatch[1]);
+  if(!forms)return '';
+  const subject=female?'A minha melhor amiga':'O meu melhor amigo';
+  return `${subject} é ${female?forms.female:forms.male}.`;
+};
 
 const familyParentsRecommendation=value=>{
   const text=normalize(value);
@@ -187,6 +212,18 @@ const polishCroatianExample=value=>{
   return text;
 };
 
+const polishPortugueseQuestion=value=>{
+  const text=String(value||'');
+  if(text==='Fala-me sobre a tua melhor amigo ou amiga.')return 'Fala-me sobre o teu melhor amigo ou a tua melhor amiga.';
+  return text;
+};
+
+const polishPortugueseExample=value=>{
+  const text=String(value||'');
+  if(text==='A minha melhor amigo ou amiga é uma parte importante da minha vida.')return 'A minha melhor amiga é muito importante para mim.';
+  return text;
+};
+
 const isCroatianFamilyTurn=turn=>{
   const question=String(turn?.question||'');
   return question==='Reci mi nešto o svojoj obitelji.'||question==='Zašto ti je važno razgovarati o obitelji?';
@@ -295,9 +332,17 @@ export function polishCroatianSpeakingTurn(turn,learningLanguage,nativeLanguage)
     if(isCroatianFamilyTurn(next))next.signals=[...(next.signals||[]),...CROATIAN_FAMILY_SIGNALS];
     if(isCroatianMusicTurn(next))next.signals=[...(next.signals||[]),...CROATIAN_MUSIC_SIGNALS];
   }
+  if(isPortuguese(learningLanguage)){
+    next.question=polishPortugueseQuestion(next.question);
+    next.example=polishPortugueseExample(next.example);
+  }
   if(isCroatian(nativeLanguage)){
     next.translation=polishCroatianQuestion(next.translation);
     next.exampleTranslation=polishCroatianExample(next.exampleTranslation);
+  }
+  if(isPortuguese(nativeLanguage)){
+    next.translation=polishPortugueseQuestion(next.translation);
+    next.exampleTranslation=polishPortugueseExample(next.exampleTranslation);
   }
   return next;
 }
@@ -316,7 +361,9 @@ export function hasObviousCroatianGrammarIssue(value,learningLanguage){
 
 export function getRecommendedSpeakingSentence(value,learningLanguage){
   const source=String(value||'').trim();
-  if(!source||!isCroatian(learningLanguage))return source;
+  if(!source)return source;
+  if(isPortuguese(learningLanguage))return portugueseBestFriendRecommendation(source)||source;
+  if(!isCroatian(learningLanguage))return source;
   const exact=SAFE_PRONUNCIATION_CORRECTIONS.get(normalize(source));
   if(exact)return exact;
   return familyParentsRecommendation(source)||lisbonRecommendation(source)||hobbyRecommendation(source)||musicRecommendation(source)||source;
